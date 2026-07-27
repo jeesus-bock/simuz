@@ -272,8 +272,8 @@ func (s *Simulation) TickOnce() {
 
 	processTimeLimitQuests(s)
 
-	// Natural reproduction: adult males and females of the same species
-	// at the same location have a chance to produce offspring each tick.
+	// Natural reproduction: adult male/female pairs of the same species
+	// at the same location have a small chance to produce offspring each tick.
 	processReproduction(s)
 
 	if s.SpawnManager != nil {
@@ -324,9 +324,15 @@ func offerQuestsAtSources(sim *Simulation) {
 }
 
 // processReproduction handles natural births: adult male/female pairs of
-// the same species at the same location have a small chance each tick to
-// produce a child.
+// the same species at the same location have a small chance to produce
+// offspring, gated by cooldown and population caps.
 func processReproduction(s *Simulation) {
+	// Global entity cap to prevent runaway growth
+	const maxEntities = 5000
+	if len(s.Entities.All()) >= maxEntities {
+		return
+	}
+
 	type groupKey struct {
 		locID   string
 		species string
@@ -351,6 +357,16 @@ func processReproduction(s *Simulation) {
 		if key.species == "" {
 			continue
 		}
+
+		// Per-location per-species population cap
+		locCount := 0
+		for _, m := range members {
+			locCount++
+		}
+		if locCount > 20 {
+			continue
+		}
+
 		var males, females []*entity.Entity
 		for _, ent := range members {
 			if ent.Gender == "male" {
@@ -363,13 +379,27 @@ func processReproduction(s *Simulation) {
 			continue
 		}
 
-		// 2% chance per tick for this group to reproduce.
-		if s.RNG.Intn(100) >= 2 {
+		// 0.1% chance per tick for this group to reproduce.
+		if s.RNG.Intn(1000) >= 1 {
 			continue
 		}
 
-		mother := females[s.RNG.Intn(len(females))]
-		father := males[s.RNG.Intn(len(males))]
+		// Find a pair that hasn't reproduced recently
+		var mother, father *entity.Entity
+		for i := 0; i < 10; i++ {
+			candidateMother := females[s.RNG.Intn(len(females))]
+			candidateFather := males[s.RNG.Intn(len(males))]
+			cooldown := uint64(1000)
+			if s.Tick-candidateMother.LastReproductionTick >= cooldown &&
+				s.Tick-candidateFather.LastReproductionTick >= cooldown {
+				mother = candidateMother
+				father = candidateFather
+				break
+			}
+		}
+		if mother == nil || father == nil {
+			continue
+		}
 
 		childAttrs := averageAttrs(mother.Attributes, father.Attributes, s.RNG)
 		childName := generateName(mother.Species, s.RNG)
@@ -393,6 +423,8 @@ func processReproduction(s *Simulation) {
 		}
 
 		s.Entities.Add(child)
+		mother.LastReproductionTick = s.Tick
+		father.LastReproductionTick = s.Tick
 		log.Printf("[birth] %s born to %s and %s at %s", child.Name, mother.Name, father.Name, key.locID)
 		s.Emit(SimEvent{
 			Type:   EventEntityBorn,
@@ -793,9 +825,6 @@ func choosePassiveCombatDestination(sim *Simulation, ent *entity.Entity, sites [
 		} else if loc.ControllingFaction != "" {
 			score -= 10
 		}
-		if current != nil && loc.ParentID == current.ID {
-			score += 2
-		}
 		if home := ent.AI.HomeLocation; home != "" && loc.ID == home {
 			score += 15
 		}
@@ -826,9 +855,6 @@ func shouldAssistNearbyCombat(sim *Simulation, ent *entity.Entity, site nearbyCo
 	chance := 8 + site.Allies*8
 	if ent.AI.Brave {
 		chance += 18
-	}
-	if site.ControllingFaction == ent.Faction {
-		chance += 12
 	}
 	if site.Allies >= site.Hostiles {
 		chance += 10
