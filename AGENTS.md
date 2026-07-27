@@ -23,6 +23,10 @@ Simuz is a Go-based world simulation game with:
 - The locations page keeps its tree/map view selection in browser storage so SSE swaps do not reset it.
 - Use markers, badges, or explicit labels for active-state UI instead of letting ordering imply state.
 
+## Recent Changes
+
+- Changed greeting from "Hello" to "Hey" for a more casual tone (in `show_greeting.py`).
+
 ## Lua / World API
 
 The runtime exposes `self`, `world`, and `util` tables.
