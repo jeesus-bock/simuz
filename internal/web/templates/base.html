@@ -9,6 +9,7 @@
     <script>
     (function() {
         const STORAGE_KEY = 'simuz.location_view';
+        let currentLocationView = 'tree';
 
         function applyLocationView(view) {
             const tree = document.getElementById('tree-view');
@@ -28,25 +29,27 @@
         }
 
         window.setLocationView = function(view) {
+            currentLocationView = view === 'map' ? 'map' : 'tree';
             try {
-                localStorage.setItem(STORAGE_KEY, view);
+                localStorage.setItem(STORAGE_KEY, currentLocationView);
             } catch (e) {}
-            applyLocationView(view);
+            applyLocationView(currentLocationView);
         };
 
         window.restoreLocationView = function() {
-            let view = 'tree';
+            let view = currentLocationView;
             try {
-                view = localStorage.getItem(STORAGE_KEY) || 'tree';
+                view = localStorage.getItem(STORAGE_KEY) || view;
             } catch (e) {}
-            applyLocationView(view);
+            currentLocationView = view === 'map' ? 'map' : 'tree';
+            applyLocationView(currentLocationView);
         };
 
         document.addEventListener('DOMContentLoaded', function() {
             window.restoreLocationView();
         });
 
-        document.addEventListener('htmx:afterSwap', function() {
+        document.addEventListener('htmx:afterSettle', function() {
             window.restoreLocationView();
         });
     })();
