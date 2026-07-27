@@ -911,16 +911,7 @@ func fleeFromCombat(sim *Simulation, ent *entity.Entity, hostiles []*entity.Enti
 		applyCombatMoods(attacker, ent, hit, sim.Tick)
 		if !ent.Alive {
 			combat.LootCorpse(attacker, ent)
-			if attacker.Faction != ent.Faction {
-				combat.ShiftRelation(attacker.Faction, ent.Faction, -1)
-			}
-			if entity.CanLevelUp(attacker.Species) {
-				xp := 5 + ent.Level*3 + ent.MaxHP/10
-				if xp < 1 {
-					xp = 1
-				}
-				attacker.AddXP(xp)
-			}
+			rewardXP(attacker, ent)
 			questKilled(sim, ent)
 			sim.Emit(SimEvent{
 				Type:   EventEntityKilled,
@@ -976,16 +967,7 @@ func retreatOpportunityAttack(sim *Simulation, attacker, defender *entity.Entity
 	applyCombatMoods(attacker, defender, hit, sim.Tick)
 	if !defender.Alive {
 		combat.LootCorpse(attacker, defender)
-		if attacker.Faction != defender.Faction {
-			combat.ShiftRelation(attacker.Faction, defender.Faction, -1)
-		}
-		if entity.CanLevelUp(attacker.Species) {
-			xp := 5 + defender.Level*3 + defender.MaxHP/10
-			if xp < 1 {
-				xp = 1
-			}
-			attacker.AddXP(xp)
-		}
+		rewardXP(attacker, defender)
 		questKilled(sim, defender)
 		sim.Emit(SimEvent{
 			Type:   EventEntityKilled,
