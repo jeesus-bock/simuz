@@ -213,6 +213,29 @@ func chooseFleeDestinationLua(w *world.World, ent *entity.Entity, rng *rand.Rand
 	return ""
 }
 
+func retreatCatchChanceLua(attacker, defender *entity.Entity) int {
+	if attacker == nil || defender == nil {
+		return 0
+	}
+	chance := 15 + (combatPowerScoreLua(attacker)-combatPowerScoreLua(defender))/2
+	if attacker.AI.Brave {
+		chance += 10
+	}
+	if defender.AI.Brave {
+		chance -= 10
+	}
+	if defender.MaxHP > 0 && defender.HP*100 <= defender.MaxHP*35 {
+		chance += 10
+	}
+	if chance < 0 {
+		return 0
+	}
+	if chance > 80 {
+		return 80
+	}
+	return chance
+}
+
 func scriptCombatAttack(w *world.World, em *entity.Manager, qm *quest.Manager, rng *rand.Rand, tick uint64, attacker, target *entity.Entity) bool {
 	if attacker == nil || target == nil || !attacker.Alive || !attacker.Conscious || !target.Alive {
 		return false
@@ -257,6 +280,17 @@ func scriptCombatAttack(w *world.World, em *entity.Manager, qm *quest.Manager, r
 	return hit
 }
 
+func scriptRetreatOpportunityAttack(w *world.World, em *entity.Manager, qm *quest.Manager, rng *rand.Rand, tick uint64, attacker, defender *entity.Entity) bool {
+	if w == nil || attacker == nil || defender == nil || !attacker.Alive || !defender.Alive {
+		return false
+	}
+	chance := retreatCatchChanceLua(attacker, defender)
+	if chance <= 0 || rng.Intn(100) >= chance {
+		return false
+	}
+	return scriptCombatAttack(w, em, qm, rng, tick, attacker, defender)
+}
+
 func scriptFleeCombat(w *world.World, em *entity.Manager, qm *quest.Manager, rng *rand.Rand, tick uint64, ent *entity.Entity, hostiles []*entity.Entity) bool {
 	if w == nil || ent == nil || len(hostiles) == 0 {
 		return false
@@ -294,9 +328,13 @@ func scriptFleeCombat(w *world.World, em *entity.Manager, qm *quest.Manager, rng
 	}
 	if MoveRequest != nil {
 		MoveRequest(ent, destID)
+		if ent.LocationID == destID {
+			scriptRetreatOpportunityAttack(w, em, qm, rng, tick, attacker, ent)
+		}
 		return true
 	}
 	ent.LocationID = destID
+	scriptRetreatOpportunityAttack(w, em, qm, rng, tick, attacker, ent)
 	return true
 }
 

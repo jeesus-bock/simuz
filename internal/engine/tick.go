@@ -783,6 +783,9 @@ func fleeFromCombat(sim *Simulation, ent *entity.Entity, hostiles []*entity.Enti
 	if !fleeStarted(ent, sim, destID) {
 		return true
 	}
+	if ent.LocationID == destID {
+		retreatOpportunityAttack(sim, attacker, ent)
+	}
 	return true
 }
 
@@ -796,6 +799,71 @@ func fleeStarted(ent *entity.Entity, sim *Simulation, destID string) bool {
 		ent.AddMoodModifier("combat_flee", "stressed", 5)
 	}
 	return moveEntityTo(sim, ent, destID)
+}
+
+func retreatOpportunityAttack(sim *Simulation, attacker, defender *entity.Entity) bool {
+	if sim == nil || attacker == nil || defender == nil || !attacker.Alive || !defender.Alive {
+		return false
+	}
+	chance := retreatCatchChance(attacker, defender)
+	if chance <= 0 || sim.RNG.Intn(100) >= chance {
+		return false
+	}
+	combat.SetTick(sim.Tick)
+	combat.ResetWeatherVisibility()
+	if loc := sim.World.Location(defender.LocationID); loc != nil && loc.IsOutside {
+		if wth := sim.World.EffectiveWeather(defender.LocationID); wth != nil {
+			combat.SetWeatherVisibility(wth.VisibilityModifier())
+		}
+	}
+	hit := combat.SimpleAttack(attacker, defender, sim.RNG)
+	combat.ResetWeatherVisibility()
+	applyCombatMoods(attacker, defender, hit, sim.Tick)
+	if !defender.Alive {
+		combat.LootCorpse(attacker, defender)
+		if attacker.Faction != defender.Faction {
+			combat.ShiftRelation(attacker.Faction, defender.Faction, -1)
+		}
+		if entity.CanLevelUp(attacker.Species) {
+			xp := 5 + defender.Level*3 + defender.MaxHP/10
+			if xp < 1 {
+				xp = 1
+			}
+			attacker.AddXP(xp)
+		}
+		questKilled(sim, defender)
+		sim.Emit(SimEvent{
+			Type:   EventEntityKilled,
+			Tick:   sim.Tick,
+			Source: attacker.ID,
+			Data:   map[string]any{"target": defender.ID, "attacker": attacker.ID},
+		})
+		return true
+	}
+	return hit
+}
+
+func retreatCatchChance(attacker, defender *entity.Entity) int {
+	if attacker == nil || defender == nil {
+		return 0
+	}
+	chance := 15 + (combatPowerScore(attacker)-combatPowerScore(defender))/2
+	if attacker.AI.Brave {
+		chance += 10
+	}
+	if defender.AI.Brave {
+		chance -= 10
+	}
+	if defender.MaxHP > 0 && defender.HP*100 <= defender.MaxHP*35 {
+		chance += 10
+	}
+	if chance < 0 {
+		return 0
+	}
+	if chance > 80 {
+		return 80
+	}
+	return chance
 }
 
 func defendPassiveSelf(ent *entity.Entity, sim *Simulation) bool {
