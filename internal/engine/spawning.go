@@ -345,8 +345,28 @@ func clampAttr(v int) int {
 	return v
 }
 
-// GestationTicks defines how many ticks a pregnancy lasts before the baby is born.
-const GestationTicks = 200
+// SpeciesGestationTicks maps species to their gestation period in ticks.
+var SpeciesGestationTicks = map[string]int{
+	"human":  280,
+	"orc":    200,
+	"elf":    300,
+	"goblin": 100,
+	"kobold": 80,
+	"wolf":   60,
+	"bear":   90,
+	"boar":   70,
+	"rat":    30,
+	"spider": 40,
+}
+
+// GestationTicksForSpecies returns the gestation period for a species in ticks.
+// Falls back to 200 ticks if the species has no entry in the map.
+func GestationTicksForSpecies(species string) int {
+	if ticks, ok := SpeciesGestationTicks[species]; ok {
+		return ticks
+	}
+	return 200
+}
 
 // StartPregnancy marks a female entity as pregnant with a given father and start tick.
 func StartPregnancy(mother, father *entity.Entity, tick uint64) {
@@ -373,7 +393,8 @@ func ProcessPregnancy(em *entity.Manager, tick uint64, rng *rand.Rand) {
 		if tick < e.PregnantSinceTick {
 			continue
 		}
-		if tick-e.PregnantSinceTick < GestationTicks {
+		gestation := GestationTicksForSpecies(e.Species)
+		if tick-e.PregnantSinceTick < uint64(gestation) {
 			continue
 		}
 		// Find father entity
