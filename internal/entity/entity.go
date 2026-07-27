@@ -1,6 +1,8 @@
 package entity
 
 import (
+	"math/rand"
+
 	"simuz/internal/items"
 )
 
@@ -116,6 +118,7 @@ func NewEntity(id, name, species string, attrs Attributes, level int) *Entity {
 		ID:         id,
 		Name:       name,
 		Species:    species,
+		Gender:     randomGender(),
 		Level:      level,
 		Age:        0,
 		MaxAge:     SpeciesMaxAge(species),
@@ -135,6 +138,13 @@ func NewEntity(id, name, species string, attrs Attributes, level int) *Entity {
 			Type: "passive",
 		},
 	}
+}
+
+func randomGender() string {
+	if rand.Intn(2) == 0 {
+		return GenderMale
+	}
+	return GenderFemale
 }
 
 func (e *Entity) TakeDamage(amount int) {
