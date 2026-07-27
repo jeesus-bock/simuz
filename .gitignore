@@ -1,5 +1,5 @@
 # Binaries
-simuz
+/simuz
 *.exe
 *.exe~
 *.dll
