@@ -776,7 +776,7 @@ func passiveCombatResponse(ent *entity.Entity, sim *Simulation) bool {
 		if destID := choosePassiveCombatDestination(sim, ent, sites); destID != "" {
 			return moveEntityTo(sim, ent, destID)
 		}
-		return true
+		return false
 	}
 	return false
 }
@@ -957,8 +957,8 @@ func retreatOpportunityAttack(sim *Simulation, attacker, defender *entity.Entity
 	}
 	combat.SetTick(sim.Tick)
 	combat.ResetWeatherVisibility()
-	if loc := sim.World.Location(defender.LocationID); loc != nil && loc.IsOutside {
-		if wth := sim.World.EffectiveWeather(defender.LocationID); wth != nil {
+	if loc := sim.World.Location(attacker.LocationID); loc != nil && loc.IsOutside {
+		if wth := sim.World.EffectiveWeather(attacker.LocationID); wth != nil {
 			combat.SetWeatherVisibility(wth.VisibilityModifier())
 		}
 	}
