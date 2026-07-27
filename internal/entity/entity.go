@@ -1,6 +1,5 @@
 package entity
 
-import "simuz/internal/items"
 import (
 	"math/rand"
 
@@ -157,6 +156,8 @@ func CanReproduce(species string) bool {
 // IsAdult returns true if the entity is old enough to reproduce.
 func (e *Entity) IsAdult() bool {
 	return e.Level >= 3
+}
+
 func randomGender() string {
 	if rand.Intn(2) == 0 {
 		return GenderMale
