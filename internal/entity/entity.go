@@ -1,8 +1,6 @@
 package entity
 
-import (
-	"simuz/internal/items"
-)
+import "simuz/internal/items"
 
 type Position struct {
 	X float64 `json:"x"`
@@ -63,6 +61,7 @@ type Entity struct {
 	ID         string            `json:"id"`
 	Name       string            `json:"name"`
 	Species    string            `json:"species"`
+	Gender     string            `json:"gender"`
 	Level      int               `json:"level"`
 	Age        int               `json:"age"`
 	MaxAge     int               `json:"max_age"`
@@ -105,6 +104,7 @@ func NewEntity(id, name, species string, attrs Attributes, level int) *Entity {
 		ID:         id,
 		Name:       name,
 		Species:    species,
+		Gender:     "",
 		Level:      level,
 		Age:        0,
 		MaxAge:     SpeciesMaxAge(species),
@@ -124,6 +124,22 @@ func NewEntity(id, name, species string, attrs Attributes, level int) *Entity {
 			Type: "passive",
 		},
 	}
+}
+
+// CanReproduce returns true for species that can breed naturally.
+func CanReproduce(species string) bool {
+	switch species {
+	case "human", "orc", "elf", "goblin", "fey", "rat_king",
+		"kobold", "vampire", "hag":
+		return true
+	default:
+		return false
+	}
+}
+
+// IsAdult returns true if the entity is old enough to reproduce.
+func (e *Entity) IsAdult() bool {
+	return e.Level >= 3
 }
 
 func (e *Entity) TakeDamage(amount int) {

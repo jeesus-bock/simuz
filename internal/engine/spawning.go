@@ -101,6 +101,13 @@ func spawnEntity(rule *SpawnRule, em *entity.Manager, tick, idx int, rng *rand.R
 	ent := entity.NewEntity(id, name, rule.Species, attrs, level)
 	ent.LocationID = rule.LocationID
 	ent.Faction = rule.Faction
+	if entity.CanReproduce(rule.Species) {
+		if rng.Intn(2) == 0 {
+			ent.Gender = "male"
+		} else {
+			ent.Gender = "female"
+		}
+	}
 	ent.AI = entity.EntityAI{
 		Type:         "scripted",
 		ScriptIDs:    defaultScripts(rule.Species),
@@ -265,4 +272,26 @@ func defaultSleepCycle(species string) string {
 	default:
 		return "diurnal"
 	}
+}
+
+// averageAttrs returns a child's attributes averaged from both parents with small random variation.
+func averageAttrs(a, b entity.Attributes, rng *rand.Rand) entity.Attributes {
+	return entity.Attributes{
+		STR: clampInt((a.STR+b.STR)/2+rng.Intn(3)-1, 3, 20),
+		DEX: clampInt((a.DEX+b.DEX)/2+rng.Intn(3)-1, 3, 20),
+		CON: clampInt((a.CON+b.CON)/2+rng.Intn(3)-1, 3, 20),
+		INT: clampInt((a.INT+b.INT)/2+rng.Intn(3)-1, 3, 20),
+		WIS: clampInt((a.WIS+b.WIS)/2+rng.Intn(3)-1, 3, 20),
+		CHA: clampInt((a.CHA+b.CHA)/2+rng.Intn(3)-1, 3, 20),
+	}
+}
+
+func clampInt(v, min, max int) int {
+	if v < min {
+		return min
+	}
+	if v > max {
+		return max
+	}
+	return v
 }
