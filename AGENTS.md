@@ -45,6 +45,18 @@ If you need exact signatures or enum values, check the code instead of expanding
 - Entity detail pages show travel routes, active effects, moods, and quests.
 - The map view is SVG-based and should stay stable across refreshes.
 
+## Entity System
+
+- `Entity` has a `Gender` field (`"male"`, `"female"`, `"other"`) and a `Pregnant` flag.
+- Gender constants are defined in `internal/entity/entity.go`: `GenderMale`, `GenderFemale`, `GenderOther`.
+- `NewEntity` assigns a random default gender (`male` or `female`) so spawned entities can mate.
+- Reproduction logic (`CanMate`, `SpawnBaby`) lives in `internal/engine/spawning.go`.
+- `CanMate` checks species compatibility, gender difference, alive status, and pregnancy state.
+- `SpawnBaby` inherits attributes from both parents (averaged with random variance), randomly assigns gender, and marks the female parent as pregnant.
+- `ProcessPregnancy` clears the mother's pregnancy state before calling `SpawnBaby` so `CanMate` won't reject the pair.
+- Pregnancy gestation periods are per-species via `SpeciesGestationTicks` in `internal/engine/spawning.go`; falls back to 200 ticks for unknown species.
+- Immortal/undead species (deity, vampire) cannot reproduce.
+
 ## Editing Guidance
 
 - Prefer `rg` for search and `apply_patch` for edits.
