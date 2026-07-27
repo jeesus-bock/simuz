@@ -1,61 +1,42 @@
 {{define "entity_detail"}}
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Simuz - {{.entity.Name}}</title>
-    <script src="https://unpkg.com/htmx.org@2.0.1"></script>
-    <script src="https://unpkg.com/htmx-ext-sse@2.2.3/sse.js"></script>
-    <style>
-        body { font-family: monospace; margin: 0; padding: 20px; background: #1a1a2e; color: #e0e0e0; }
-        h1 { color: #ffd700; border-bottom: 1px solid #333; padding-bottom: 8px; }
-        h2 { color: #ffd700; font-size: 1.1em; margin-top: 20px; }
-        .card { background: #16213e; border: 1px solid #333; border-radius: 6px; padding: 16px; margin-bottom: 16px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid #333; }
-        th { color: #888; }
-        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.85em; }
-        .alive { background: #2d6a2d; color: #8f8; }
-        .dead { background: #6a2d2d; color: #f88; }
-        .hp-bar { background: #333; height: 16px; border-radius: 4px; overflow: hidden; margin: 4px 0; }
-        .hp-fill { background: #4caf50; height: 100%; transition: width 0.3s; }
-        .fp-fill { background: #2196f3; height: 100%; transition: width 0.3s; }
-        .equip-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        .equip-slot { background: #0f3460; border: 1px solid #444; border-radius: 4px; padding: 8px; text-align: center; font-size: 0.85em; }
-        .equip-slot .slot-label { color: #888; font-size: 0.8em; }
-        .equip-slot .item-name { color: #ffd700; }
-        .equip-slot .empty { color: #555; font-style: italic; }
-        .event-row { padding: 4px 0; border-bottom: 1px solid #222; font-size: 0.9em; }
-        .event-miss { color: #888; }
-        .event-crit_miss { color: #f44; }
-        .event-evade { color: #4af; }
-        .event-hit { color: #fa0; }
-        .event-death { color: #f44; font-weight: bold; }
-        .event-loot { color: #4caf50; }
-        a { color: #64b5f6; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        .back { margin-bottom: 16px; }
-        .inventory-list { list-style: none; padding: 0; }
-        .inventory-list li { padding: 2px 0; }
-        .flags { font-size: 0.85em; color: #aaa; }
-    </style>
-</head>
-<body hx-ext="sse">
-    <div sse-connect="/api/v1/ui/events" sse-swap="tick" hx-swap="innerHTML" hx-get="/api/v1/ui/fragments/entity/{{.entity.ID}}">
+<div hx-ext="sse" sse-connect="/api/v1/ui/events">
+    <div id="entity-detail-content" hx-get="/api/v1/ui/fragments/entity/{{.entity.ID}}" hx-trigger="sse:tick" hx-target="#entity-detail-content" hx-swap="innerHTML">
         {{template "entity_detail_status" .}}
     </div>
-</body>
-</html>
+</div>
 {{end}}
 
 {{define "entity_detail_status"}}
-<div class="back"><a href="/entities">&larr; All Entities</a> | <a href="/combat/{{.entity.LocationID}}">View Combat at {{.loc_name}}</a></div>
-<h1>{{.entity.Name}} <span class="badge {{if .entity.Alive}}alive{{else}}dead{{end}}">{{if .entity.Alive}}Alive{{else}}Dead{{end}}</span><span class="badge {{if .entity.Conscious}}alive{{else}}dead{{end}}" style="margin-left:8px;">{{if .entity.Conscious}}Conscious{{else}}Unconscious{{end}}</span></h1>
+<div class="back" style="margin-bottom:16px;">
+    <a href="/entities" style="color:var(--accent);text-decoration:none;">&larr; All Entities</a> | 
+    <a href="/location/{{.entity.LocationID}}" style="color:var(--accent);text-decoration:none;">Location: {{.loc_name}}</a> | 
+    <a href="/combat/{{.entity.LocationID}}" style="color:var(--accent);text-decoration:none;">Combat at Location</a>
+</div>
 
-<div class="grid">
+<h1 style="color:#ffd700;margin-bottom:16px;display:flex;align-items:center;gap:12px;">
+    {{.entity.Name}}
+    <span style="padding:2px 8px;border-radius:4px;font-size:0.5em;{{if .entity.Alive}}background:#2d6a2d;color:#8f8;{{else}}background:#6a2d2d;color:#f88;{{end}}">
+        {{if .entity.Alive}}Alive{{else}}Dead{{end}}
+    </span>
+    <span style="padding:2px 8px;border-radius:4px;font-size:0.5em;{{if .entity.Conscious}}background:#2d6a2d;color:#8f8;{{else}}background:#6a2d2d;color:#f88;{{end}}">
+        {{if .entity.Conscious}}Conscious{{else}}Unconscious{{end}}
+    </span>
+    {{if .entity.LeashedBy}}
+    <span style="padding:2px 8px;border-radius:4px;font-size:0.5em;background:#b8860b;color:#fff;">
+        Leashed by {{.entity.LeashedBy}}
+    </span>
+    {{end}}
+    {{if .entity.RescueState}}
+    <span style="padding:2px 8px;border-radius:4px;font-size:0.5em;background:#4682b4;color:#fff;">
+        Rescue: {{.entity.RescueState}}
+    </span>
+    {{end}}
+</h1>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
     <div>
         <div class="card">
-            <h2>Identity</h2>
+            <h2>Identity & Status</h2>
             <table>
                 <tr><th>ID</th><td>{{.entity.ID}}</td></tr>
                 <tr><th>Species</th><td>{{.entity.Species}}</td></tr>
@@ -63,17 +44,27 @@
                 <tr><th>Level</th><td>{{.entity.Level}}</td></tr>
                 <tr><th>XP</th><td>{{.entity.XP}} / {{.xp_for_next}}{{if .can_level_up}} <span style="color:#4caf50">(LEVEL UP!)</span>{{end}}</td></tr>
                 <tr><th>Mood</th><td>{{.entity.Mood}}{{if .mood_mods_str}} <span style="color:#888;font-size:0.85em">({{.mood_mods_str}})</span>{{end}}</td></tr>
-                <tr><th>Location</th><td><a href="/location/{{.entity.LocationID}}">{{.loc_name}}</a></td></tr>
+                <tr><th>Location</th><td><a href="/location/{{.entity.LocationID}}" style="color:var(--accent)">{{.loc_name}}</a></td></tr>
                 <tr><th>Home</th><td>{{if .entity.AI.HomeLocation}}{{.entity.AI.HomeLocation}}{{else}}none{{end}}</td></tr>
+                <tr><th>Leashed By</th><td>{{if .entity.LeashedBy}}<a href="/entity/{{.entity.LeashedBy}}" style="color:var(--accent)">{{.entity.LeashedBy}}</a>{{else}}none{{end}}</td></tr>
+                <tr><th>Rescue State</th><td>{{if .entity.RescueState}}{{.entity.RescueState}}{{else}}none{{end}}</td></tr>
             </table>
         </div>
 
         <div class="card">
-            <h2>Health</h2>
-            <div>HP: {{.entity.HP}} / {{.entity.MaxHP}}</div>
-            <div class="hp-bar"><div class="hp-fill" style="width:{{percent .entity.HP .entity.MaxHP}}%"></div></div>
-            <div>FP: {{.entity.FP}} / {{.entity.MaxFP}}</div>
-            <div class="hp-bar"><div class="fp-fill" style="width:{{percent .entity.FP .entity.MaxFP}}%"></div></div>
+            <h2>Vitals</h2>
+            <div style="margin-bottom:8px;">
+                <div>HP: {{.entity.HP}} / {{.entity.MaxHP}}</div>
+                <div class="hp-bar" style="height:14px;background:#333;border-radius:4px;overflow:hidden;margin-top:4px;">
+                    <div style="height:100%;background:#4caf50;width:{{percent .entity.HP .entity.MaxHP}}%"></div>
+                </div>
+            </div>
+            <div>
+                <div>FP: {{.entity.FP}} / {{.entity.MaxFP}}</div>
+                <div class="hp-bar" style="height:14px;background:#333;border-radius:4px;overflow:hidden;margin-top:4px;">
+                    <div style="height:100%;background:#2196f3;width:{{percent .entity.FP .entity.MaxFP}}%"></div>
+                </div>
+            </div>
         </div>
 
         <div class="card">
@@ -85,51 +76,6 @@
                 <tr><th>INT</th><td>{{.entity.Attributes.INT}}{{if ne .entity.Attributes.INT .effective_int}} <span style="color:{{if gt .effective_int .entity.Attributes.INT}}#4caf50{{else}}#e94560{{end}}">({{.effective_int}})</span>{{end}}</td></tr>
                 <tr><th>WIS</th><td>{{.entity.Attributes.WIS}}{{if ne .entity.Attributes.WIS .effective_wis}} <span style="color:{{if gt .effective_wis .entity.Attributes.WIS}}#4caf50{{else}}#e94560{{end}}">({{.effective_wis}})</span>{{end}}</td></tr>
                 <tr><th>CHA</th><td>{{.entity.Attributes.CHA}}{{if ne .entity.Attributes.CHA .effective_cha}} <span style="color:{{if gt .effective_cha .entity.Attributes.CHA}}#4caf50{{else}}#e94560{{end}}">({{.effective_cha}})</span>{{end}}</td></tr>
-            </table>
-        </div>
-    </div>
-
-    <div>
-        <div class="card">
-            <h2>Skills</h2>
-            <table>
-                {{range .skills}}
-                <tr><th>{{.Name | titleStr}}</th><td>{{.Level}} <span style="color:#888;font-size:0.85em">({{.XP}} XP)</span></td></tr>
-                {{end}}
-            </table>
-        </div>
-
-        <div class="card">
-            <h2>Equipment</h2>
-            <div class="equip-grid">
-                {{range .equip_slots}}
-                <div class="equip-slot">
-                    <div class="slot-label">{{.Slot}}</div>
-                    {{if .Item}}<div class="item-name">{{.Item.Def.Name}}</div>{{else}}<div class="empty">empty</div>{{end}}
-                </div>
-                {{end}}
-            </div>
-        </div>
-
-        <div class="card">
-            <h2>Inventory ({{len .entity.Inventory}})</h2>
-            {{if .entity.Inventory}}
-            <ul class="inventory-list">
-                {{range .entity.Inventory}}
-                <li>{{.Def.Name}} ({{.DefID}}){{if .Equipped}} <span style="color:#888">[equipped]</span>{{end}}{{if .Count}} x{{.Count}}{{end}}</li>
-                {{end}}
-            </ul>
-            {{else}}
-            <div style="color:#555">(empty)</div>
-            {{end}}
-        </div>
-
-        <div class="card">
-            <h2>Activity</h2>
-            <table>
-                <tr><th>Type</th><td>{{.entity.Activity.Type}}</td></tr>
-                <tr><th>Since Tick</th><td>{{.entity.Activity.SinceTick}}</td></tr>
-                <tr><th>Until Tick</th><td>{{.entity.Activity.UntilTick}}</td></tr>
             </table>
         </div>
 
@@ -144,33 +90,54 @@
                         {{if .CrashRemaining}}crash {{.CrashRemaining}}t{{else}}{{.BoostRemaining}}t{{end}}
                     </span>
                 </div>
-                {{if .CrashRemaining}}
-                <div style="font-size:0.85em;color:#f88;">STR {{.CrashMod.STR}} DEX {{.CrashMod.DEX}} CON {{.CrashMod.CON}} INT {{.CrashMod.INT}} WIS {{.CrashMod.WIS}} CHA {{.CrashMod.CHA}}</div>
-                {{else}}
-                <div style="font-size:0.85em;color:#8f8;">STR {{.BoostMod.STR}} DEX {{.BoostMod.DEX}} CON {{.BoostMod.CON}} INT {{.BoostMod.INT}} WIS {{.BoostMod.WIS}} CHA {{.BoostMod.CHA}}</div>
-                {{end}}
             </div>
             {{end}}
         </div>
         {{end}}
+    </div>
 
+    <div>
         <div class="card">
-            <h2>AI Config</h2>
+            <h2>Skills</h2>
             <table>
-                <tr><th>Type</th><td>{{.entity.AI.Type}}</td></tr>
-                <tr><th>Scripts</th><td>{{join .entity.AI.ScriptIDs ", "}}</td></tr>
-                <tr><th>FactionID</th><td>{{.entity.AI.FactionID}}</td></tr>
-                <tr><th>Sleep Cycle</th><td>{{.entity.AI.SleepCycle}}</td></tr>
-                <tr><th>Home</th><td>{{if .entity.AI.HomeLocation}}{{.entity.AI.HomeLocation}}{{else}}none{{end}}</td></tr>
+                {{range .skills}}
+                <tr><th>{{.Name | titleStr}}</th><td>{{.Level}} <span style="color:#888;font-size:0.85em">({{.XP}} XP)</span></td></tr>
+                {{end}}
             </table>
         </div>
 
-        {{if .entity.Flags}}
         <div class="card">
-            <h2>Flags</h2>
-            <div class="flags">{{.flags_json}}</div>
+            <h2>Equipment & Inventory</h2>
+            <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:8px;margin-bottom:12px;">
+                {{range .equip_slots}}
+                <div style="background:#0f3460;border:1px solid #444;border-radius:4px;padding:6px;text-align:center;font-size:0.85em;">
+                    <div style="color:#888;font-size:0.8em;">{{.Slot}}</div>
+                    {{if .Item}}<div style="color:#ffd700;">{{.Item.Def.Name}}</div>{{else}}<div style="color:#555;font-style:italic;">empty</div>{{end}}
+                </div>
+                {{end}}
+            </div>
+            <h3>Inventory ({{len .entity.Inventory}})</h3>
+            {{if .entity.Inventory}}
+            <ul style="list-style:none;padding:0;margin-top:6px;">
+                {{range .entity.Inventory}}
+                <li style="padding:2px 0;font-size:0.9em;">{{.Def.Name}} ({{.DefID}}){{if .Equipped}} <span style="color:#888">[equipped]</span>{{end}}{{if .Count}} x{{.Count}}{{end}}</li>
+                {{end}}
+            </ul>
+            {{else}}
+            <div style="color:#555;font-size:0.9em;">(empty)</div>
+            {{end}}
         </div>
-        {{end}}
+
+        <div class="card">
+            <h2>Activity & AI Config</h2>
+            <table>
+                <tr><th>Activity Type</th><td>{{.entity.Activity.Type}}</td></tr>
+                <tr><th>Since / Until Tick</th><td>{{.entity.Activity.SinceTick}} / {{.entity.Activity.UntilTick}}</td></tr>
+                <tr><th>AI Archetype</th><td>{{.entity.AI.Type}}</td></tr>
+                <tr><th>Scripts</th><td>{{join .entity.AI.ScriptIDs ", "}}</td></tr>
+                <tr><th>Sleep Cycle</th><td>{{.entity.AI.SleepCycle}}</td></tr>
+            </table>
+        </div>
 
         {{if .quest_states}}
         <div class="card">
@@ -182,11 +149,6 @@
                     <span style="color:#888;font-size:0.85em;">{{.State}}</span>
                 </div>
                 <div style="font-size:0.85em;color:#888;">Stage: {{.CurrentStage}}</div>
-                {{if .Objectives}}
-                <div style="font-size:0.85em;color:#aaa;">
-                    {{range $key, $value := .Objectives}}{{$key}}: {{$value}} {{end}}
-                </div>
-                {{end}}
             </div>
             {{end}}
         </div>
@@ -195,21 +157,23 @@
 </div>
 
 {{if .combat_events}}
-<div class="card">
-    <h2>Recent Combat Events</h2>
-    {{range .combat_events}}
-    <div class="event-row event-{{.Action}}">
-        <span style="color:#666">#{{.Tick}}</span>
-        {{if eq .AttackerID $.entity.ID}}
-            <strong>{{.AttackerName}}</strong> {{.Action}} <a href="/entity/{{.DefenderID}}">{{.DefenderName}}</a>
-        {{else}}
-            <a href="/entity/{{.AttackerID}}">{{.AttackerName}}</a> {{.Action}} <strong>{{.DefenderName}}</strong>
+<div class="card" style="margin-top:16px;">
+    <h2>Recent Combat Log ({{len .combat_events}} events)</h2>
+    <div style="max-height:300px;overflow-y:auto;font-family:monospace;font-size:0.85rem;">
+        {{range .combat_events}}
+        <div style="padding:4px 0;border-bottom:1px solid #222;">
+            <span style="color:#666">#{{.Tick}}</span>
+            {{if eq .AttackerID $.entity.ID}}
+                <strong style="color:#ffd700">{{.AttackerName}}</strong> {{.Action}} <a href="/entity/{{.DefenderID}}" style="color:var(--accent)">{{.DefenderName}}</a>
+            {{else}}
+                <a href="/entity/{{.AttackerID}}" style="color:var(--accent)">{{.AttackerName}}</a> {{.Action}} <style style="color:#ffd700">{{.DefenderName}}</style>
+            {{end}}
+            {{if .Damage}}<span style="color:#e94560">({{.Damage}} dmg)</span>{{end}}
+            {{if .HPLeft}}<span style="color:#888">[{{.HPLeft}} HP left]</span>{{end}}
+            {{if .Weapon}}<span style="color:#aaa">via {{.Weapon}}</span>{{end}}
+        </div>
         {{end}}
-        {{if .Damage}}({{.Damage}} dmg){{end}}
-        {{if .HPLeft}}[{{.HPLeft}} HP left]{{end}}
-        {{if .Weapon}}via {{.Weapon}}{{end}}
     </div>
-    {{end}}
 </div>
 {{end}}
 {{end}}
