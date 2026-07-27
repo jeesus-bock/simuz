@@ -41,6 +41,13 @@ const (
 	ActivityGather   ActivityType = "gathering"
 )
 
+// Gender represents the biological sex of an entity.
+const (
+	GenderMale   = "male"
+	GenderFemale = "female"
+	GenderOther  = "other"
+)
+
 type EntityActivity struct {
 	Type      ActivityType `json:"type"`
 	SinceTick uint64       `json:"since_tick"`
@@ -63,6 +70,7 @@ type Entity struct {
 	ID         string            `json:"id"`
 	Name       string            `json:"name"`
 	Species    string            `json:"species"`
+	Gender     string            `json:"gender"`
 	Level      int               `json:"level"`
 	Age        int               `json:"age"`
 	MaxAge     int               `json:"max_age"`
@@ -90,6 +98,7 @@ type Entity struct {
 	MoodModifiers []MoodModifier `json:"mood_modifiers,omitempty"`
 	LeashedBy     string         `json:"leashed_by,omitempty"`
 	RescueState   string         `json:"rescue_state,omitempty"`
+	Pregnant    bool             `json:"pregnant,omitempty"`
 }
 
 func NewEntity(id, name, species string, attrs Attributes, level int) *Entity {
