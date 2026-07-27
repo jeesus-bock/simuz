@@ -187,6 +187,17 @@ func (w *World) ChildLocations(parentID string) []*Location {
 	return result
 }
 
+func (w *World) AdjacentLocations(id string) []*Location {
+	ids := w.adjacentLocationIDs(id)
+	result := make([]*Location, 0, len(ids))
+	for _, nextID := range ids {
+		if next := w.locations[nextID]; next != nil {
+			result = append(result, next)
+		}
+	}
+	return result
+}
+
 func (w *World) Route(fromID, toID string) []string {
 	if fromID == "" || toID == "" {
 		return nil

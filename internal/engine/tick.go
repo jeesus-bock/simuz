@@ -66,6 +66,15 @@ type Simulation struct {
 	Traveling    map[string]*world.TravelState
 }
 
+type nearbyCombatSite struct {
+	LocationID         string
+	Hostiles           int
+	Allies             int
+	TotalFactions      int
+	ControllingFaction string
+	ControlStrength    int
+}
+
 func (s *Simulation) RLock()   { s.mu.RLock() }
 func (s *Simulation) RUnlock() { s.mu.RUnlock() }
 func (s *Simulation) Lock()    { s.mu.Lock() }
@@ -351,6 +360,9 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 	}
 
 	if ent.AI.Type == "passive" && shouldDefendPassive(ent) {
+		if passiveCombatResponse(ent, sim) {
+			return
+		}
 		if defendPassiveSelf(ent, sim) {
 			return
 		}
@@ -624,6 +636,149 @@ func shouldDefendPassive(ent *entity.Entity) bool {
 	default:
 		return false
 	}
+}
+
+func nearbyCombatSites(sim *Simulation, ent *entity.Entity) []nearbyCombatSite {
+	if sim == nil || ent == nil {
+		return nil
+	}
+	adjacent := sim.World.AdjacentLocations(ent.LocationID)
+	sites := make([]nearbyCombatSite, 0, len(adjacent))
+	for _, loc := range adjacent {
+		if loc == nil {
+			continue
+		}
+		site := nearbyCombatSite{
+			LocationID:         loc.ID,
+			ControllingFaction: loc.ControllingFaction,
+			ControlStrength:    loc.ControlStrength,
+		}
+		factions := make(map[string]struct{})
+		for _, other := range sim.Entities.ByLocation(loc.ID) {
+			if other == nil || other.ID == ent.ID || !other.Alive || other.Immortal {
+				continue
+			}
+			factions[other.Faction] = struct{}{}
+			if combat.Relation(ent.Faction, other.Faction) == combat.Hostile {
+				site.Hostiles++
+			} else {
+				site.Allies++
+			}
+		}
+		site.TotalFactions = len(factions)
+		if site.Hostiles > 0 && site.TotalFactions >= 2 {
+			sites = append(sites, site)
+		}
+	}
+	return sites
+}
+
+func choosePassiveCombatDestination(sim *Simulation, ent *entity.Entity, sites []nearbyCombatSite) string {
+	if sim == nil || ent == nil {
+		return ""
+	}
+	current := sim.World.Location(ent.LocationID)
+	bestID := ""
+	bestScore := -1 << 30
+	consider := func(loc *world.Location) {
+		if loc == nil || loc.ID == ent.LocationID {
+			return
+		}
+		score := 0
+		siteFound := false
+		for _, site := range sites {
+			if site.LocationID != loc.ID {
+				continue
+			}
+			siteFound = true
+			score -= site.Hostiles * 8
+			score += site.Allies * 4
+			if site.ControllingFaction == ent.Faction {
+				score += 8
+			} else if site.ControllingFaction != "" {
+				score -= 8
+			}
+			break
+		}
+		if !siteFound {
+			score += 12
+		}
+		if loc.ControllingFaction == ent.Faction {
+			score += 10
+		} else if loc.ControllingFaction != "" {
+			score -= 10
+		}
+		if current != nil && loc.ParentID == current.ID {
+			score += 2
+		}
+		if home := ent.AI.HomeLocation; home != "" && loc.ID == home {
+			score += 15
+		}
+		if score > bestScore {
+			bestScore = score
+			bestID = loc.ID
+		}
+	}
+	if home := ent.AI.HomeLocation; home != "" {
+		consider(sim.World.Location(home))
+	}
+	if current != nil && current.ParentID != "" {
+		consider(sim.World.Location(current.ParentID))
+	}
+	for _, loc := range sim.World.AdjacentLocations(ent.LocationID) {
+		consider(loc)
+	}
+	if bestScore <= 0 {
+		return ""
+	}
+	return bestID
+}
+
+func shouldAssistNearbyCombat(sim *Simulation, ent *entity.Entity, site nearbyCombatSite) bool {
+	if sim == nil || ent == nil || site.Hostiles == 0 || site.Allies == 0 {
+		return false
+	}
+	chance := 8 + site.Allies*8
+	if ent.AI.Brave {
+		chance += 18
+	}
+	if site.ControllingFaction == ent.Faction {
+		chance += 12
+	}
+	if site.Allies >= site.Hostiles {
+		chance += 10
+	}
+	if chance > 60 {
+		chance = 60
+	}
+	return sim.RNG.Intn(chance) == 0
+}
+
+func passiveCombatResponse(ent *entity.Entity, sim *Simulation) bool {
+	if sim == nil || ent == nil {
+		return false
+	}
+	sites := nearbyCombatSites(sim, ent)
+	if len(sites) == 0 {
+		return false
+	}
+	current := sim.World.Location(ent.LocationID)
+	lostLocation := current != nil && current.ControllingFaction != "" && current.ControllingFaction != ent.Faction
+	for _, site := range sites {
+		if shouldAssistNearbyCombat(sim, ent, site) {
+			if moveEntityTo(sim, ent, site.LocationID) && ent.LocationID == site.LocationID {
+				defendPassiveSelf(ent, sim)
+			}
+			return true
+		}
+	}
+	if lostLocation || len(sites) > 0 {
+		if destID := choosePassiveCombatDestination(sim, ent, sites); destID != "" {
+			return moveEntityTo(sim, ent, destID)
+		}
+		return true
+	}
+	return false
 }
 
 func combatPowerScore(e *entity.Entity) int {
