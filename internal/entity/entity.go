@@ -104,6 +104,7 @@ type Entity struct {
 	PregnantSinceTick uint64 `json:"pregnant_since_tick,omitempty"`
 	FatherID          string `json:"father_id,omitempty"`
 	Relationships     map[string]EntityRelationship `json:"relationships,omitempty"`
+	LastReproductionTick uint64 `json:"last_reproduction_tick,omitempty"`
 }
 
 func NewEntity(id, name, species string, attrs Attributes, level int) *Entity {
