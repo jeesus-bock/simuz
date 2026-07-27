@@ -295,3 +295,175 @@ func clampInt(v, min, max int) int {
 	}
 	return v
 }
+// CanMate checks whether two entities are compatible for reproduction.
+func CanMate(a, b *entity.Entity) bool {
+	if a == nil || b == nil {
+		return false
+	}
+	if a.Species != b.Species {
+		return false
+	}
+	if a.Gender == b.Gender {
+		return false
+	}
+	if !a.Alive || !b.Alive {
+		return false
+	}
+	if a.Pregnant || b.Pregnant {
+		return false
+	}
+	// Immortal or undead species do not reproduce.
+	if a.Species == "deity" || a.Species == "vampire" {
+		return false
+	}
+	// Prevent incest: entities with a parent-child relationship cannot mate.
+	if rel, ok := a.Relationships[b.ID]; ok {
+		if rel.Type == entity.RelationshipParent || rel.Type == entity.RelationshipChild {
+			return false
+		}
+	}
+	return true
+}
+
+// SpawnBaby creates a new offspring entity from two parents.
+// The caller is responsible for providing a unique ID for the baby.
+func SpawnBaby(parent1, parent2 *entity.Entity, id, babyName string, tick uint64, rng func(int) int) *entity.Entity {
+	if !CanMate(parent1, parent2) {
+		return nil
+	}
+
+	attrs := inheritAttributes(parent1.Attributes, parent2.Attributes, rng)
+	baby := entity.NewEntity(
+		id,
+		babyName,
+		parent1.Species,
+		attrs,
+		1,
+	)
+
+	// Inherit gender randomly from one of the parents
+	if rng(2) == 0 {
+		baby.Gender = parent1.Gender
+	} else {
+		baby.Gender = parent2.Gender
+	}
+
+	// Mark the female parent as pregnant
+	if parent1.Gender == entity.GenderFemale {
+		parent1.Pregnant = true
+	} else if parent2.Gender == entity.GenderFemale {
+		parent2.Pregnant = true
+	}
+
+	// Establish relationships: mate bond and parent-child links
+	parent1.AddRelationship(parent2.ID, entity.RelationshipMate, tick)
+	parent2.AddRelationship(parent1.ID, entity.RelationshipMate, tick)
+	parent1.AddRelationship(baby.ID, entity.RelationshipParent, tick)
+	parent2.AddRelationship(baby.ID, entity.RelationshipParent, tick)
+	baby.AddRelationship(parent1.ID, entity.RelationshipChild, tick)
+	baby.AddRelationship(parent2.ID, entity.RelationshipChild, tick)
+
+	return baby
+}
+
+func inheritAttributes(a, b entity.Attributes, rng func(int) int) entity.Attributes {
+	return entity.Attributes{
+		STR: clampAttr((a.STR+b.STR)/2 + rng(3) - 1),
+		DEX: clampAttr((a.DEX+b.DEX)/2 + rng(3) - 1),
+		CON: clampAttr((a.CON+b.CON)/2 + rng(3) - 1),
+		INT: clampAttr((a.INT+b.INT)/2 + rng(3) - 1),
+		WIS: clampAttr((a.WIS+b.WIS)/2 + rng(3) - 1),
+		CHA: clampAttr((a.CHA+b.CHA)/2 + rng(3) - 1),
+	}
+}
+
+func clampAttr(v int) int {
+	if v < 3 {
+		return 3
+	}
+	if v > 20 {
+		return 20
+	}
+	return v
+}
+
+// SpeciesGestationTicks maps species to their gestation period in ticks.
+var SpeciesGestationTicks = map[string]int{
+	"human":  280,
+	"orc":    200,
+	"elf":    300,
+	"goblin": 100,
+	"kobold": 80,
+	"wolf":   60,
+	"bear":   90,
+	"boar":   70,
+	"rat":    30,
+	"spider": 40,
+}
+
+// GestationTicksForSpecies returns the gestation period for a species in ticks.
+// Falls back to 200 ticks if the species has no entry in the map.
+func GestationTicksForSpecies(species string) int {
+	if ticks, ok := SpeciesGestationTicks[species]; ok {
+		return ticks
+	}
+	return 200
+}
+
+// StartPregnancy marks a female entity as pregnant with a given father and start tick.
+func StartPregnancy(mother, father *entity.Entity, tick uint64) {
+	if mother == nil || father == nil {
+		return
+	}
+	if mother.Gender != entity.GenderFemale {
+		return
+	}
+	if mother.Pregnant {
+		return
+	}
+	mother.Pregnant = true
+	mother.PregnantSinceTick = tick
+	mother.FatherID = father.ID
+}
+
+// ProcessPregnancy checks all entities for completed pregnancies and spawns babies.
+func ProcessPregnancy(em *entity.Manager, tick uint64, rng *rand.Rand) {
+	for _, e := range em.All() {
+		if !e.Pregnant {
+			continue
+		}
+		if tick < e.PregnantSinceTick {
+			continue
+		}
+		gestation := GestationTicksForSpecies(e.Species)
+		if tick-e.PregnantSinceTick < uint64(gestation) {
+			continue
+		}
+		// Find father entity
+		var father *entity.Entity
+		for _, cand := range em.All() {
+			if cand.ID == e.FatherID {
+				father = cand
+				break
+			}
+		}
+		if father == nil {
+			// father not found, clear pregnancy
+			e.Pregnant = false
+			e.PregnantSinceTick = 0
+			e.FatherID = ""
+			continue
+		}
+		// Generate baby ID and name
+		babyName := generateName(e.Species, rng)
+		babyID := fmt.Sprintf("%s_baby_%s_%s_%d", e.Species, babyName, e.LocationID, tick)
+		// Clear pregnancy before spawning so SpawnBaby/CanMate won't reject the pair.
+		e.Pregnant = false
+		e.PregnantSinceTick = 0
+		e.FatherID = ""
+		baby := SpawnBaby(e, father, babyID, babyName, tick, func(n int) int { return rng.Intn(n) })
+		if baby != nil {
+			em.Add(baby)
+		}
+	}
+}
