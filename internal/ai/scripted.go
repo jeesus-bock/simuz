@@ -367,7 +367,7 @@ func passiveCombatResponseLua(w *world.World, em *entity.Manager, ent *entity.En
 			}
 			return true
 		}
-		return true
+		return false
 	}
 	return false
 }
