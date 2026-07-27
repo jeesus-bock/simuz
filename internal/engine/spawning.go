@@ -344,3 +344,63 @@ func clampAttr(v int) int {
 	}
 	return v
 }
+
+// GestationTicks defines how many ticks a pregnancy lasts before the baby is born.
+const GestationTicks = 200
+
+// StartPregnancy marks a female entity as pregnant with a given father and start tick.
+func StartPregnancy(mother, father *entity.Entity, tick uint64) {
+	if mother == nil || father == nil {
+		return
+	}
+	if mother.Gender != entity.GenderFemale {
+		return
+	}
+	if mother.Pregnant {
+		return
+	}
+	mother.Pregnant = true
+	mother.PregnantSinceTick = tick
+	mother.FatherID = father.ID
+}
+
+// ProcessPregnancy checks all entities for completed pregnancies and spawns babies.
+func ProcessPregnancy(em *entity.Manager, tick uint64, rng *rand.Rand) {
+	for _, e := range em.All() {
+		if !e.Pregnant {
+			continue
+		}
+		if tick < e.PregnantSinceTick {
+			continue
+		}
+		if tick-e.PregnantSinceTick < GestationTicks {
+			continue
+		}
+		// Find father entity
+		var father *entity.Entity
+		for _, cand := range em.All() {
+			if cand.ID == e.FatherID {
+				father = cand
+				break
+			}
+		}
+		if father == nil {
+			// father not found, clear pregnancy
+			e.Pregnant = false
+			e.PregnantSinceTick = 0
+			e.FatherID = ""
+			continue
+		}
+		// Generate baby ID and name
+		babyName := generateName(e.Species, rng)
+		babyID := fmt.Sprintf("%s_baby_%s_%s_%d", e.Species, babyName, e.LocationID, tick)
+		baby := SpawnBaby(e, father, babyID, babyName, func(n int) int { return rng.Intn(n) })
+		if baby != nil {
+			em.Add(baby)
+			// Clear pregnancy
+			e.Pregnant = false
+			e.PregnantSinceTick = 0
+			e.FatherID = ""
+		}
+	}
+}

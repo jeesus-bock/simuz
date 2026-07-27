@@ -99,6 +99,8 @@ type Entity struct {
 	LeashedBy     string         `json:"leashed_by,omitempty"`
 	RescueState   string         `json:"rescue_state,omitempty"`
 	Pregnant    bool             `json:"pregnant,omitempty"`
+	PregnantSinceTick uint64 `json:"pregnant_since_tick,omitempty"`
+	FatherID          string `json:"father_id,omitempty"`
 }
 
 func NewEntity(id, name, species string, attrs Attributes, level int) *Entity {
