@@ -75,6 +75,11 @@ The web UI uses Go + Gin + HTMX 2.0.1 + SSE extension. Dashboard, entities, loca
 | `world.steal(target_id, item_def_id)` | `(table)` | Remove item from target's inventory and add to self; `{done=true/false}` |
 | `world.damage_location(attacker_id, amount)` | `(table)` | Deal `amount` damage to all non-friendly entities at attacker's location; `{targets=number}` |
 | `world.heal(target_id, amount)` | `(boolean)` | Heal target entity for `amount` HP (returns true if target exists and alive) |
+| `world.drag_entity(target_id)` | `(boolean)` | Leash/drag target entity so it follows caller's movement |
+| `world.undrag_entity(target_id)` | `(boolean)` | Release leash/drag on target entity |
+| `world.is_leashed([target_id])` | `(boolean, string)` | Check if entity is leashed; returns (is_leashed, dragger_id) |
+| `world.start_rescue(target_id)` | `(boolean)` | Mark target entity's rescue state as "in_progress" |
+| `world.complete_rescue(target_id)` | `(boolean)` | Complete rescue of target entity and release leash |
 
 ### `util` table
 

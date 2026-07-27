@@ -45,6 +45,7 @@ func (s *Simulation) RequestMove(ent *entity.Entity, destID string) bool {
 
 	if s.World.CanInstantMove(ent.LocationID, destID) {
 		ent.LocationID = destID
+		s.moveLeashedEntities(ent, destID)
 		if s.Quests != nil {
 			s.Quests.CheckVisitLocation(ent.ID, destID)
 		}
@@ -56,6 +57,7 @@ func (s *Simulation) RequestMove(ent *entity.Entity, destID string) bool {
 	if fromReg == nil || toReg == nil {
 		// Fallback instant if no region context (realms)
 		ent.LocationID = destID
+		s.moveLeashedEntities(ent, destID)
 		if s.Quests != nil {
 			s.Quests.CheckVisitLocation(ent.ID, destID)
 		}
@@ -63,6 +65,7 @@ func (s *Simulation) RequestMove(ent *entity.Entity, destID string) bool {
 	}
 	if fromReg.ID == toReg.ID {
 		ent.LocationID = destID
+		s.moveLeashedEntities(ent, destID)
 		if s.Quests != nil {
 			s.Quests.CheckVisitLocation(ent.ID, destID)
 		}
@@ -85,6 +88,18 @@ func (s *Simulation) RequestMove(ent *entity.Entity, destID string) bool {
 	return true
 }
 
+func (s *Simulation) moveLeashedEntities(dragger *entity.Entity, destID string) {
+	if dragger == nil || s.Entities == nil {
+		return
+	}
+	for _, e := range s.Entities.All() {
+		if e.Alive && e.LeashedBy == dragger.ID {
+			e.LocationID = destID
+			log.Printf("[leash] %s dragged %s to %s", dragger.Name, e.Name, destID)
+		}
+	}
+}
+
 func processTravel(s *Simulation) {
 	if s.Traveling == nil || len(s.Traveling) == 0 {
 		return
@@ -102,6 +117,7 @@ func processTravel(s *Simulation) {
 		ts.Tick()
 		if ts.Status == world.TravelArrived {
 			ent.LocationID = ts.ToID
+			s.moveLeashedEntities(ent, ts.ToID)
 			ent.Activity = entity.EntityActivity{
 				Type:      entity.ActivityIdle,
 				SinceTick: s.Tick,
