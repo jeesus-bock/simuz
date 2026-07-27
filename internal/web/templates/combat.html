@@ -1,0 +1,48 @@
+{{define "combat"}}
+<div hx-ext="sse" sse-connect="/api/v1/ui/events">
+    <div id="combat-content" hx-get="/api/v1/ui/fragments/combat" hx-trigger="sse:tick" hx-target="#combat-content" hx-swap="innerHTML">
+        {{template "combat_status" .}}
+    </div>
+</div>
+{{end}}
+
+{{define "combat_status"}}
+<div class="card">
+    <h2>Combat Overview</h2>
+    <div class="stat"><span>Tick</span><span>{{.tick}}</span></div>
+    <div class="stat"><span>Time</span><span>{{.time}}</span></div>
+    <div class="stat"><span>Phase</span><span>{{.phase}}</span></div>
+    <div class="stat"><span>Total Entities</span><span>{{.entities}}</span></div>
+</div>
+
+{{if .combat_zones}}
+    <div class="card">
+        <h3 style="color: var(--accent);">Active Combat Zones</h3>
+        {{range .combat_zones}}
+        <div style="padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <a href="/combat/{{.LocationID}}" style="color: var(--accent); text-decoration: none;"><strong>{{.LocationName}}</strong></a>
+            <span style="color: var(--text-dim); font-size: 0.8rem; margin-left: 8px;">{{.LocationID}}</span>
+            <div class="stat"><span>Entities</span><span>{{.EntityCount}}</span></div>
+            <div class="stat"><span>Factions</span><span style="color: var(--accent);">{{join .Factions ", "}}</span></div>
+        </div>
+        {{end}}
+    </div>
+{{else}}
+<div class="card">
+    <p style="color: var(--text-dim);">No multi-faction zones detected.</p>
+</div>
+{{end}}
+
+{{if .combat_log}}
+<div class="card">
+    <h3>Recent Combat Log</h3>
+    <div style="max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; line-height: 1.5;">
+        {{range .combat_log}}
+        <div style="padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.03); color: var(--text-dim);">
+            {{.}}
+        </div>
+        {{end}}
+    </div>
+</div>
+{{end}}
+{{end}}

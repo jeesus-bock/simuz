@@ -1,0 +1,31 @@
+# Binaries
+simuz
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+bin/
+
+# SQLite Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment and Local Configs
+.env
+.env.local
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# App data / temporary artifacts
+.gemini/
+tmp/

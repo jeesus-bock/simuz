@@ -1,0 +1,12 @@
+{{define "combat_log"}}
+<div class="card">
+    <h2>Combat Log (Full)</h2>
+    <div style="max-height: 600px; overflow-y: auto; font-family: monospace; font-size: 0.85rem; line-height: 1.4; color: var(--text-dim);">
+        {{range .combat_log}}
+        <div style="padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.03);">
+            {{.}}
+        </div>
+        {{end}}
+    </div>
+</div>
+{{end}}

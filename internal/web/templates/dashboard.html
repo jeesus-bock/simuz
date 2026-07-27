@@ -1,0 +1,17 @@
+{{define "dashboard"}}
+<div hx-ext="sse" sse-connect="/api/v1/ui/events">
+    <div class="card" id="dashboard-stats" hx-get="/api/v1/ui/fragments/dashboard" hx-trigger="sse:tick" hx-target="#dashboard-stats" hx-swap="innerHTML">
+        {{template "dashboard_stats" .}}
+    </div>
+</div>
+{{end}}
+
+{{define "dashboard_stats"}}
+<h2>World State</h2>
+<div class="stat"><span>Tick</span><span>{{.tick}}</span></div>
+<div class="stat"><span>Time</span><span>{{.time}}</span></div>
+<div class="stat"><span>Phase</span><span>{{.phase}}</span></div>
+<div class="stat"><span>Season</span><span>{{.season}}</span></div>
+<div class="stat"><span>Entities</span><span>{{.entities}}</span></div>
+<div class="stat"><span>Locations</span><span>{{.locations}}</span></div>
+{{end}}

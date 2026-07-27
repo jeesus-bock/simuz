@@ -1,0 +1,42 @@
+{{define "ai"}}
+<div hx-ext="sse" sse-connect="/api/v1/ui/events">
+    <div id="ai-content" hx-get="/api/v1/ui/fragments/ai" hx-trigger="sse:tick" hx-target="#ai-content" hx-swap="innerHTML">
+        {{template "ai_status" .}}
+    </div>
+</div>
+{{end}}
+
+{{define "ai_status"}}
+<div class="card">
+    <h2>AI Entities ({{len .entities_list}})</h2>
+    <div class="stat"><span>Tick</span><span>{{.tick}}</span></div>
+</div>
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Species</th>
+                <th>Activity</th>
+                <th>AI Type</th>
+                <th>Faction</th>
+                <th>Location</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .entities_list}}
+            <tr>
+                <td>{{.Name}}</td>
+                <td>{{.Species}}</td>
+                <td style="font-size:0.85rem;color:var(--text-dim)">{{.Activity.Type}}</td>
+                <td>{{.AI.Type}}</td>
+                <td>{{.Faction}}</td>
+                <td>{{.LocationID}}</td>
+            </tr>
+            {{else}}
+            <tr><td colspan="5">No AI entities found.</td></tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+{{end}}

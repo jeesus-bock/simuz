@@ -1,0 +1,46 @@
+{{define "quests"}}
+<div hx-ext="sse" sse-connect="/api/v1/ui/events">
+    <div id="quests-content" hx-get="/api/v1/ui/fragments/quests" hx-trigger="sse:tick" hx-target="#quests-content" hx-swap="innerHTML">
+        {{template "quests_list" .}}
+    </div>
+</div>
+{{end}}
+
+{{define "quests_list"}}
+<div class="card">
+    <h2>Quests ({{len .quest_defs}})</h2>
+    <div class="stat"><span>Tick</span><span>{{.tick}}</span></div>
+</div>
+{{range .quest_defs}}
+<div class="card">
+    <h3>{{.Title}}</h3>
+    <div class="stat"><span>Level</span><span>{{.Level}}</span></div>
+    <div class="stat"><span>Type</span><span>{{.Type}}</span></div>
+    <p style="margin-top: 8px; color: var(--text-dim);">{{.Description}}</p>
+    {{if .Source}}
+    <div class="stat" style="margin-top: 4px;"><span>Source</span><span>{{.Source.NPCID}}</span></div>
+    {{end}}
+    <div style="margin-top: 8px;">
+        <strong>Stages:</strong>
+        <ul style="margin: 4px 0 0 16px; color: var(--text-dim); font-size: 0.9rem;">
+        {{range .Stages}}
+            <li>{{.Name}}: {{.Description}}</li>
+        {{end}}
+        </ul>
+    </div>
+    {{if .Rewards}}
+    <div style="margin-top: 8px;">
+        <strong>Rewards:</strong>
+        <span style="color: var(--text-dim); font-size: 0.9rem;">
+            {{if .Rewards.Experience}}{{.Rewards.Experience}} XP {{end}}
+            {{if .Rewards.Gold}}{{.Rewards.Gold}} gold{{end}}
+        </span>
+    </div>
+    {{end}}
+</div>
+{{else}}
+<div class="card">
+    <p>No quests available.</p>
+</div>
+{{end}}
+{{end}}
