@@ -35,6 +35,25 @@ func (s *Simulation) RequestMove(ent *entity.Entity, destID string) bool {
 		return true
 	}
 
+	fromDivine := s.World.IsDivineRealm(ent.LocationID)
+	toDivine := s.World.IsDivineRealm(destID)
+	if (fromDivine || toDivine) && ent.Species != "deity" && ent.Faction != "deity" {
+		return false
+	}
+	if fromDivine || toDivine {
+		fromID := ent.LocationID
+		if s.Traveling != nil {
+			delete(s.Traveling, ent.ID)
+		}
+		ent.LocationID = destID
+		s.moveLeashedEntities(ent, destID)
+		if s.Quests != nil {
+			s.Quests.CheckVisitLocation(ent.ID, destID)
+		}
+		log.Printf("[travel] %s teleported %s → %s", ent.Name, fromID, destID)
+		return true
+	}
+
 	route := s.World.Route(ent.LocationID, destID)
 	if len(route) >= 2 {
 		if len(route) == 2 && s.World.CanInstantMove(ent.LocationID, destID) {
