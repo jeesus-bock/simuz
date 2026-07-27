@@ -165,6 +165,9 @@ local wth = world.weather()
 if world.defend_self and world.defend_self() then
     return
 end
+if world.avoid_combat and world.avoid_combat() then
+    return
+end
 
 if phase == "dawn" then
     return_to_farm()
