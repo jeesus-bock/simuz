@@ -35,28 +35,33 @@ func (s *Simulation) RequestMove(ent *entity.Entity, destID string) bool {
 		return true
 	}
 
-	fromDivine := s.World.IsDivineRealm(ent.LocationID)
+	// Mortals cannot move TO divine realms, but can move FROM them (escape).
+	// This allows mortals who somehow end up in divine realms to leave.
 	toDivine := s.World.IsDivineRealm(destID)
-	if (fromDivine || toDivine) && ent.Species != "deity" && ent.Faction != "deity" {
+	if toDivine && ent.Species != "deity" && ent.Faction != "deity" {
 		return false
 	}
-	if fromDivine || toDivine {
-		fromID := ent.LocationID
-		if s.Traveling != nil {
-			delete(s.Traveling, ent.ID)
+
+	// If already in a divine realm, allow movement to any mortal location
+	fromDivine := s.World.IsDivineRealm(ent.LocationID)
+	if fromDivine && ent.Species != "deity" && ent.Faction != "deity" {
+		// Allow escape to mortal locations
+		if !toDivine {
+			ent.LocationID = destID
+			s.moveLeashedEntities(ent, destID)
+			if s.Quests != nil {
+				s.Quests.CheckVisitLocation(ent.ID, destID)
+			}
+			log.Printf("[travel] %s escaped from divine realm to %s", ent.Name, destID)
+			return true
 		}
-		ent.LocationID = destID
-		s.moveLeashedEntities(ent, destID)
-		if s.Quests != nil {
-			s.Quests.CheckVisitLocation(ent.ID, destID)
-		}
-		log.Printf("[travel] %s teleported %s → %s", ent.Name, fromID, destID)
-		return true
+		// Still block movement to other divine realms
+		return false
 	}
 
 	route := s.World.Route(ent.LocationID, destID)
 	if len(route) >= 2 {
-		// Mortal entities cannot travel through divine realms at all.
+		// Mortals cannot travel through divine realms at all.
 		// Block the request if any intermediate node in the route is a divine realm.
 		if ent.Species != "deity" && ent.Faction != "deity" {
 			for _, locID := range route {
@@ -179,8 +184,8 @@ func processTravel(s *Simulation) {
 			nextIdx := ts.RouteIndex + 1
 			nextID := ts.Route[nextIdx]
 
-			// Mortal entities cannot enter divine realms even mid-travel.
-			// If the next step is a divine realm, abort the travel.
+			// Mortals cannot enter divine realms mid-travel.
+			// If the next step is a divine realm, abort the travel and let them stay put.
 			if ent.Species != "deity" && ent.Faction != "deity" && s.World.IsDivineRealm(nextID) {
 				ts.Status = world.TravelArrived
 				ent.Activity = entity.EntityActivity{
