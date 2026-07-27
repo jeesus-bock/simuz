@@ -944,6 +944,79 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 		return 1
 	}))
 
+	worldTbl.RawSetString("drag_entity", L.NewFunction(func(L *lua.LState) int {
+		targetID := L.ToString(1)
+		target := em.Get(targetID)
+		if target == nil || !target.Alive {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		target.LeashedBy = ent.ID
+		log.Printf("[lua] %s started dragging/leashing %s", ent.Name, target.Name)
+		L.Push(lua.LTrue)
+		return 1
+	}))
+
+	worldTbl.RawSetString("undrag_entity", L.NewFunction(func(L *lua.LState) int {
+		targetID := L.ToString(1)
+		target := em.Get(targetID)
+		if target == nil {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		if target.LeashedBy == ent.ID || targetID == "" {
+			target.LeashedBy = ""
+			log.Printf("[lua] %s released drag on %s", ent.Name, target.Name)
+			L.Push(lua.LTrue)
+			return 1
+		}
+		L.Push(lua.LFalse)
+		return 1
+	}))
+
+	worldTbl.RawSetString("is_leashed", L.NewFunction(func(L *lua.LState) int {
+		targetID := ent.ID
+		if L.GetTop() >= 1 && L.Get(1) != lua.LNil {
+			targetID = L.ToString(1)
+		}
+		target := em.Get(targetID)
+		if target == nil || target.LeashedBy == "" {
+			L.Push(lua.LFalse)
+			L.Push(lua.LNil)
+			return 2
+		}
+		L.Push(lua.LTrue)
+		L.Push(lua.LString(target.LeashedBy))
+		return 2
+	}))
+
+	worldTbl.RawSetString("start_rescue", L.NewFunction(func(L *lua.LState) int {
+		targetID := L.ToString(1)
+		target := em.Get(targetID)
+		if target == nil || !target.Alive {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		target.RescueState = "in_progress"
+		log.Printf("[lua] %s started rescue of %s", ent.Name, target.Name)
+		L.Push(lua.LTrue)
+		return 1
+	}))
+
+	worldTbl.RawSetString("complete_rescue", L.NewFunction(func(L *lua.LState) int {
+		targetID := L.ToString(1)
+		target := em.Get(targetID)
+		if target == nil {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		target.RescueState = "completed"
+		target.LeashedBy = ""
+		log.Printf("[lua] %s completed rescue of %s", ent.Name, target.Name)
+		L.Push(lua.LTrue)
+		return 1
+	}))
+
 	L.SetGlobal("world", worldTbl)
 }
 

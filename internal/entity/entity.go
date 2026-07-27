@@ -87,6 +87,8 @@ type Entity struct {
 	Flags      map[string]any    `json:"flags,omitempty"`
 	Mood       string            `json:"mood,omitempty"`
 	MoodModifiers []MoodModifier `json:"mood_modifiers,omitempty"`
+	LeashedBy     string         `json:"leashed_by,omitempty"`
+	RescueState   string         `json:"rescue_state,omitempty"`
 }
 
 func NewEntity(id, name, species string, attrs Attributes, level int) *Entity {
