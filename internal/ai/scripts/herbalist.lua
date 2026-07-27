@@ -98,6 +98,9 @@ local function do_tick()
     if world.defend_self and world.defend_self() then
         return
     end
+    if world.avoid_combat and world.avoid_combat() then
+        return
+    end
 
     if phase == "night" or phase == "dusk" then
         if self.home and self.loc_id ~= self.home then

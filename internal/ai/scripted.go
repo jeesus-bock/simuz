@@ -213,6 +213,188 @@ func chooseFleeDestinationLua(w *world.World, ent *entity.Entity, rng *rand.Rand
 	return ""
 }
 
+type luaNearbyCombatSite struct {
+	LocationID         string
+	Hostiles           int
+	Allies             int
+	TotalFactions      int
+	ControllingFaction string
+	ControlStrength    int
+}
+
+func nearbyCombatSitesLua(w *world.World, em *entity.Manager, ent *entity.Entity) []luaNearbyCombatSite {
+	if w == nil || em == nil || ent == nil {
+		return nil
+	}
+	adjacent := w.AdjacentLocations(ent.LocationID)
+	sites := make([]luaNearbyCombatSite, 0, len(adjacent))
+	for _, loc := range adjacent {
+		if loc == nil {
+			continue
+		}
+		site := luaNearbyCombatSite{
+			LocationID:         loc.ID,
+			ControllingFaction: loc.ControllingFaction,
+			ControlStrength:    loc.ControlStrength,
+		}
+		factions := make(map[string]struct{})
+		for _, other := range em.ByLocation(loc.ID) {
+			if other == nil || other.ID == ent.ID || !other.Alive || other.Immortal {
+				continue
+			}
+			factions[other.Faction] = struct{}{}
+			if combat.Relation(ent.Faction, other.Faction) == combat.Hostile {
+				site.Hostiles++
+			} else {
+				site.Allies++
+			}
+		}
+		site.TotalFactions = len(factions)
+		if site.Hostiles > 0 && site.TotalFactions >= 2 {
+			sites = append(sites, site)
+		}
+	}
+	return sites
+}
+
+func choosePassiveCombatDestinationLua(w *world.World, ent *entity.Entity, sites []luaNearbyCombatSite) string {
+	if w == nil || ent == nil {
+		return ""
+	}
+	current := w.Location(ent.LocationID)
+	bestID := ""
+	bestScore := -1 << 30
+	consider := func(loc *world.Location) {
+		if loc == nil || loc.ID == ent.LocationID {
+			return
+		}
+		score := 0
+		siteFound := false
+		for _, site := range sites {
+			if site.LocationID != loc.ID {
+				continue
+			}
+			siteFound = true
+			score -= site.Hostiles * 8
+			score += site.Allies * 4
+			if site.ControllingFaction == ent.Faction {
+				score += 8
+			} else if site.ControllingFaction != "" {
+				score -= 8
+			}
+			break
+		}
+		if !siteFound {
+			score += 12
+		}
+		if loc.ControllingFaction == ent.Faction {
+			score += 10
+		} else if loc.ControllingFaction != "" {
+			score -= 10
+		}
+		if current != nil && loc.ParentID == current.ID {
+			score += 2
+		}
+		if home := ent.AI.HomeLocation; home != "" && loc.ID == home {
+			score += 15
+		}
+		if score > bestScore {
+			bestScore = score
+			bestID = loc.ID
+		}
+	}
+	if home := ent.AI.HomeLocation; home != "" {
+		consider(w.Location(home))
+	}
+	if current != nil && current.ParentID != "" {
+		consider(w.Location(current.ParentID))
+	}
+	for _, loc := range w.AdjacentLocations(ent.LocationID) {
+		consider(loc)
+	}
+	if bestScore <= 0 {
+		return ""
+	}
+	return bestID
+}
+
+func shouldAssistNearbyCombatLua(rng *rand.Rand, ent *entity.Entity, site luaNearbyCombatSite) bool {
+	if rng == nil || ent == nil || site.Hostiles == 0 || site.Allies == 0 {
+		return false
+	}
+	chance := 8 + site.Allies*8
+	if ent.AI.Brave {
+		chance += 18
+	}
+	if site.ControllingFaction == ent.Faction {
+		chance += 12
+	}
+	if site.Allies >= site.Hostiles {
+		chance += 10
+	}
+	if chance > 60 {
+		chance = 60
+	}
+	return rng.Intn(chance) == 0
+}
+
+func passiveCombatResponseLua(w *world.World, em *entity.Manager, ent *entity.Entity, rng *rand.Rand) bool {
+	if w == nil || em == nil || ent == nil {
+		return false
+	}
+	sites := nearbyCombatSitesLua(w, em, ent)
+	if len(sites) == 0 {
+		return false
+	}
+	current := w.Location(ent.LocationID)
+	lostLocation := current != nil && current.ControllingFaction != "" && current.ControllingFaction != ent.Faction
+	for _, site := range sites {
+		if shouldAssistNearbyCombatLua(rng, ent, site) {
+			if MoveRequest != nil {
+				MoveRequest(ent, site.LocationID)
+			} else {
+				ent.LocationID = site.LocationID
+			}
+			return true
+		}
+	}
+	if lostLocation || len(sites) > 0 {
+		if destID := choosePassiveCombatDestinationLua(w, ent, sites); destID != "" {
+			if MoveRequest != nil {
+				MoveRequest(ent, destID)
+			} else {
+				ent.LocationID = destID
+			}
+			return true
+		}
+		return true
+	}
+	return false
+}
+
+func retreatCatchChanceLua(attacker, defender *entity.Entity) int {
+	if attacker == nil || defender == nil {
+		return 0
+	}
+	chance := 15 + (combatPowerScoreLua(attacker)-combatPowerScoreLua(defender))/2
+	if attacker.AI.Brave {
+		chance += 10
+	}
+	if defender.AI.Brave {
+		chance -= 10
+	}
+	if defender.MaxHP > 0 && defender.HP*100 <= defender.MaxHP*35 {
+		chance += 10
+	}
+	if chance < 0 {
+		return 0
+	}
+	if chance > 80 {
+		return 80
+	}
+	return chance
+}
+
 func scriptCombatAttack(w *world.World, em *entity.Manager, qm *quest.Manager, rng *rand.Rand, tick uint64, attacker, target *entity.Entity) bool {
 	if attacker == nil || target == nil || !attacker.Alive || !attacker.Conscious || !target.Alive {
 		return false
@@ -257,6 +439,17 @@ func scriptCombatAttack(w *world.World, em *entity.Manager, qm *quest.Manager, r
 	return hit
 }
 
+func scriptRetreatOpportunityAttack(w *world.World, em *entity.Manager, qm *quest.Manager, rng *rand.Rand, tick uint64, attacker, defender *entity.Entity) bool {
+	if w == nil || attacker == nil || defender == nil || !attacker.Alive || !defender.Alive {
+		return false
+	}
+	chance := retreatCatchChanceLua(attacker, defender)
+	if chance <= 0 || rng.Intn(100) >= chance {
+		return false
+	}
+	return scriptCombatAttack(w, em, qm, rng, tick, attacker, defender)
+}
+
 func scriptFleeCombat(w *world.World, em *entity.Manager, qm *quest.Manager, rng *rand.Rand, tick uint64, ent *entity.Entity, hostiles []*entity.Entity) bool {
 	if w == nil || ent == nil || len(hostiles) == 0 {
 		return false
@@ -294,9 +487,13 @@ func scriptFleeCombat(w *world.World, em *entity.Manager, qm *quest.Manager, rng
 	}
 	if MoveRequest != nil {
 		MoveRequest(ent, destID)
+		if ent.LocationID == destID {
+			scriptRetreatOpportunityAttack(w, em, qm, rng, tick, attacker, ent)
+		}
 		return true
 	}
 	ent.LocationID = destID
+	scriptRetreatOpportunityAttack(w, em, qm, rng, tick, attacker, ent)
 	return true
 }
 
@@ -566,6 +763,11 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 		}
 		target := hostiles[0]
 		L.Push(lua.LBool(scriptCombatAttack(w, em, qm, rng, tm.Tick, ent, target)))
+		return 1
+	}))
+
+	worldTbl.RawSetString("avoid_combat", L.NewFunction(func(L *lua.LState) int {
+		L.Push(lua.LBool(passiveCombatResponseLua(w, em, ent, rng)))
 		return 1
 	}))
 
