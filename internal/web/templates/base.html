@@ -6,6 +6,51 @@
     <title>{{.title}} - Simuz</title>
     <script src="https://unpkg.com/htmx.org@2.0.1"></script>
     <script src="https://unpkg.com/htmx-ext-sse@2.2.3/dist/sse.min.js"></script>
+    <script>
+    (function() {
+        const STORAGE_KEY = 'simuz.location_view';
+
+        function applyLocationView(view) {
+            const tree = document.getElementById('tree-view');
+            const map = document.getElementById('map-view');
+            const treeBtn = document.getElementById('tree-btn');
+            const mapBtn = document.getElementById('map-btn');
+            if (!tree || !map) {
+                return;
+            }
+            const selected = view === 'map' ? 'map' : 'tree';
+            tree.style.display = selected === 'tree' ? 'block' : 'none';
+            map.style.display = selected === 'map' ? 'block' : 'none';
+            if (treeBtn && mapBtn) {
+                treeBtn.style.color = selected === 'tree' ? 'var(--accent)' : 'var(--text-dim)';
+                mapBtn.style.color = selected === 'map' ? 'var(--accent)' : 'var(--text-dim)';
+            }
+        }
+
+        window.setLocationView = function(view) {
+            try {
+                localStorage.setItem(STORAGE_KEY, view);
+            } catch (e) {}
+            applyLocationView(view);
+        };
+
+        window.restoreLocationView = function() {
+            let view = 'tree';
+            try {
+                view = localStorage.getItem(STORAGE_KEY) || 'tree';
+            } catch (e) {}
+            applyLocationView(view);
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            window.restoreLocationView();
+        });
+
+        document.addEventListener('htmx:afterSwap', function() {
+            window.restoreLocationView();
+        });
+    })();
+    </script>
     <style>
 :root { --bg: #1a1a2e; --surface: #16213e; --accent: #e94560; --text: #eee; --text-dim: #999; }
 * { box-sizing: border-box; margin: 0; padding: 0; }

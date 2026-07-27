@@ -2,6 +2,8 @@ package quest
 
 import (
 	"log"
+	"sort"
+	"strconv"
 	"sync"
 )
 
@@ -13,6 +15,15 @@ type EntityQuestState struct {
 	Objectives     map[string]int `json:"objectives,omitempty"`
 	Variables      map[string]any `json:"variables,omitempty"`
 	AcceptedTick   uint64         `json:"accepted_tick,omitempty"`
+	Activity       []QuestActivity `json:"activity,omitempty"`
+}
+
+// QuestActivity records an observable decision or outcome while an entity is
+// working on a quest. It is kept on the quest state so it can be shown in the
+// UI and survive a save/load cycle.
+type QuestActivity struct {
+	Tick    uint64 `json:"tick"`
+	Message string `json:"message"`
 }
 
 type CompleteFn func(entityID, questID string, rewards *Rewards)
@@ -22,6 +33,13 @@ type Manager struct {
 	defs            map[string]*QuestDef
 	states          map[string]map[string]*EntityQuestState
 	OnQuestComplete CompleteFn
+	currentTick     uint64
+}
+
+func (m *Manager) SetTick(tick uint64) {
+	m.mu.Lock()
+	m.currentTick = tick
+	m.mu.Unlock()
 }
 
 func NewManager() *Manager {
@@ -50,6 +68,12 @@ func (m *Manager) AllDefs() []*QuestDef {
 	for _, def := range m.defs {
 		result = append(result, def)
 	}
+	sort.SliceStable(result, func(i, j int) bool {
+		if result[i].ID != result[j].ID {
+			return result[i].ID < result[j].ID
+		}
+		return result[i].Title < result[j].Title
+	})
 	return result
 }
 
@@ -86,6 +110,7 @@ func (m *Manager) Accept(entityID, questID string, entityLevel int, currentTick 
 		Variables:      make(map[string]any),
 		CompletedStages: make([]string, 0),
 		AcceptedTick:   currentTick,
+		Activity:       []QuestActivity{{Tick: currentTick, Message: "Quest accepted"}},
 	}
 
 	if len(def.Stages) > 0 {
@@ -155,6 +180,15 @@ func (m *Manager) EntityStates(entityID string) []*EntityQuestState {
 	for _, s := range states {
 		result = append(result, s)
 	}
+	sort.SliceStable(result, func(i, j int) bool {
+		if result[i].AcceptedTick != result[j].AcceptedTick {
+			return result[i].AcceptedTick < result[j].AcceptedTick
+		}
+		if result[i].QuestID != result[j].QuestID {
+			return result[i].QuestID < result[j].QuestID
+		}
+		return result[i].CurrentStage < result[j].CurrentStage
+	})
 	return result
 }
 
@@ -187,6 +221,7 @@ func (m *Manager) ProgressObjective(entityID, questID, objID string, delta int) 
 	}
 
 	state.Objectives[objID] += delta
+	m.addActivityLocked(state, "Progressed objective '"+objID+"' by "+itoa(delta))
 	m.checkStageCompletion(entityID, questID)
 }
 
@@ -200,6 +235,7 @@ func (m *Manager) SetObjective(entityID, questID, objID string, value int) {
 	}
 
 	state.Objectives[objID] = value
+	m.addActivityLocked(state, "Set objective '"+objID+"' to "+itoa(value))
 	m.checkStageCompletion(entityID, questID)
 }
 
@@ -223,6 +259,7 @@ func (m *Manager) CheckCollectItem(entityID, itemID string) {
 			for _, obj := range stage.Objectives {
 				if obj.Type == "collect_items" && obj.ItemTemplate == itemID {
 					state.Objectives[obj.ID]++
+					m.addActivityLocked(state, "Collected '"+itemID+"' for objective '"+obj.ID+"'")
 					m.checkStageCompletionLocked(entityID, state.QuestID)
 				}
 			}
@@ -250,6 +287,7 @@ func (m *Manager) CheckVisitLocation(entityID, locationID string) {
 			for _, obj := range stage.Objectives {
 				if obj.Type == "visit_location" && obj.LocationID == locationID {
 					state.Objectives[obj.ID] = 1
+					m.addActivityLocked(state, "Visited '"+locationID+"' for objective '"+obj.ID+"'")
 					m.checkStageCompletionLocked(entityID, state.QuestID)
 				}
 			}
@@ -277,6 +315,7 @@ func (m *Manager) CheckTalkToNPC(entityID, npcID string) {
 			for _, obj := range stage.Objectives {
 				if obj.Type == "talk_to_npc" && obj.NPCID == npcID {
 					state.Objectives[obj.ID] = 1
+					m.addActivityLocked(state, "Talked to '"+npcID+"' for objective '"+obj.ID+"'")
 					m.checkStageCompletionLocked(entityID, state.QuestID)
 				}
 			}
@@ -304,6 +343,7 @@ func (m *Manager) CheckDeliverItem(entityID, npcID, itemID string) {
 			for _, obj := range stage.Objectives {
 				if obj.Type == "deliver_item" && obj.NPCID == npcID && obj.ItemTemplate == itemID {
 					state.Objectives[obj.ID] = 1
+					m.addActivityLocked(state, "Delivered '"+itemID+"' to '"+npcID+"' for objective '"+obj.ID+"'")
 					m.checkStageCompletionLocked(entityID, state.QuestID)
 				}
 			}
@@ -366,8 +406,10 @@ func (m *Manager) checkStageCompletionLocked(entityID, questID string) {
 
 	if nextIdx >= 0 && nextIdx < len(def.Stages) {
 		state.CurrentStage = def.Stages[nextIdx].ID
+		m.addActivityLocked(state, "Completed stage '"+stageID+"'; moved to '"+state.CurrentStage+"'")
 	} else {
 		state.State = StateCompleted
+		m.addActivityLocked(state, "Quest completed")
 		if m.OnQuestComplete != nil {
 			m.OnQuestComplete(entityID, questID, def.Rewards)
 		}
@@ -394,8 +436,43 @@ func (m *Manager) triggerUnlocks(def *QuestDef, entityID string) {
 			Objectives:     make(map[string]int),
 			Variables:      make(map[string]any),
 			CompletedStages: make([]string, 0),
+			Activity:       []QuestActivity{{Tick: m.currentTick, Message: "Quest unlocked"}},
 		}
 		log.Printf("[quest] unlocked quest '%s' for %s", qid, entityID)
+	}
+}
+
+func (m *Manager) addActivityLocked(state *EntityQuestState, message string) {
+	state.Activity = append(state.Activity, QuestActivity{Tick: m.currentTick, Message: message})
+	if len(state.Activity) > 50 {
+		state.Activity = state.Activity[len(state.Activity)-50:]
+	}
+}
+
+func itoa(n int) string { return strconv.Itoa(n) }
+
+func (m *Manager) RecentActivity(entityID, questID string) []QuestActivity {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	state := m.states[entityID][questID]
+	if state == nil || len(state.Activity) == 0 {
+		return nil
+	}
+	out := make([]QuestActivity, len(state.Activity))
+	copy(out, state.Activity)
+	return out
+}
+
+// RecordActivity adds a narrative line to every active quest an entity is
+// pursuing. Callers use this for attempts such as travel, talking, and
+// delivery, including attempts that do not advance an objective.
+func (m *Manager) RecordActivity(entityID, message string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, state := range m.states[entityID] {
+		if state.State == StateActive {
+			m.addActivityLocked(state, message)
+		}
 	}
 }
 

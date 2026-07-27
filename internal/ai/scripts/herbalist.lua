@@ -95,6 +95,10 @@ local function do_tick()
     local phase = world.phase
     local tick = world.tick
 
+    if world.defend_self and world.defend_self() then
+        return
+    end
+
     if phase == "night" or phase == "dusk" then
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)

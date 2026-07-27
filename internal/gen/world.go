@@ -11,9 +11,9 @@ import (
 )
 
 type Generator struct {
-	Seed   string
-	RNG    *rand.Rand
-	World  *world.World
+	Seed  string
+	RNG   *rand.Rand
+	World *world.World
 }
 
 func New(seed string) *Generator {
@@ -153,11 +153,24 @@ func (g *Generator) generateHostiles() []*entity.Entity {
 		ent.LocationID = o.locID
 		ent.Faction = "orc"
 		ent.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"aggressive"}, FactionID: "orc", SleepCycle: "diurnal", HomeLocation: o.locID}
-		equipItem(ent, lookup("work_tunic"))
-		if g.RNG.Intn(100) < 60 {
+		equipItem(ent, lookup("leather_armor"))
+		if g.RNG.Intn(100) < 50 {
+			equipItem(ent, lookup("leather_helmet"))
+		}
+		if g.RNG.Intn(100) < 40 {
+			equipItem(ent, lookup("wooden_shield"))
+		}
+		// Orcs always fight armed — heavy weapons preferred.
+		roll := g.RNG.Intn(100)
+		switch {
+		case roll < 35:
+			equipItem(ent, lookup("orc_cleaver"))
+		case roll < 60:
 			equipItem(ent, lookup("iron_axe"))
-		} else {
-			equipItem(ent, lookup("cudgel"))
+		case roll < 80:
+			equipItem(ent, lookup("iron_spear"))
+		default:
+			equipItem(ent, lookup("iron_sword"))
 		}
 		giveCurrency(ent, g.RNG.Intn(10), g.RNG.Intn(5), 0)
 		all = append(all, ent)
@@ -169,7 +182,15 @@ func (g *Generator) generateHostiles() []*entity.Entity {
 		ent.Faction = "elf"
 		ent.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"aggressive"}, FactionID: "elf", SleepCycle: "diurnal", HomeLocation: e.locID}
 		equipItem(ent, lookup("fine_clothes"))
-		equipItem(ent, lookup("short_sword"))
+		equipItem(ent, lookup("leather_boots"))
+		if g.RNG.Intn(100) < 60 {
+			equipItem(ent, lookup("short_sword"))
+		} else {
+			equipItem(ent, lookup("iron_spear"))
+		}
+		if g.RNG.Intn(100) < 30 {
+			equipItem(ent, lookup("wooden_shield"))
+		}
 		giveCurrency(ent, 5+g.RNG.Intn(10), 2+g.RNG.Intn(5), 0)
 		all = append(all, ent)
 	}
@@ -180,7 +201,12 @@ func (g *Generator) generateHostiles() []*entity.Entity {
 		ent.Faction = "thief"
 		ent.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"thief"}, FactionID: "thief", SleepCycle: "nocturnal", HomeLocation: t.locID}
 		equipItem(ent, lookup("common_clothes"))
-		equipItem(ent, lookup("dagger"))
+		equipItem(ent, lookup("leather_boots"))
+		if g.RNG.Intn(100) < 70 {
+			equipItem(ent, lookup("dagger"))
+		} else {
+			equipItem(ent, lookup("short_sword"))
+		}
 		giveCurrency(ent, g.RNG.Intn(15), g.RNG.Intn(5), 0)
 		all = append(all, ent)
 	}
@@ -192,10 +218,23 @@ func (g *Generator) generateHostiles() []*entity.Entity {
 		ent.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"aggressive"}, FactionID: "bandit", SleepCycle: "diurnal", HomeLocation: b.locID}
 		equipItem(ent, lookup("leather_armor"))
 		equipItem(ent, lookup("leather_boots"))
-		if g.RNG.Intn(100) < 50 {
+		if g.RNG.Intn(100) < 45 {
+			equipItem(ent, lookup("leather_helmet"))
+		}
+		if g.RNG.Intn(100) < 35 {
+			equipItem(ent, lookup("wooden_shield"))
+		}
+		// Bandits always carry a real fighting weapon.
+		roll := g.RNG.Intn(100)
+		switch {
+		case roll < 40:
 			equipItem(ent, lookup("iron_sword"))
-		} else {
-			equipItem(ent, lookup("dagger"))
+		case roll < 65:
+			equipItem(ent, lookup("short_sword"))
+		case roll < 85:
+			equipItem(ent, lookup("iron_axe"))
+		default:
+			equipItem(ent, lookup("iron_spear"))
 		}
 		giveCurrency(ent, g.RNG.Intn(20), g.RNG.Intn(10), 0)
 		all = append(all, ent)
@@ -239,9 +278,22 @@ func (g *Generator) generateBeasts() []*entity.Entity {
 		} else {
 			ent.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"aggressive"}, FactionID: "beast", SleepCycle: cycle, HomeLocation: b.locID}
 		}
+		equipNaturalWeapon(ent, b.species)
 		all = append(all, ent)
 	}
 	return all
+}
+
+// equipNaturalWeapon gives beasts species-appropriate natural weapons.
+func equipNaturalWeapon(ent *entity.Entity, species string) {
+	switch species {
+	case "wolf", "bear", "badger", "dog":
+		equipItem(ent, lookup("claws"))
+	case "spider", "bat", "rat", "rat_king":
+		equipItem(ent, lookup("fangs"))
+	case "boar":
+		equipItem(ent, lookup("tusks"))
+	}
 }
 
 func (g *Generator) generateTown(id, name, regionID string, x, y float64) []*entity.Entity {
@@ -355,6 +407,7 @@ func (g *Generator) generateNPCs(townID string) []*entity.Entity {
 		case "guard":
 			ent.AI.Type = "scripted"
 			ent.AI.ScriptIDs = []string{"guard"}
+			ent.AI.Brave = true
 			equipItem(ent, lookup("chainmail"))
 			equipItem(ent, lookup("iron_helmet"))
 			equipItem(ent, lookup("iron_boots"))
@@ -399,7 +452,7 @@ func (g *Generator) generateTravelingSalesmen() []*entity.Entity {
 		ent.LocationID = s.locID
 		ent.AI = entity.EntityAI{
 			Type:         "scripted",
-			ScriptIDs:     []string{"traveling_salesman"},
+			ScriptIDs:    []string{"traveling_salesman"},
 			FactionID:    "merchant",
 			HomeLocation: s.locID,
 			SleepCycle:   "diurnal",
@@ -428,13 +481,13 @@ func (g *Generator) generateBards() []*entity.Entity {
 		startLoc             string
 		quality              string
 	}
-	
+
 	bards := []bardDef{
 		{"bard_lira", "Lira", "lute", "frosthold_inn_common", "lousy"},
 		{"bard_finneas", "Finneas", "lute", "stillwater_inn_common", "mediocre"},
 		{"bard_aria", "Aria", "flute", "golden_gate_inn_common", "great"},
 	}
-	
+
 	var entities []*entity.Entity
 	for _, b := range bards {
 		attrs := entity.RandomAttributes(g.RNG.Intn)
@@ -446,26 +499,26 @@ func (g *Generator) generateBards() []*entity.Entity {
 		case "great":
 			attrs.CHA = 16 + g.RNG.Intn(5)
 		}
-		
+
 		ent := entity.NewEntity(b.id, b.name, "human", attrs, 1)
 		ent.LocationID = b.startLoc
 		ent.AI = entity.EntityAI{
 			Type:         "scripted",
-			ScriptIDs:     []string{"bard"},
+			ScriptIDs:    []string{"bard"},
 			FactionID:    "civilian",
 			HomeLocation: b.startLoc,
 			SleepCycle:   "diurnal",
 		}
 		ent.Faction = "civilian"
 		ent.Mood = "neutral"
-		
+
 		equipItem(ent, lookup("fine_clothes"))
 		equipItem(ent, lookup(b.instrument))
 		giveCurrency(ent, 5+g.RNG.Intn(10), 2+g.RNG.Intn(5), 0)
-		
+
 		addItem(ent, lookup("beer"))
 		addItem(ent, lookup("wine"))
-		
+
 		entities = append(entities, ent)
 	}
 	return entities
@@ -538,7 +591,7 @@ func (g *Generator) generateFisherman() []*entity.Entity {
 	fisher.Faction = "civilian"
 	fisher.AI = entity.EntityAI{
 		Type:         "scripted",
-		ScriptIDs:     []string{"fisherman"},
+		ScriptIDs:    []string{"fisherman"},
 		FactionID:    "civilian",
 		HomeLocation: "stillwater_pond",
 		SleepCycle:   "diurnal",
@@ -558,13 +611,19 @@ func (g *Generator) generateFisherman() []*entity.Entity {
 func (g *Generator) generateNewArchetypes() []*entity.Entity {
 	var all []*entity.Entity
 
-	// Goblin gatherers — collect resources, avoid combat
+	// Goblin gatherers — collect resources, avoid combat, but still armed
 	goblinAttrs := entity.Attributes{STR: 10, DEX: 14, CON: 10, INT: 6, WIS: 8, CHA: 4}
 	for i := 0; i < 2; i++ {
 		goblin := entity.NewEntity("goblin_gather_"+fmt.Sprint(i), "Goblin"+fmt.Sprint(i), "goblin", goblinAttrs, 1)
 		goblin.LocationID = "goblin_hollow"
 		goblin.Faction = "goblin"
 		goblin.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"gathering"}, FactionID: "goblin", SleepCycle: "diurnal", HomeLocation: "goblin_hollow"}
+		equipItem(goblin, lookup("work_tunic"))
+		if g.RNG.Intn(100) < 60 {
+			equipItem(goblin, lookup("goblin_shiv"))
+		} else {
+			equipItem(goblin, lookup("cudgel"))
+		}
 		giveCurrency(goblin, 1, 0, 0)
 		all = append(all, goblin)
 	}
@@ -585,6 +644,7 @@ func (g *Generator) generateNewArchetypes() []*entity.Entity {
 	badger.LocationID = "bear_den"
 	badger.Faction = "beast"
 	badger.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"defensive"}, FactionID: "beast", SleepCycle: "diurnal", HomeLocation: "bear_den"}
+	equipNaturalWeapon(badger, "badger")
 	all = append(all, badger)
 
 	return all
@@ -643,7 +703,23 @@ func (g *Generator) generateNewCreatures() []*entity.Entity {
 		kobold.Faction = "kobold"
 		kobold.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"kobold"}, FactionID: "kobold", SleepCycle: "diurnal", HomeLocation: "kobold_warren"}
 		equipItem(kobold, lookup("work_tunic"))
-		equipItem(kobold, lookup("dagger"))
+		if g.RNG.Intn(100) < 25 {
+			equipItem(kobold, lookup("leather_helmet"))
+		}
+		roll := g.RNG.Intn(100)
+		switch {
+		case roll < 55:
+			equipItem(kobold, lookup("dagger"))
+		case roll < 75:
+			equipItem(kobold, lookup("short_sword"))
+		case roll < 90:
+			equipItem(kobold, lookup("goblin_shiv"))
+		default:
+			equipItem(kobold, lookup("cudgel"))
+		}
+		if g.RNG.Intn(100) < 20 {
+			equipItem(kobold, lookup("wooden_shield"))
+		}
 		giveCurrency(kobold, g.RNG.Intn(5), 0, 0)
 		all = append(all, kobold)
 	}
@@ -704,6 +780,12 @@ func (g *Generator) generateFarms() []*entity.Entity {
 			}
 		}
 
+		dog := entity.NewEntity(farmID+"_dog", "Mutt", "dog", entity.Attributes{STR: 8, DEX: 12, CON: 10, INT: 4, WIS: 8, CHA: 6}, 1)
+		dog.LocationID = farmID
+		dog.Faction = "civilian"
+		dog.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"dog"}, FactionID: town.townID, HomeLocation: farmID, SleepCycle: "diurnal"}
+		all = append(all, dog)
+
 		farmerID := town.townID + "_farmer"
 		farmer := entity.NewEntity(farmerID, farmerNames[ti], "human", entity.RandomAttributes(g.RNG.Intn), 2)
 		farmer.LocationID = farmID
@@ -757,6 +839,15 @@ func (g *Generator) generateTownExtras() []*entity.Entity {
 		herbalist.AddItem(NewItemInstance(lookup("herb"), 5))
 		giveCurrency(herbalist, 5+g.RNG.Intn(10), 1, 0)
 		all = append(all, herbalist)
+
+		courier := entity.NewEntity(townID+"_courier", "Courier "+fmt.Sprint(i+1), "human", entity.RandomAttributes(g.RNG.Intn), 2)
+		courier.LocationID = townID + "_inn_common"
+		courier.Faction = "civilian"
+		courier.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"courier"}, FactionID: townID, HomeLocation: townID + "_inn_common", SleepCycle: "diurnal"}
+		equipItem(courier, lookup("common_clothes"))
+		equipItem(courier, lookup("leather_boots"))
+		giveCurrency(courier, 2+g.RNG.Intn(5), 1, 0)
+		all = append(all, courier)
 
 		child := entity.NewEntity(townID+"_child", "Child "+fmt.Sprint(i+1), "human", entity.RandomAttributes(g.RNG.Intn), 1)
 		child.LocationID = townID + "_inn_common"

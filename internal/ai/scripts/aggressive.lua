@@ -20,13 +20,20 @@ local function find_hostile_target()
     if not nearby or #nearby == 0 then
         return nil
     end
+    -- Prefer conscious hostiles; finish knocked-out foes only when no active threat remains.
+    local downed_id, downed_info = nil, nil
     for _, eid in ipairs(nearby) do
         local info = world.entity_info(eid)
         if info and info.alive and info.species ~= "deity" and world.is_hostile(self.faction, info.faction) then
-            return eid, info
+            if info.conscious ~= false then
+                return eid, info
+            end
+            if not downed_id then
+                downed_id, downed_info = eid, info
+            end
         end
     end
-    return nil
+    return downed_id, downed_info
 end
 
 local function wander()

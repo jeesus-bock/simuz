@@ -51,6 +51,22 @@
             </table>
         </div>
 
+        {{if .travel_route}}
+        <div class="card">
+            <h2>Travel Route</h2>
+            <div class="stat"><span>From</span><span>{{.travel_route.FromID}}</span></div>
+            <div class="stat"><span>To</span><span>{{.travel_route.ToID}}</span></div>
+            <div class="stat"><span>Progress</span><span>{{.travel_route.Progress}}%</span></div>
+            <ol style="margin:8px 0 0 18px; padding:0; color:var(--text-dim);">
+                {{range .travel_route.Steps}}
+                <li style="margin:3px 0; {{if .Current}}color:var(--accent); font-weight:bold;{{end}}">
+                    {{.Name}} <span style="color:#666; font-size:0.8em;">({{.ID}}){{if .Current}} current{{end}}</span>
+                </li>
+                {{end}}
+            </ol>
+        </div>
+        {{end}}
+
         <div class="card">
             <h2>Vitals</h2>
             <div style="margin-bottom:8px;">
@@ -79,10 +95,10 @@
             </table>
         </div>
 
-        {{if .entity.Effects}}
+        {{if .effects}}
         <div class="card">
-            <h2>Active Effects ({{len .entity.Effects}})</h2>
-            {{range .entity.Effects}}
+            <h2>Active Effects ({{len .effects}})</h2>
+            {{range .effects}}
             <div style="border-left:3px solid {{if .CrashRemaining}}#e94560{{else}}#4caf50{{end}};padding:4px 8px;margin:4px 0;background:#0f1a2e;border-radius:3px;">
                 <div style="display:flex;justify-content:space-between;">
                     <span style="color:{{if .CrashRemaining}}#e94560{{else}}#4caf50{{end}};font-weight:bold;">{{.Name}}</span>
@@ -116,10 +132,10 @@
                 </div>
                 {{end}}
             </div>
-            <h3>Inventory ({{len .entity.Inventory}})</h3>
-            {{if .entity.Inventory}}
+            <h3>Inventory ({{len .inventory}})</h3>
+            {{if .inventory}}
             <ul style="list-style:none;padding:0;margin-top:6px;">
-                {{range .entity.Inventory}}
+                {{range .inventory}}
                 <li style="padding:2px 0;font-size:0.9em;">{{.Def.Name}} ({{.DefID}}){{if .Equipped}} <span style="color:#888">[equipped]</span>{{end}}{{if .Count}} x{{.Count}}{{end}}</li>
                 {{end}}
             </ul>

@@ -18,6 +18,7 @@ type EntityAI struct {
 	AggroWarning int      `json:"aggro_warning"`
 	HomeLocation string   `json:"home_location"`
 	SleepCycle   string   `json:"sleep_cycle"` // "diurnal" (default), "nocturnal", "none" (never sleeps)
+	Brave        bool     `json:"brave,omitempty"`
 }
 
 type ActivityType string
@@ -133,11 +134,21 @@ func (e *Entity) TakeDamage(amount int) {
 	if e.HP <= 0 {
 		e.HP = 0
 		if !e.Immortal {
-			// Knock out instead of death
+			// Dropping to 0 HP knocks out; combat decides whether to kill.
 			e.Alive = true
 			e.Conscious = false
 		}
 	}
+}
+
+// Kill permanently slays a non-immortal entity.
+func (e *Entity) Kill() {
+	if e.Immortal {
+		return
+	}
+	e.HP = 0
+	e.Alive = false
+	e.Conscious = false
 }
 
 func (e *Entity) Heal(amount int) {
@@ -147,6 +158,9 @@ func (e *Entity) Heal(amount int) {
 	e.HP += amount
 	if e.HP > e.MaxHP {
 		e.HP = e.MaxHP
+	}
+	if e.HP > 0 {
+		e.Conscious = true
 	}
 }
 

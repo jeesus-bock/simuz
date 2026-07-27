@@ -2,6 +2,8 @@ package api
 
 import (
 	"net/http"
+	"sort"
+	"strings"
 
 	"simuz/internal/entity"
 
@@ -13,6 +15,25 @@ func (h *Handler) ListEntities(c *gin.Context) {
 	defer h.Sim.RUnlock()
 
 	all := h.Sim.Entities.All()
+	sort.SliceStable(all, func(i, j int) bool {
+		switch {
+		case all[i] == nil:
+			return false
+		case all[j] == nil:
+			return true
+		case all[i].Alive != all[j].Alive:
+			return all[i].Alive && !all[j].Alive
+		case all[i].Conscious != all[j].Conscious:
+			return all[i].Conscious && !all[j].Conscious
+		default:
+			ni := strings.ToLower(all[i].Name)
+			nj := strings.ToLower(all[j].Name)
+			if ni != nj {
+				return ni < nj
+			}
+			return all[i].ID < all[j].ID
+		}
+	})
 	result := make([]gin.H, len(all))
 	for i, e := range all {
 		result[i] = entityToSummary(e)
