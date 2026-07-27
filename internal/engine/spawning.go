@@ -394,13 +394,13 @@ func ProcessPregnancy(em *entity.Manager, tick uint64, rng *rand.Rand) {
 		// Generate baby ID and name
 		babyName := generateName(e.Species, rng)
 		babyID := fmt.Sprintf("%s_baby_%s_%s_%d", e.Species, babyName, e.LocationID, tick)
+		// Clear pregnancy before spawning so SpawnBaby/CanMate won't reject the pair.
+		e.Pregnant = false
+		e.PregnantSinceTick = 0
+		e.FatherID = ""
 		baby := SpawnBaby(e, father, babyID, babyName, func(n int) int { return rng.Intn(n) })
 		if baby != nil {
 			em.Add(baby)
-			// Clear pregnancy
-			e.Pregnant = false
-			e.PregnantSinceTick = 0
-			e.FatherID = ""
 		}
 	}
 }
