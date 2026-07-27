@@ -50,12 +50,26 @@ If you need exact signatures or enum values, check the code instead of expanding
 - `Entity` has a `Gender` field (`"male"`, `"female"`, `"other"`) and a `Pregnant` flag.
 - Gender constants are defined in `internal/entity/entity.go`: `GenderMale`, `GenderFemale`, `GenderOther`.
 - `NewEntity` assigns a random default gender (`male` or `female`) so spawned entities can mate.
-- Reproduction logic (`CanMate`, `SpawnBaby`) lives in `internal/engine/spawning.go`.
-- `CanMate` checks species compatibility, gender difference, alive status, and pregnancy state.
-- `SpawnBaby` inherits attributes from both parents (averaged with random variance), randomly assigns gender, and marks the female parent as pregnant.
-- `ProcessPregnancy` clears the mother's pregnancy state before calling `SpawnBaby` so `CanMate` won't reject the pair.
-- Pregnancy gestation periods are per-species via `SpeciesGestationTicks` in `internal/engine/spawning.go`; falls back to 200 ticks for unknown species.
+- `Entity` has a `LastReproductionTick` field for per-entity reproduction cooldown.
+- `IsAdult` returns true when entity level >= 3 (reproductive age).
+- `CanReproduce` returns true for species that can breed naturally (human, orc, elf, goblin, fey, rat_king, kobold, vampire, hag).
+- Reproduction logic (`processReproduction`) lives in `internal/engine/tick.go`.
+- Natural reproduction: adult male/female pairs of the same species at the same location have a 0.1% chance per tick to produce offspring.
+- Reproduction is gated by:
+  - Global entity cap of 5000
+  - Per-location per-species population cap of 20
+  - Per-entity cooldown of 1000 ticks (~16 minutes)
+- `averageAttrs` computes child attributes as parent average with small random variance.
+- `ProcessPregnancy` in `internal/engine/spawning.go` handles gestation completion.
+- Pregnancy gestation periods are per-species via `SpeciesGestationTicks`; falls back to 200 ticks.
 - Immortal/undead species (deity, vampire) cannot reproduce.
+
+## Divine Realms
+
+- `IsDivineRealm` in `internal/world/location.go` checks if a location or any ancestor has the `divine_realm` tag.
+- Mortals cannot move TO divine realms, but can escape FROM them.
+- Mortals cannot travel through divine realms mid-route; such travel is blocked.
+- If a mortal somehow ends up in a divine realm, they can move to any mortal location.
 
 ## Editing Guidance
 
