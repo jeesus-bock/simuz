@@ -359,11 +359,7 @@ func processReproduction(s *Simulation) {
 		}
 
 		// Per-location per-species population cap
-		locCount := 0
-		for _, m := range members {
-			locCount++
-		}
-		if locCount > 20 {
+		if len(members) > 20 {
 			continue
 		}
 
