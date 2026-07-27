@@ -1,3 +1,4 @@
+// Package web provides HTTP handlers and template rendering for the Simuz web UI.
 package web
 
 import (
@@ -1285,12 +1286,12 @@ func annotateMapTravelers(nodes []mapNode, travelers []travelerView) {
 			}
 			countsByLoc[step.ID]++
 			notesByLoc[step.ID] = append(notesByLoc[step.ID], fmt.Sprintf("%s: %s (%d/%d, %dt)",
-				tv.Name,
-				routeText,
-				currentIdx+1,
-				len(tv.Route),
-				tv.Eta,
-			))
+					tv.Name,
+					routeText,
+					currentIdx+1,
+					len(tv.Route),
+					tv.Eta,
+				))
 		}
 	}
 	var walk func([]mapNode)
