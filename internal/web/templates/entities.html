@@ -1,0 +1,51 @@
+{{define "entities"}}
+<div hx-ext="sse" sse-connect="/api/v1/ui/events">
+    <div id="entities-content" hx-get="/api/v1/ui/fragments/entities" hx-trigger="sse:tick" hx-target="#entities-content" hx-swap="innerHTML">
+        {{template "entities_table" .}}
+    </div>
+</div>
+{{end}}
+
+{{define "entities_table"}}
+<div class="card">
+    <h2>Entities ({{len .entities_list}})</h2>
+    <div class="stat"><span>Tick</span><span>{{.tick}}</span></div>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Species</th>
+                <th>Activity</th>
+                <th>Level</th>
+                <th>HP</th>
+                <th>Location</th>
+                <th>Faction</th>
+                <th>AI</th>
+                <th>Scripts</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .entities_list}}
+            <tr>
+                <td><a href="/entity/{{.ID}}" style="color:var(--accent);text-decoration:none;">{{.Name}}</a></td>
+                <td>{{.Species}}</td>
+                <td class="col-activity">{{.Activity.Type}}</td>
+                <td>{{.Level}}</td>
+                <td>
+                    <div class="hp-bar" style="width:100px">
+                        <div class="hp-bar-fill" style="width:{{percent .HP .MaxHP}}%"></div>
+                    </div>
+                    {{.HP}}/{{.MaxHP}}
+                </td>
+                <td>{{.LocationID}}</td>
+                <td>{{.Faction}}</td>
+                <td>{{.AI.Type}}</td>
+                <td>{{join .AI.ScriptIDs ", "}}</td>
+            </tr>
+            {{else}}
+            <tr><td colspan="7">No entities found.</td></tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+{{end}}

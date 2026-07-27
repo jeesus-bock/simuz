@@ -1,0 +1,86 @@
+{{define "content"}}
+<div hx-ext="sse" sse-connect="/api/v1/ui/events">
+    <div id="combat-detail-content" hx-get="/api/v1/ui/fragments/combat/{{.loc_id}}" hx-trigger="sse:tick" hx-target="#combat-detail-content" hx-swap="innerHTML">
+        {{template "combat_detail_status" .}}
+    </div>
+</div>
+{{end}}
+
+{{define "combat_detail_status"}}
+<div style="display:flex; gap:1rem;">
+    <div style="flex:2;">
+        <div class="card">
+            <h2><a href="/combat" style="color:var(--text-dim);text-decoration:none;">&larr; Combat</a> / {{.loc_name}}</h2>
+            <div class="stat"><span>Tick</span><span>{{.tick}}</span></div>
+            <div class="stat"><span>Time</span><span>{{.time}}</span></div>
+            <div class="stat"><span>Location</span><span style="color:var(--accent);">{{.loc_id}}</span></div>
+            <div class="stat"><span>Combatants</span><span>{{len .combatants}}</span></div>
+        </div>
+
+        <div class="card">
+            <h3>Combatants</h3>
+            {{range .combatants}}
+            <div style="display:flex; align-items:center; gap:1rem; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+                <div style="font-weight:bold; min-width:120px;"><a href="/entity/{{.ID}}" style="color:var(--accent);text-decoration:none;">{{.Name}}</a></div>
+                <div style="color:var(--text-dim); font-size:0.8rem; min-width:70px;">{{.Species}}</div>
+                <div style="color:var(--text-dim); font-size:0.8rem; min-width:80px;">{{.Faction}}</div>
+                <div style="min-width:100px;">
+                    <div class="hp-bar" style="width:80px;">
+                        <div class="hp-bar-fill" style="width:{{percent .HP .MaxHP}}%"></div>
+                    </div>
+                </div>
+                <div>{{.HP}}/{{.MaxHP}}</div>
+                <div style="color:var(--text-dim); font-size:0.8rem;">
+                    {{if .Equipment.Weapon}}{{.Equipment.Weapon.Def.Name}}{{else}}fists{{end}}
+                </div>
+            </div>
+            {{else}}
+            <p style="color:var(--text-dim);">No combatants at this location.</p>
+            {{end}}
+        </div>
+    </div>
+
+    <div style="flex:3;">
+        <div class="card">
+            <h3>Combat Log</h3>
+            <div style="max-height:600px; overflow-y:auto; font-family:monospace; font-size:0.8rem; line-height:1.6;">
+                {{range .combat_events}}
+                <div style="padding:3px 0; border-bottom:1px solid rgba(255,255,255,0.03); display:flex; gap:8px; align-items:center;">
+                    <span style="color:var(--text-dim); min-width:30px;">#{{.Tick}}</span>
+                    <span style="color:var(--accent); min-width:100px;"><a href="/entity/{{.AttackerID}}" style="color:var(--accent);text-decoration:none;">{{.AttackerName}}</a></span>
+                    {{if eq .Action "miss"}}
+                        <span style="color:#888;">missed</span>
+                        <span style="min-width:100px;"><a href="/entity/{{.DefenderID}}" style="color:inherit;text-decoration:none;">{{.DefenderName}}</a></span>
+                    {{else if eq .Action "crit_miss"}}
+                        <span style="color:#f44;">critically missed</span>
+                        <span style="min-width:100px;"><a href="/entity/{{.DefenderID}}" style="color:inherit;text-decoration:none;">{{.DefenderName}}</a></span>
+                    {{else if eq .Action "evade"}}
+                        <span style="color:#88f;">was evaded by</span>
+                        <span style="min-width:100px;"><a href="/entity/{{.DefenderID}}" style="color:inherit;text-decoration:none;">{{.DefenderName}}</a></span>
+                    {{else if eq .Action "hit"}}
+                        <span style="color:#fa0;">hits</span>
+                        <span style="min-width:100px;"><a href="/entity/{{.DefenderID}}" style="color:inherit;text-decoration:none;">{{.DefenderName}}</a></span>
+                        <span style="color:var(--accent);">for {{.Damage}} dmg</span>
+                        <span style="color:var(--text-dim);">({{.HPLeft}} HP left)</span>
+                    {{else if eq .Action "death"}}
+                        <span style="color:#f44;font-weight:bold;">slays</span>
+                        <span style="min-width:100px;"><a href="/entity/{{.DefenderID}}" style="color:inherit;text-decoration:none;">{{.DefenderName}}</a></span>
+                        <span style="color:#f44;font-weight:bold;">for {{.Damage}} dmg!</span>
+                    {{else if eq .Action "knockout"}}
+                        <span style="color:#ff8;font-weight:bold;">knocked out</span>
+                        <span style="min-width:100px;"><a href="/entity/{{.DefenderID}}" style="color:inherit;text-decoration:none;">{{.DefenderName}}</a></span>
+                        <span style="color:var(--text-dim);">({{.HPLeft}} HP left)</span>
+                    {{else if eq .Action "loot"}}
+                        <span style="color:#4f4;">loots</span>
+                        <span style="min-width:100px;"><a href="/entity/{{.DefenderID}}" style="color:inherit;text-decoration:none;">{{.DefenderName}}'s corpse</a></span>
+                    {{end}}
+                    <span style="color:#666; margin-left:auto; font-size:0.7rem;">{{.Weapon}}</span>
+                </div>
+                {{else}}
+                <p style="color:var(--text-dim);">No combat events yet.</p>
+                {{end}}
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

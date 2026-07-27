@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.title}} - Simuz</title>
+    <script src="https://unpkg.com/htmx.org@2.0.1"></script>
+    <script src="https://unpkg.com/htmx-ext-sse@2.2.3/dist/sse.min.js"></script>
+    <style>
+:root { --bg: #1a1a2e; --surface: #16213e; --accent: #e94560; --text: #eee; --text-dim: #999; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; font-size: 1.4rem; }
+nav { width: 200px; background: var(--surface); padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+        nav a { color: var(--text-dim); text-decoration: none; padding: 0.5rem; border-radius: 4px; }
+        nav a:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+        main { flex: 1; padding: 1.5rem; }
+        .card { background: var(--surface); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+        .stat { display: flex; justify-content: space-between; padding: 0.25rem 0; }
+        .hp-bar { height: 12px; background: #333; border-radius: 4px; overflow: hidden; }
+        .hp-bar-fill { height: 100%; background: var(--accent); transition: width 0.3s; }
+        table { width: 100%; border-collapse: collapse; font-size: 1rem; }
+        th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        th { color: var(--text-dim); font-size: 0.8rem; text-transform: uppercase; }
+    .col-activity { font-size: 1rem; color: var(--text-dim); }
+</style>
+</head>
+<body>
+    <nav>
+        <h2>Simuz</h2>
+        <a href="/" {{if eq .page "dashboard"}}style="color:var(--accent)"{{end}}>Dashboard</a>
+        <a href="/locations" {{if eq .page "locations"}}style="color:var(--accent)"{{end}}>World</a>
+        <a href="/entities" {{if eq .page "entities"}}style="color:var(--accent)"{{end}}>Entities</a>
+        <a href="/combat" {{if eq .page "combat"}}style="color:var(--accent)"{{end}}>Combat</a>
+        <a href="/quests" {{if eq .page "quests"}}style="color:var(--accent)"{{end}}>Quests</a>
+        <a href="/ai" {{if eq .page "ai"}}style="color:var(--accent)"{{end}}>AI</a>
+
+    </nav>
+    <main>
+        {{if eq .page "dashboard"}}
+            {{block "dashboard" .}}{{end}}
+        {{else if eq .page "entities"}}
+            {{block "entities" .}}{{end}}
+        {{else if eq .page "locations"}}
+            {{block "locations" .}}{{end}}
+        {{else if eq .page "location_detail"}}
+            {{block "location_detail" .}}{{end}}
+        {{else if eq .page "combat"}}
+            {{block "combat" .}}{{end}}
+        {{else if eq .page "combat_detail"}}
+            {{block "content" .}}{{end}}
+        {{else if eq .page "quests"}}
+            {{block "quests" .}}{{end}}
+        {{else if eq .page "ai"}}
+            {{block "ai" .}}{{end}}
+        {{else}}
+            {{block "content" .}}{{end}}
+        {{end}}
+    </main>
+
+</body>
+</html>

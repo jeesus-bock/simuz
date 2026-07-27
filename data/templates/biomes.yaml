@@ -1,0 +1,69 @@
+biomes:
+  - id: temperate_forest
+    name: "Temperate Forest"
+    climate: temperate
+    frequency: 0.25
+    settlement_density: 0.6
+    spawn_table:
+      deer: {weight: 0.4, min_count: 3, max_count: 8}
+      boar: {weight: 0.2, min_count: 1, max_count: 3}
+      wolf: {weight: 0.1, min_count: 2, max_count: 5}
+
+  - id: desert
+    name: "Desert"
+    climate: arid
+    frequency: 0.10
+    settlement_density: 0.2
+    spawn_table:
+      giant_scorpion: {weight: 0.3, min_count: 1, max_count: 2}
+      sand_worm: {weight: 0.1, min_count: 1, max_count: 1}
+
+  - id: alpine_mountains
+    name: "Alpine Mountains"
+    climate: alpine
+    frequency: 0.15
+    settlement_density: 0.3
+    spawn_table:
+      mountain_goat: {weight: 0.4, min_count: 2, max_count: 6}
+      griffin: {weight: 0.05, min_count: 1, max_count: 1}
+      yeti: {weight: 0.02, min_count: 1, max_count: 1}
+
+  - id: swamp
+    name: "Swamp"
+    climate: subtropical
+    frequency: 0.10
+    settlement_density: 0.15
+    spawn_table:
+      giant_frog: {weight: 0.3, min_count: 2, max_count: 5}
+      crocodile: {weight: 0.15, min_count: 1, max_count: 2}
+      will_o_wisp: {weight: 0.05, min_count: 1, max_count: 3}
+
+  - id: grassland
+    name: "Grassland"
+    climate: temperate
+    frequency: 0.20
+    settlement_density: 0.7
+    spawn_table:
+      horse: {weight: 0.3, min_count: 3, max_count: 10}
+      bison: {weight: 0.2, min_count: 5, max_count: 20}
+      fox: {weight: 0.2, min_count: 1, max_count: 2}
+
+  - id: tundra
+    name: "Tundra"
+    climate: arctic
+    frequency: 0.10
+    settlement_density: 0.1
+    spawn_table:
+      polar_bear: {weight: 0.2, min_count: 1, max_count: 2}
+      wolf: {weight: 0.3, min_count: 3, max_count: 8}
+      mammoth: {weight: 0.05, min_count: 1, max_count: 5}
+
+  - id: tropical_jungle
+    name: "Tropical Jungle"
+    climate: tropical
+    frequency: 0.10
+    settlement_density: 0.3
+    spawn_table:
+      giant_snake: {weight: 0.25, min_count: 1, max_count: 3}
+      tiger: {weight: 0.1, min_count: 1, max_count: 2}
+      gorilla: {weight: 0.15, min_count: 2, max_count: 6}

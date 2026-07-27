@@ -1,0 +1,103 @@
+{{define "location_detail"}}
+<div hx-ext="sse" sse-connect="/api/v1/ui/events">
+    <div id="location-detail-content" hx-get="/api/v1/ui/fragments/location/{{.loc.ID}}" hx-trigger="sse:tick" hx-target="#location-detail-content" hx-swap="innerHTML">
+        {{template "location_detail_status" .}}
+    </div>
+</div>
+{{end}}
+
+{{define "location_detail_status"}}
+<div class="card" style="margin-bottom:12px;">
+    <a href="/locations" style="color:var(--text-dim);">&larr; All Locations</a>
+    {{if .loc.ParentID}} | <a href="/location/{{.loc.ParentID}}" style="color:#64b5f6;">Parent: {{.parent_name}}</a>{{end}}
+    | <a href="/combat/{{.loc.ID}}" style="color:#e94560;">Combat zone</a>
+</div>
+
+<div class="card">
+    <h2>{{.loc.Name}}</h2>
+    <div class="stat"><span>ID</span><span>{{.loc.ID}}</span></div>
+    <div class="stat"><span>Type</span><span>{{.loc.Type.String}}</span></div>
+    <div class="stat"><span>Outdoor</span><span>{{if .loc.IsOutside}}yes{{else}}no{{end}}</span></div>
+    <div class="stat"><span>Position</span><span>{{printf "%.0f, %.0f" .loc.Position.X .loc.Position.Y}}</span></div>
+    {{if .loc.Tags}}
+    <div class="stat"><span>Tags</span><span>{{join .loc.Tags ", "}}</span></div>
+    {{end}}
+    <div class="stat"><span>Control</span><span>{{if .loc.ControllingFaction}}{{.loc.ControllingFaction}} ({{.loc.ControlStrength}}){{else}}unclaimed{{end}}</span></div>
+</div>
+
+{{if .weather}}
+<div class="card">
+    <h2>Weather</h2>
+    <div class="stat"><span>Type</span><span>{{.weather.Type.String}}</span></div>
+    <div class="stat"><span>Temp</span><span>{{printf "%.1f" .weather.Temperature}}°C</span></div>
+    <div class="stat"><span>Visibility</span><span>{{printf "%.1f" .weather.Visibility}} (mod {{printf "%.2f" .weather.VisibilityModifier}})</span></div>
+    <div class="stat"><span>Wind</span><span>{{printf "%.1f" .weather.WindSpeed}} {{.weather.WindDir}}</span></div>
+    <div class="stat"><span>Humidity</span><span>{{printf "%.0f%%" (mulF .weather.Humidity 100)}}</span></div>
+    <div class="stat"><span>Travel mod</span><span>{{printf "%.2f" .weather.TravelSpeedModifier}}</span></div>
+</div>
+{{end}}
+
+{{if .loc.Exits}}
+<div class="card">
+    <h2>Travel Exits</h2>
+    <table>
+        <tr><th>Target</th><th>Dir</th><th>Distance</th></tr>
+        {{range .loc.Exits}}
+        <tr>
+            <td><a href="/location/{{.TargetID}}">{{.TargetID}}</a></td>
+            <td>{{.Direction}}</td>
+            <td>{{printf "%.0f" .Distance}}</td>
+        </tr>
+        {{end}}
+    </table>
+</div>
+{{end}}
+
+{{if .children}}
+<div class="card">
+    <h2>Children</h2>
+    {{range .children}}
+    <div style="padding:4px 0;"><a href="/location/{{.ID}}">{{.Name}}</a> <span style="color:var(--text-dim);font-size:0.8rem;">[{{.Type.String}}]</span></div>
+    {{end}}
+</div>
+{{end}}
+
+{{if .travelers}}
+<div class="card">
+    <h2>In Transit</h2>
+    {{range .travelers}}
+    <div class="stat">
+        <span><a href="/entity/{{.entity_id}}">{{.name}}</a> {{.from}} → {{.to}}</span>
+        <span>{{.progress}}% ({{.eta}}t)</span>
+    </div>
+    {{end}}
+</div>
+{{end}}
+
+<div class="card">
+    <h2>Entities ({{len .entity_rows}})</h2>
+    <table>
+        <tr><th>Name</th><th>Species</th><th>Faction</th><th>Lvl</th><th>HP</th></tr>
+        {{range .entity_rows}}
+        <tr>
+            <td><a href="/entity/{{.ID}}">{{.Name}}</a>{{if not .Alive}} <span style="color:#f88;">(dead)</span>{{end}}</td>
+            <td>{{.Species}}</td>
+            <td>{{.Faction}}</td>
+            <td>{{.Level}}</td>
+            <td>{{.HP}}/{{.MaxHP}}</td>
+        </tr>
+        {{end}}
+    </table>
+</div>
+
+{{if .combat_events}}
+<div class="card">
+    <h2>Recent Combat</h2>
+    {{range .combat_events}}
+    <div style="font-size:0.85rem;padding:2px 0;border-bottom:1px solid #222;">
+        t{{.Tick}} <a href="/entity/{{.AttackerID}}">{{.AttackerName}}</a> → <a href="/entity/{{.DefenderID}}">{{.DefenderName}}</a>: {{.Action}}{{if .Damage}} ({{.Damage}}){{end}}
+    </div>
+    {{end}}
+</div>
+{{end}}
+{{end}}

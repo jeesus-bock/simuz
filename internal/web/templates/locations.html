@@ -1,0 +1,60 @@
+{{define "locations"}}
+<div hx-ext="sse" sse-connect="/api/v1/ui/events">
+    <div id="locations-content" hx-get="/api/v1/ui/fragments/locations" hx-trigger="sse:tick" hx-target="#locations-content" hx-swap="innerHTML">
+        {{template "locations_tree" .}}
+    </div>
+</div>
+{{end}}
+
+{{define "locations_tree"}}
+<div class="card" style="display:flex;justify-content:space-between;align-items:center;">
+    <div>
+        <h2>{{.root_name}}</h2>
+        <div class="stat"><span>Tick</span><span>{{.tick}}</span></div>
+        <p>{{.locations}} locations, {{.entities}} entities</p>
+    </div>
+    <div style="display:flex;gap:8px;">
+        <button onclick="document.getElementById('tree-view').style.display='block';document.getElementById('map-view').style.display='none';this.style.color='var(--accent)';document.getElementById('map-btn').style.color='var(--text-dim)'"
+                id="tree-btn" style="background:none;border:1px solid #444;color:var(--accent);padding:6px 14px;border-radius:4px;cursor:pointer;font-family:monospace;">Tree</button>
+        <button onclick="document.getElementById('map-view').style.display='block';document.getElementById('tree-view').style.display='none';this.style.color='var(--accent)';document.getElementById('tree-btn').style.color='var(--text-dim)'"
+                id="map-btn" style="background:none;border:1px solid #444;color:var(--text-dim);padding:6px 14px;border-radius:4px;cursor:pointer;font-family:monospace;">Map</button>
+    </div>
+</div>
+<div id="tree-view">
+    <div class="card">
+        {{template "locTree" .loc_tree}}
+    </div>
+    {{if .realms}}
+    <div class="card">
+        <h2 style="color: #b388ff;">Divine Realms</h2>
+        {{range .realms}}
+        <div style="padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <span style="color: #b388ff; font-size: 0.8rem;">[realm]</span>
+            <strong><a href="/location/{{.ID}}" style="color:#b388ff;text-decoration:none;">{{.Name}}</a></strong>
+            <span style="color: var(--text-dim); font-size: 0.75rem; margin-left: 8px;">{{.ID}}</span>
+        </div>
+        {{end}}
+    </div>
+    {{end}}
+</div>
+<div id="map-view" style="display:none;">
+    <div class="card" style="padding:4px;overflow-x:auto;">
+        {{renderLocationMap .loc_tree}}
+    </div>
+</div>
+{{end}}
+
+{{define "locTree"}}
+{{range .}}
+<div style="margin-left: {{mul .Depth 24}}px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.03);">
+    <span style="color: var(--text-dim); font-size: 0.8rem;">[{{.Location.Type.String}}]</span>
+    <strong><a href="/location/{{.Location.ID}}" style="color:inherit;text-decoration:none;">{{.Location.Name}}</a></strong>
+    <span style="color: var(--text-dim); font-size: 0.75rem; margin-left: 8px;">{{.Location.ID}}</span>
+    {{if .EntityCount}}<span style="color: var(--accent); font-size: 0.75rem; margin-left: 8px;">{{.EntityCount}} entities</span>{{end}}
+    {{if not .Location.IsOutside}}<span style="color: var(--text-dim); font-size: 0.7rem;">in</span>{{end}}
+    {{if .Location.Weather}}<span style="color: var(--text-dim); font-size: 0.75rem; margin-left: 8px;">{{.Location.Weather.Type.String}} {{printf "%.0f" .Location.Weather.Temperature}}C</span>{{end}}
+    {{if .Location.ControllingFaction}}<span style="color: #fa0; font-size: 0.7rem; margin-left: 8px;">{{.Location.ControllingFaction}} {{.Location.ControlStrength}}</span>{{end}}
+</div>
+{{template "locTree" .Children}}
+{{end}}
+{{end}}

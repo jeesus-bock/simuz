@@ -1,0 +1,75 @@
+{
+  "scripts": [
+    {
+      "file": "internal/ai/scripts/innkeeper.lua",
+      "functions": [
+        {"name": "count_item", "parameters": ["def_id"], "returns": "number", "description": "Counts occurrences of a given item definition ID in the innkeeper's inventory."},
+        {"name": "has_item", "parameters": ["def_id"], "returns": "boolean", "description": "Returns true if the innkeeper has at least one of the specified item."},
+        {"name": "low_stock", "parameters": [], "returns": "boolean", "description": "Determines if any drink type has less than three units in stock."},
+        {"name": "restock_drinks", "parameters": [], "returns": "boolean", "description": "Resets drinks up to five units each when low stock is detected. Returns true if restocking occurred."},
+        {"name": "sell_drinks", "parameters": [], "returns": "boolean", "description": "Attempts to sell an available drink to nearby eligible entities. Returns true on successful sale."},
+        {"name": "buy_tankards", "parameters": [], "returns": "boolean", "description": "Purchases a tankard from nearby merchant entities. Returns true when a tankard is bought."},
+        {"name": "clean_up", "parameters": [], "returns": "void", "description": "Performs periodic cleaning actions, logging and setting mood every 50 ticks."},
+        {"name": "do_tick", "parameters": [], "returns": "void", "description": "Main update loop called each game tick; handles night behavior, restocking, trading, movement, and cleanup."}
+      ]
+    },
+    {
+      "file": "internal/ai/scripts/guard.lua",
+      "functions": [
+        {"name": "get_patrol_route", "parameters": [], "returns": "table", "description": "Retrieves the guard's patrol route configuration."},
+        {"name": "should_return_home", "parameters": [], "returns": "boolean", "description": "Determines if the guard should head back to its home location."},
+        {"name": "attack_hostiles", "parameters": [], "returns": "boolean", "description": "Attempts to attack nearby hostile entities."},
+        {"name": "do_patrol", "parameters": [], "returns": "void", "description": "Executes one step of the guard's patrol behavior."},
+        {"name": "maybe_drink", "parameters": [], "returns": "void", "description": "Random chance for the guard to drink a beverage."},
+        {"name": "update_mood", "parameters": [], "returns": "void", "description": "Updates the guard's mood based on recent actions."},
+        {"name": "do_tick", "parameters": [], "returns": "void", "description": "Main tick function for the guard AI, coordinating patrol, combat, and morale."}
+      ]
+    },
+    {
+      "file": "internal/ai/scripts/traveling_salesman.lua",
+      "functions": [
+        {"name": "pick_next_destination", "parameters": [], "returns": "string", "description": "Selects the next location the salesman will travel to."},
+        {"name": "try_trade", "parameters": ["target_id"], "returns": "boolean", "description": "Attempts a trade interaction with a specified target entity."},
+        {"name": "do_trade", "parameters": [], "returns": "void", "description": "Performs trade actions for the current tick."},
+        {"name": "do_tick", "parameters": [], "returns": "void", "description": "Main update loop for the traveling salesman AI."}
+      ]
+    },
+    {
+      "file": "internal/ai/scripts/rescue.lua",
+      "functions": [
+        {"name": "drag_entity", "parameters": ["dragger_id", "target_id"], "returns": "boolean", "description": "Attempts to leash target entity to dragger; returns true if successful."},
+        {"name": "start_rescue", "parameters": ["rescuer_id", "target_id"], "returns": "boolean", "description": "Initiates a rescue mission for target entity by rescuer; returns true if mission started."},
+        {"name": "complete_rescue", "parameters": ["rescuer_id", "target_id"], "returns": "void", "description": "Marks the rescue as completed and awards rewards to rescuer."}
+      ]
+    }
+  ],
+  "event_hooks": [
+    {"name": "onSpawn", "description": "Called when an entity is created in the world."},
+    {"name": "onDeath", "description": "Called when an entity dies or is removed."},
+    {"name": "onQuestStart", "description": "Triggered when a quest begins for an entity."},
+    {"name": "onQuestComplete", "description": "Triggered when a quest is successfully finished."},
+    {"name": "onLocationChange", "description": "Fires whenever an entity changes its location."},
+    {"name": "onRescueStart", "description": "Fires when a rescue mission is started for a target entity."},
+    {"name": "onRescueComplete", "description": "Fires when a rescue mission successfully completes."},
+    {"name": "onDragStart", "description": "Fires when an entity begins dragging another entity (e.g., leashed dog)."},
+    {"name": "onDragEnd", "description": "Fires when dragging ends."}
+  ],
+  "quests": [
+    {
+      "file": "quests/quest_script.lua",
+      "functions": [
+        {"name": "init_quest", "parameters": ["entity_id"], "returns": "void", "description": "Initialises quest state for the given entity."},
+        {"name": "progress_quest", "parameters": ["entity_id", "step"], "returns": "boolean", "description": "Advances the quest to the next step; returns true if successful."},
+        {"name": "complete_quest", "parameters": ["entity_id"], "returns": "void", "description": "Marks the quest as completed for the entity."}
+      ]
+    },
+    {
+      "file": "quests/rescue_quest.lua",
+      "functions": [
+        {"name": "init_rescue", "parameters": ["rescuer_id", "target_id"], "returns": "void", "description": "Sets up a rescue quest for rescuer to save target."},
+        {"name": "progress_rescue", "parameters": ["rescuer_id"], "returns": "boolean", "description": "Updates rescue progress (e.g., after dragging)."},
+        {"name": "complete_rescue_quest", "parameters": ["rescuer_id"], "returns": "void", "description": "Finalises the rescue quest and grants rewards."}
+      ]
+    }
+  ]
+}
