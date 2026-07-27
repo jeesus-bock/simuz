@@ -39,6 +39,7 @@ const (
 	EventTravelCompleted
 	EventTick
 	EventTimePassed
+	EventEntityBorn
 )
 
 type SimEvent struct {
@@ -271,6 +272,10 @@ func (s *Simulation) TickOnce() {
 
 	processTimeLimitQuests(s)
 
+	// Natural reproduction: adult males and females of the same species
+	// at the same location have a chance to produce offspring each tick.
+	processReproduction(s)
+
 	if s.SpawnManager != nil {
 		s.SpawnManager.ProcessSpawns(s.World, s.Entities, int(s.Tick), s.RNG)
 	}
@@ -315,6 +320,86 @@ func offerQuestsAtSources(sim *Simulation) {
 				break
 			}
 		}
+	}
+}
+
+// processReproduction handles natural births: adult male/female pairs of
+// the same species at the same location have a small chance each tick to
+// produce a child.
+func processReproduction(s *Simulation) {
+	type groupKey struct {
+		locID   string
+		species string
+	}
+	groups := make(map[groupKey][]*entity.Entity)
+
+	for _, ent := range s.Entities.All() {
+		if !ent.Alive || !ent.Conscious {
+			continue
+		}
+		if !ent.IsAdult() {
+			continue
+		}
+		if !entity.CanReproduce(ent.Species) {
+			continue
+		}
+		key := groupKey{locID: ent.LocationID, species: ent.Species}
+		groups[key] = append(groups[key], ent)
+	}
+
+	for key, members := range groups {
+		if key.species == "" {
+			continue
+		}
+		var males, females []*entity.Entity
+		for _, ent := range members {
+			if ent.Gender == "male" {
+				males = append(males, ent)
+			} else if ent.Gender == "female" {
+				females = append(females, ent)
+			}
+		}
+		if len(males) == 0 || len(females) == 0 {
+			continue
+		}
+
+		// 2% chance per tick for this group to reproduce.
+		if s.RNG.Intn(100) >= 2 {
+			continue
+		}
+
+		mother := females[s.RNG.Intn(len(females))]
+		father := males[s.RNG.Intn(len(males))]
+
+		childAttrs := averageAttrs(mother.Attributes, father.Attributes, s.RNG)
+		childName := generateName(mother.Species, s.RNG)
+		childID := fmt.Sprintf("%s_child_%s_%d", mother.Species, mother.ID, s.Tick)
+
+		child := entity.NewEntity(childID, childName, mother.Species, childAttrs, 1)
+		if s.RNG.Intn(2) == 0 {
+			child.Gender = "male"
+		} else {
+			child.Gender = "female"
+		}
+		child.LocationID = key.locID
+		child.Faction = mother.Faction
+		if child.Faction == "" {
+			child.Faction = father.Faction
+		}
+		child.AI = entity.EntityAI{
+			Type:         "passive",
+			SleepCycle:   defaultSleepCycle(mother.Species),
+			HomeLocation: key.locID,
+		}
+
+		s.Entities.Add(child)
+		log.Printf("[birth] %s born to %s and %s at %s", child.Name, mother.Name, father.Name, key.locID)
+		s.Emit(SimEvent{
+			Type:   EventEntityBorn,
+			Tick:   s.Tick,
+			Source: child.ID,
+			Data:   map[string]any{"mother": mother.ID, "father": father.ID, "species": mother.Species, "location": key.locID},
+		})
 	}
 }
 

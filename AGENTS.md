@@ -44,6 +44,7 @@ If you need exact signatures or enum values, check the code instead of expanding
 - Quest state is persisted and loaded from SQLite.
 - Entity detail pages show travel routes, active effects, moods, and quests.
 - The map view is SVG-based and should stay stable across refreshes.
+- Gender and natural reproduction: adult male/female pairs of the same species at the same location can produce offspring each tick (2% chance per group per tick). Children are level 1, inherit averaged attributes with small random variation, and are assigned a random gender.
 
 ## Editing Guidance
 
