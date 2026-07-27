@@ -1,6 +1,8 @@
 package entity
 
 import (
+	"math/rand"
+
 	"simuz/internal/items"
 )
 
@@ -41,6 +43,13 @@ const (
 	ActivityGather   ActivityType = "gathering"
 )
 
+// Gender represents the biological sex of an entity.
+const (
+	GenderMale   = "male"
+	GenderFemale = "female"
+	GenderOther  = "other"
+)
+
 type EntityActivity struct {
 	Type      ActivityType `json:"type"`
 	SinceTick uint64       `json:"since_tick"`
@@ -63,6 +72,7 @@ type Entity struct {
 	ID         string            `json:"id"`
 	Name       string            `json:"name"`
 	Species    string            `json:"species"`
+	Gender     string            `json:"gender"`
 	Level      int               `json:"level"`
 	Age        int               `json:"age"`
 	MaxAge     int               `json:"max_age"`
@@ -90,6 +100,10 @@ type Entity struct {
 	MoodModifiers []MoodModifier `json:"mood_modifiers,omitempty"`
 	LeashedBy     string         `json:"leashed_by,omitempty"`
 	RescueState   string         `json:"rescue_state,omitempty"`
+	Pregnant    bool             `json:"pregnant,omitempty"`
+	PregnantSinceTick uint64 `json:"pregnant_since_tick,omitempty"`
+	FatherID          string `json:"father_id,omitempty"`
+	Relationships     map[string]EntityRelationship `json:"relationships,omitempty"`
 }
 
 func NewEntity(id, name, species string, attrs Attributes, level int) *Entity {
@@ -105,6 +119,7 @@ func NewEntity(id, name, species string, attrs Attributes, level int) *Entity {
 		ID:         id,
 		Name:       name,
 		Species:    species,
+		Gender:     randomGender(),
 		Level:      level,
 		Age:        0,
 		MaxAge:     SpeciesMaxAge(species),
@@ -120,10 +135,18 @@ func NewEntity(id, name, species string, attrs Attributes, level int) *Entity {
 		Inventory:  make([]items.ItemInstance, 0),
 		Flags:      make(map[string]any),
 		Effects:    make([]ActiveEffect, 0),
+		Relationships: make(map[string]EntityRelationship),
 		AI: EntityAI{
 			Type: "passive",
 		},
 	}
+}
+
+func randomGender() string {
+	if rand.Intn(2) == 0 {
+		return GenderMale
+	}
+	return GenderFemale
 }
 
 func (e *Entity) TakeDamage(amount int) {
@@ -307,4 +330,51 @@ func (e *Entity) Encumbrance() float64 {
 		total += e.Equipment.Feet.Def.Weight
 	}
 	return total
+}
+
+// AddRelationship records or updates a relationship between this entity and another.
+func (e *Entity) AddRelationship(otherID string, relType RelationshipType, tick uint64) {
+	e.Relationships[otherID] = EntityRelationship{
+		OtherID:   otherID,
+		Type:      relType,
+		SinceTick: tick,
+	}
+}
+
+// GetRelationship returns the relationship to another entity, if one exists.
+func (e *Entity) GetRelationship(otherID string) (EntityRelationship, bool) {
+	rel, ok := e.Relationships[otherID]
+	return rel, ok
+}
+
+// GetChildren returns all parent-child relationships from this entity's perspective.
+func (e *Entity) GetChildren() []EntityRelationship {
+	var result []EntityRelationship
+	for _, rel := range e.Relationships {
+		if rel.Type == RelationshipChild {
+			result = append(result, rel)
+		}
+	}
+	return result
+}
+
+// GetParents returns all parent relationships from this entity's perspective.
+func (e *Entity) GetParents() []EntityRelationship {
+	var result []EntityRelationship
+	for _, rel := range e.Relationships {
+		if rel.Type == RelationshipParent {
+			result = append(result, rel)
+		}
+	}
+	return result
+}
+
+// GetPartner returns the mate relationship, if one exists.
+func (e *Entity) GetPartner() (EntityRelationship, bool) {
+	for _, rel := range e.Relationships {
+		if rel.Type == RelationshipMate {
+			return rel, true
+		}
+	}
+	return EntityRelationship{}, false
 }
