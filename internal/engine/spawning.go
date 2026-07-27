@@ -288,12 +288,18 @@ func CanMate(a, b *entity.Entity) bool {
 	if a.Species == "deity" || a.Species == "vampire" {
 		return false
 	}
+	// Prevent incest: entities with a parent-child relationship cannot mate.
+	if rel, ok := a.Relationships[b.ID]; ok {
+		if rel.Type == entity.RelationshipParent || rel.Type == entity.RelationshipChild {
+			return false
+		}
+	}
 	return true
 }
 
 // SpawnBaby creates a new offspring entity from two parents.
 // The caller is responsible for providing a unique ID for the baby.
-func SpawnBaby(parent1, parent2 *entity.Entity, id, babyName string, rng func(int) int) *entity.Entity {
+func SpawnBaby(parent1, parent2 *entity.Entity, id, babyName string, tick uint64, rng func(int) int) *entity.Entity {
 	if !CanMate(parent1, parent2) {
 		return nil
 	}
@@ -320,6 +326,14 @@ func SpawnBaby(parent1, parent2 *entity.Entity, id, babyName string, rng func(in
 	} else if parent2.Gender == entity.GenderFemale {
 		parent2.Pregnant = true
 	}
+
+	// Establish relationships: mate bond and parent-child links
+	parent1.AddRelationship(parent2.ID, entity.RelationshipMate, tick)
+	parent2.AddRelationship(parent1.ID, entity.RelationshipMate, tick)
+	parent1.AddRelationship(baby.ID, entity.RelationshipParent, tick)
+	parent2.AddRelationship(baby.ID, entity.RelationshipParent, tick)
+	baby.AddRelationship(parent1.ID, entity.RelationshipChild, tick)
+	baby.AddRelationship(parent2.ID, entity.RelationshipChild, tick)
 
 	return baby
 }
@@ -419,7 +433,7 @@ func ProcessPregnancy(em *entity.Manager, tick uint64, rng *rand.Rand) {
 		e.Pregnant = false
 		e.PregnantSinceTick = 0
 		e.FatherID = ""
-		baby := SpawnBaby(e, father, babyID, babyName, func(n int) int { return rng.Intn(n) })
+		baby := SpawnBaby(e, father, babyID, babyName, tick, func(n int) int { return rng.Intn(n) })
 		if baby != nil {
 			em.Add(baby)
 		}
