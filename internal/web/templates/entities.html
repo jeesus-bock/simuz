@@ -15,6 +15,7 @@
             <tr>
                 <th>Name</th>
                 <th>Species</th>
+                <th>Status</th>
                 <th>Activity</th>
                 <th>Level</th>
                 <th>HP</th>
@@ -29,6 +30,15 @@
             <tr>
                 <td><a href="/entity/{{.ID}}" style="color:var(--accent);text-decoration:none;">{{.Name}}</a></td>
                 <td>{{.Species}}</td>
+                <td>
+                    {{if not .Alive}}
+                        <span style="display:inline-block;padding:2px 8px;border-radius:999px;background:#4a2020;color:#ffb3b3;font-size:0.72rem;">☠ Dead</span>
+                    {{else if not .Conscious}}
+                        <span style="display:inline-block;padding:2px 8px;border-radius:999px;background:#4a3d20;color:#ffe8a3;font-size:0.72rem;">✖ Knocked out</span>
+                    {{else}}
+                        <span style="display:inline-block;padding:2px 8px;border-radius:999px;background:#204a20;color:#b3ffb3;font-size:0.72rem;">● Alive</span>
+                    {{end}}
+                </td>
                 <td class="col-activity">{{.Activity.Type}}</td>
                 <td>{{.Level}}</td>
                 <td>
@@ -43,7 +53,7 @@
                 <td>{{join .AI.ScriptIDs ", "}}</td>
             </tr>
             {{else}}
-            <tr><td colspan="7">No entities found.</td></tr>
+            <tr><td colspan="10">No entities found.</td></tr>
             {{end}}
         </tbody>
     </table>

@@ -138,6 +138,203 @@ func computeHunger(e *entity.Entity, tick uint64) float64 {
 	return 0.0
 }
 
+func combatPowerScoreLua(e *entity.Entity) int {
+	if e == nil {
+		return 0
+	}
+	attrs := e.EffectiveAttrs()
+	score := e.Level*4 + attrs.STR*2 + attrs.DEX + attrs.CON
+	if e.MaxHP > 0 {
+		score += e.HP * 10 / e.MaxHP
+	}
+	if e.AI.Brave {
+		score += 6
+	}
+	return score
+}
+
+func shouldFleeCombatLua(ent *entity.Entity, hostiles []*entity.Entity) bool {
+	if ent == nil || len(hostiles) == 0 || ent.AI.Brave {
+		return false
+	}
+	if ent.MaxHP > 0 && ent.HP*100 <= ent.MaxHP*35 {
+		return true
+	}
+	selfScore := combatPowerScoreLua(ent)
+	strongest := 0
+	total := 0
+	for _, other := range hostiles {
+		if other == nil || !other.Alive || other.Immortal {
+			continue
+		}
+		score := combatPowerScoreLua(other)
+		total += score
+		if score > strongest {
+			strongest = score
+		}
+	}
+	if strongest >= selfScore+8 {
+		return true
+	}
+	if total >= selfScore*2 {
+		return true
+	}
+	return false
+}
+
+func chooseFleeDestinationLua(w *world.World, ent *entity.Entity, rng *rand.Rand) string {
+	if w == nil || ent == nil {
+		return ""
+	}
+	loc := w.Location(ent.LocationID)
+	if loc == nil {
+		return ""
+	}
+	if loc.ParentID != "" {
+		parent := w.Location(loc.ParentID)
+		if parent != nil {
+			siblings := w.ChildLocations(parent.ID)
+			candidates := make([]*world.Location, 0, len(siblings))
+			for _, sib := range siblings {
+				if sib != nil && sib.ID != ent.LocationID {
+					candidates = append(candidates, sib)
+				}
+			}
+			if len(candidates) > 0 {
+				return candidates[rng.Intn(len(candidates))].ID
+			}
+		}
+		return loc.ParentID
+	}
+	children := w.ChildLocations(ent.LocationID)
+	if len(children) > 0 {
+		return children[rng.Intn(len(children))].ID
+	}
+	return ""
+}
+
+func scriptCombatAttack(w *world.World, em *entity.Manager, qm *quest.Manager, rng *rand.Rand, tick uint64, attacker, target *entity.Entity) bool {
+	if attacker == nil || target == nil || !attacker.Alive || !attacker.Conscious || !target.Alive {
+		return false
+	}
+	combat.SetTick(tick)
+	combat.ResetWeatherVisibility()
+	if loc := w.Location(target.LocationID); loc != nil && loc.IsOutside {
+		if wth := w.EffectiveWeather(target.LocationID); wth != nil {
+			combat.SetWeatherVisibility(wth.VisibilityModifier())
+		}
+	}
+	hit := combat.SimpleAttack(attacker, target, rng)
+	combat.ResetWeatherVisibility()
+	if !target.Alive {
+		combat.LootCorpse(attacker, target)
+		if attacker.Faction != target.Faction {
+			combat.ShiftRelation(attacker.Faction, target.Faction, -1)
+		}
+		if loc := w.Location(target.LocationID); loc != nil && attacker.Faction != "" && attacker.Faction != "civilian" && attacker.Faction != "deity" {
+			if loc.ControllingFaction == attacker.Faction {
+				loc.ControlStrength += 3
+				if loc.ControlStrength > 100 {
+					loc.ControlStrength = 100
+				}
+			} else {
+				loc.ControlStrength -= 5
+				if loc.ControlStrength <= 0 {
+					loc.ControllingFaction = attacker.Faction
+					loc.ControlStrength = 5
+				}
+			}
+		}
+		if entity.CanLevelUp(attacker.Species) {
+			xp := 5 + target.Level*3 + target.MaxHP/10
+			if xp < 1 {
+				xp = 1
+			}
+			attacker.AddXP(xp)
+		}
+		questKilledLua(qm, em, target)
+	}
+	return hit
+}
+
+func scriptFleeCombat(w *world.World, em *entity.Manager, qm *quest.Manager, rng *rand.Rand, tick uint64, ent *entity.Entity, hostiles []*entity.Entity) bool {
+	if w == nil || ent == nil || len(hostiles) == 0 {
+		return false
+	}
+	attacker := hostiles[0]
+	bestScore := -1
+	for _, other := range hostiles {
+		if other == nil || !other.Alive || other.Immortal {
+			continue
+		}
+		score := combatPowerScoreLua(other)
+		if score > bestScore {
+			bestScore = score
+			attacker = other
+		}
+	}
+	if attacker != nil {
+		if !scriptCombatAttack(w, em, qm, rng, tick, attacker, ent) && !ent.Alive {
+			return true
+		}
+		if !ent.Alive {
+			return true
+		}
+	}
+	destID := chooseFleeDestinationLua(w, ent, rng)
+	if destID == "" {
+		return true
+	}
+	if ent.MaxHP > 0 && ent.HP*100 <= ent.MaxHP*35 {
+		if !ent.HasMoodModifierSource("combat_flee") {
+			ent.AddMoodModifier("combat_flee", "fearful", 5)
+		}
+	} else if !ent.HasMoodModifierSource("combat_flee") {
+		ent.AddMoodModifier("combat_flee", "stressed", 5)
+	}
+	if MoveRequest != nil {
+		MoveRequest(ent, destID)
+		return true
+	}
+	ent.LocationID = destID
+	return true
+}
+
+func questKilledLua(qm *quest.Manager, em *entity.Manager, target *entity.Entity) {
+	if qm == nil || em == nil || target == nil {
+		return
+	}
+	species := target.Species
+	if species == "" {
+		species = "unknown"
+	}
+	for _, ent := range em.All() {
+		if !ent.Alive {
+			continue
+		}
+		states := qm.EntityStates(ent.ID)
+		for _, state := range states {
+			if state.State != quest.StateActive {
+				continue
+			}
+			def := qm.GetDef(state.QuestID)
+			if def == nil {
+				continue
+			}
+			for _, stage := range def.Stages {
+				if stage.ID != state.CurrentStage {
+					continue
+				}
+				for _, obj := range stage.Objectives {
+					if obj.Type == "kill_entities" && (obj.EntityTemplate == species || obj.EntityTemplate == "*") {
+						qm.ProgressObjective(ent.ID, state.QuestID, obj.ID, 1)
+					}
+				}
+			}
+		}
+	}
+}
+
 func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.GameTime, rng *rand.Rand, ent *entity.Entity, qm *quest.Manager) {
 	worldTbl := L.NewTable()
 	worldTbl.RawSetString("time", lua.LString(tm.String()))
@@ -272,6 +469,9 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 		}
 		if ok && ent.LocationID == id {
 			log.Printf("[lua] moved %s to %s", ent.Name, id)
+			if qm != nil {
+				qm.RecordActivity(ent.ID, "Moved to '"+id+"'")
+			}
 		}
 		L.Push(lua.LBool(ok))
 		return 1
@@ -330,6 +530,7 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 		tbl.RawSetString("xp", lua.LNumber(e.XP))
 		tbl.RawSetString("age", lua.LNumber(e.Age))
 		tbl.RawSetString("alive", lua.LBool(e.Alive))
+		tbl.RawSetString("conscious", lua.LBool(e.Conscious))
 		tbl.RawSetString("location_id", lua.LString(e.LocationID))
 		tbl.RawSetString("hunger", lua.LNumber(computeHunger(e, tm.Tick)))
 		L.Push(tbl)
@@ -340,6 +541,31 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 		a := L.ToString(1)
 		b := L.ToString(2)
 		L.Push(lua.LBool(combat.Relation(a, b) == combat.Hostile))
+		return 1
+	}))
+
+	worldTbl.RawSetString("defend_self", L.NewFunction(func(L *lua.LState) int {
+		nearby := em.ByLocation(ent.LocationID)
+		hostiles := make([]*entity.Entity, 0, len(nearby))
+		for _, other := range nearby {
+			if other == nil || other.ID == ent.ID || !other.Alive || other.Immortal {
+				continue
+			}
+			if combat.Relation(ent.Faction, other.Faction) != combat.Hostile {
+				continue
+			}
+			hostiles = append(hostiles, other)
+		}
+		if len(hostiles) == 0 {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		if shouldFleeCombatLua(ent, hostiles) {
+			L.Push(lua.LBool(scriptFleeCombat(w, em, qm, rng, tm.Tick, ent, hostiles)))
+			return 1
+		}
+		target := hostiles[0]
+		L.Push(lua.LBool(scriptCombatAttack(w, em, qm, rng, tm.Tick, ent, target)))
 		return 1
 	}))
 
@@ -366,46 +592,11 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 		targetID := L.ToString(2)
 		attacker := em.Get(attackerID)
 		target := em.Get(targetID)
-		if attacker == nil || target == nil || !attacker.Alive || !target.Alive {
+		if attacker == nil || target == nil || !attacker.Alive || !attacker.Conscious || !target.Alive {
 			L.Push(lua.LFalse)
 			return 1
 		}
-		combat.SetTick(tm.Tick)
-		combat.ResetWeatherVisibility()
-		if loc := w.Location(target.LocationID); loc != nil && loc.IsOutside {
-			if wth := w.EffectiveWeather(target.LocationID); wth != nil {
-				combat.SetWeatherVisibility(wth.VisibilityModifier())
-			}
-		}
-		hit := combat.SimpleAttack(attacker, target, rng)
-		combat.ResetWeatherVisibility()
-		if !target.Alive {
-			combat.LootCorpse(attacker, target)
-			if attacker.Faction != target.Faction {
-				combat.ShiftRelation(attacker.Faction, target.Faction, -1)
-			}
-			if loc := w.Location(target.LocationID); loc != nil && attacker.Faction != "" && attacker.Faction != "civilian" && attacker.Faction != "deity" {
-				if loc.ControllingFaction == attacker.Faction {
-					loc.ControlStrength += 3
-					if loc.ControlStrength > 100 {
-						loc.ControlStrength = 100
-					}
-				} else {
-					loc.ControlStrength -= 5
-					if loc.ControlStrength <= 0 {
-						loc.ControllingFaction = attacker.Faction
-						loc.ControlStrength = 5
-					}
-				}
-			}
-			if entity.CanLevelUp(attacker.Species) {
-				xp := 5 + target.Level*3 + target.MaxHP/10
-				if xp < 1 {
-					xp = 1
-				}
-				attacker.AddXP(xp)
-			}
-		}
+		hit := scriptCombatAttack(w, em, qm, rng, tm.Tick, attacker, target)
 		L.Push(lua.LBool(hit))
 		return 1
 	}))
@@ -750,6 +941,7 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 	worldTbl.RawSetString("talk_to", L.NewFunction(func(L *lua.LState) int {
 		npcID := L.ToString(1)
 		if qm != nil {
+			qm.RecordActivity(ent.ID, "Tried to talk to '"+npcID+"'")
 			qm.CheckTalkToNPC(ent.ID, npcID)
 		}
 		L.Push(lua.LTrue)
@@ -760,6 +952,7 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 		npcID := L.ToString(1)
 		itemDefID := L.ToString(2)
 		if qm != nil {
+			qm.RecordActivity(ent.ID, "Tried to deliver '"+itemDefID+"' to '"+npcID+"'")
 			qm.CheckDeliverItem(ent.ID, npcID, itemDefID)
 			for i, inst := range ent.Inventory {
 				if inst.DefID == itemDefID && !inst.Equipped {

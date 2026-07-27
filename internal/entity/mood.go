@@ -10,6 +10,7 @@ var moodStatMods = map[string]Attributes{
 	"neutral":  {},
 	"happy":    {CHA: 1},
 	"angry":    {STR: 2, WIS: -1},
+	"brave":    {STR: 2, DEX: 1, CON: 2},
 	"fearful":  {STR: -2, DEX: 2},
 	"stressed": {CON: -1, WIS: -1},
 	"relaxed":  {CON: 1, WIS: 1},
@@ -26,6 +27,15 @@ func (e *Entity) AddMoodModifier(source, mood string, duration uint64) {
 		Mood:        mood,
 		DecayAtTick: uint64(e.Age) + duration,
 	})
+}
+
+func (e *Entity) HasMoodModifierSource(source string) bool {
+	for _, m := range e.MoodModifiers {
+		if m.Source == source {
+			return true
+		}
+	}
+	return false
 }
 
 func (e *Entity) EffectiveMood() string {

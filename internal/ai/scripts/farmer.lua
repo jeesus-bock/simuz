@@ -17,8 +17,53 @@ local MEAT_LOOKUP = {
     goat = "raw_goat"
 }
 
+local leashed_companion_id = nil
+
 local function is_livestock(species)
     return SLAUGHTER_AGE[species] ~= nil
+end
+
+local function find_farm_dog()
+    local nearby = world.nearby_entities()
+    if not nearby then
+        return nil
+    end
+    for _, other_id in ipairs(nearby) do
+        local info = world.entity_info(other_id)
+        if info and info.alive and info.species == "dog" then
+            return other_id, info
+        end
+    end
+    return nil
+end
+
+local function leash_companion()
+    local dog_id, dog_info = find_farm_dog()
+    if not dog_id then
+        return false
+    end
+    local leashed, dragger = world.is_leashed(dog_id)
+    if leashed and dragger ~= self.id then
+        return false
+    end
+    local ok = world.drag_entity(dog_id)
+    if ok then
+        leashed_companion_id = dog_id
+        util.log(self.name .. " leashed " .. (dog_info and dog_info.name or dog_id) .. " for the trip")
+    end
+    return ok
+end
+
+local function release_companion()
+    if not leashed_companion_id then
+        return false
+    end
+    local ok = world.undrag_entity(leashed_companion_id)
+    if ok then
+        util.log(self.name .. " released " .. leashed_companion_id .. " back at the farm")
+    end
+    leashed_companion_id = nil
+    return ok
 end
 
 local function count_items(def_id)
@@ -65,12 +110,14 @@ end
 local function go_to_market()
     local market_id = world.parent_location(farm_id)
     if market_id then
+        leash_companion()
         world.move_to(market_id)
     end
 end
 
 local function return_to_farm()
     world.move_to(farm_id)
+    release_companion()
 end
 
 local function tend_animals()
@@ -114,6 +161,10 @@ end
 local phase = world.phase
 local tick = world.tick
 local wth = world.weather()
+
+if world.defend_self and world.defend_self() then
+    return
+end
 
 if phase == "dawn" then
     return_to_farm()

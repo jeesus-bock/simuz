@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -64,10 +66,10 @@ type Simulation struct {
 	Traveling    map[string]*world.TravelState
 }
 
-func (s *Simulation) RLock()    { s.mu.RLock() }
-func (s *Simulation) RUnlock()  { s.mu.RUnlock() }
-func (s *Simulation) Lock()     { s.mu.Lock() }
-func (s *Simulation) Unlock()   { s.mu.Unlock() }
+func (s *Simulation) RLock()   { s.mu.RLock() }
+func (s *Simulation) RUnlock() { s.mu.RUnlock() }
+func (s *Simulation) Lock()    { s.mu.Lock() }
+func (s *Simulation) Unlock()  { s.mu.Unlock() }
 
 func NewSimulation(w *world.World) *Simulation {
 	qm := quest.NewManager()
@@ -159,6 +161,7 @@ func (s *Simulation) TickOnce() {
 	defer s.mu.Unlock()
 
 	s.Tick++
+	s.Quests.SetTick(s.Tick)
 
 	s.Scheduler.ProcessDue(s.Tick)
 
@@ -182,7 +185,7 @@ func (s *Simulation) TickOnce() {
 	}
 
 	for _, ent := range s.Entities.All() {
-		if !ent.Alive {
+		if !ent.Alive || !ent.Conscious {
 			continue
 		}
 		if s.IsTraveling(ent.ID) {
@@ -190,6 +193,11 @@ func (s *Simulation) TickOnce() {
 		}
 		processEntityAI(ent, s)
 	}
+
+	// Quest definitions describe offers made by source NPCs. Once an entity
+	// reaches the source's location, make the offer part of the simulation so
+	// quest ownership and subsequent activity are observable in the UI.
+	offerQuestsAtSources(s)
 
 	for _, ent := range s.Entities.All() {
 		if ent.Alive {
@@ -274,6 +282,33 @@ func (s *Simulation) TickOnce() {
 	}
 }
 
+func offerQuestsAtSources(sim *Simulation) {
+	all := sim.Entities.All()
+	sort.SliceStable(all, func(i, j int) bool { return all[i].ID < all[j].ID })
+
+	for _, def := range sim.Quests.AllDefs() {
+		if def.Source == nil || def.Source.NPCID == "" {
+			continue
+		}
+		giver := sim.Entities.Get(def.Source.NPCID)
+		if giver == nil || !giver.Alive {
+			continue
+		}
+		for _, candidate := range all {
+			if candidate.ID == giver.ID || !candidate.Alive || candidate.Species == "deity" {
+				continue
+			}
+			if candidate.LocationID != giver.LocationID {
+				continue
+			}
+			if sim.Quests.Accept(candidate.ID, def.ID, candidate.Level, sim.Tick) {
+				log.Printf("[quest] %s accepted '%s' from %s", candidate.Name, def.Title, giver.Name)
+				break
+			}
+		}
+	}
+}
+
 func processEntityAI(ent *entity.Entity, sim *Simulation) {
 	phase := sim.Time.Phase()
 	combat.SetTick(sim.Tick)
@@ -310,9 +345,14 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 		if isHome && sim.RNG.Intn(100) < 30 {
 			roamPassive(ent, sim)
 		} else if !isHome && sim.RNG.Intn(100) < 40 {
-			ent.LocationID = home
-			log.Printf("[ai] %s returned home to %s", ent.Name, home)
+			moveEntityTo(sim, ent, home)
 			setActivity(ent, sim.Tick, phase)
+		}
+	}
+
+	if ent.AI.Type == "passive" && shouldDefendPassive(ent) {
+		if defendPassiveSelf(ent, sim) {
+			return
 		}
 	}
 
@@ -390,7 +430,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			return
 		}
 		if home != "" && !isHome && sim.RNG.Intn(100) < 40 {
-			ent.LocationID = home
+			moveEntityTo(sim, ent, home)
 		}
 
 	case "hunting":
@@ -431,7 +471,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 				locEntities := sim.Entities.ByLocation(loc.ID)
 				for _, e := range locEntities {
 					if e.Alive && !e.Immortal && combat.Relation(ent.Faction, e.Faction) == combat.Hostile {
-						ent.LocationID = loc.ID
+						moveEntityTo(sim, ent, loc.ID)
 						return
 					}
 				}
@@ -451,12 +491,12 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			}
 			if combat.Relation(ent.Faction, other.Faction) == combat.Hostile {
 				if home != "" && ent.LocationID != home {
-					ent.LocationID = home
+					moveEntityTo(sim, ent, home)
 				} else {
 					siblings := sim.World.ChildLocations(ent.LocationID)
 					if len(siblings) > 0 {
 						safe := siblings[sim.RNG.Intn(len(siblings))]
-						ent.LocationID = safe.ID
+						moveEntityTo(sim, ent, safe.ID)
 					}
 				}
 				return
@@ -469,7 +509,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 				log.Printf("[ai] %s gathered resources at %s", ent.Name, ent.LocationID)
 			}
 		} else if home != "" && ent.LocationID != home {
-			ent.LocationID = home
+			moveEntityTo(sim, ent, home)
 		}
 
 	case "healing":
@@ -490,7 +530,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 		}
 		// Stay near the home location (temple/sanctuary)
 		if home != "" && ent.LocationID != home && sim.RNG.Intn(100) < 20 {
-			ent.LocationID = home
+			moveEntityTo(sim, ent, home)
 		}
 
 	case "scouting":
@@ -512,13 +552,13 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 		if hasHostile {
 			// Flee home
 			if home != "" && ent.LocationID != home {
-				ent.LocationID = home
+				moveEntityTo(sim, ent, home)
 				log.Printf("[ai] %s fled to %s", ent.Name, home)
 			} else {
 				// Retreat to parent location
 				parent := sim.World.Location(ent.LocationID)
 				if parent != nil && parent.ParentID != "" {
-					ent.LocationID = parent.ParentID
+					moveEntityTo(sim, ent, parent.ParentID)
 					log.Printf("[ai] %s retreated to %s", ent.Name, parent.ParentID)
 				}
 			}
@@ -528,7 +568,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 		children := sim.World.ChildLocations(ent.LocationID)
 		if len(children) > 0 {
 			dest := children[sim.RNG.Intn(len(children))]
-			ent.LocationID = dest.ID
+			moveEntityTo(sim, ent, dest.ID)
 		} else if sim.RNG.Intn(100) < 30 {
 			wanderAggressive(ent, sim)
 		}
@@ -539,7 +579,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 		}
 		// Stay at home location, attack any hostile that approaches
 		if home != "" && ent.LocationID != home {
-			ent.LocationID = home
+			moveEntityTo(sim, ent, home)
 			return
 		}
 		nearby := sim.Entities.ByLocation(ent.LocationID)
@@ -571,6 +611,231 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 	}
 }
 
+func shouldDefendPassive(ent *entity.Entity) bool {
+	if ent == nil || ent.Species != "human" {
+		return false
+	}
+	if strings.HasPrefix(strings.ToLower(ent.Name), "child ") {
+		return false
+	}
+	switch ent.Faction {
+	case "civilian", "merchant", "bard", "courier", "innkeeper", "blacksmith", "priest", "herbalist", "miner", "farmer":
+		return true
+	default:
+		return false
+	}
+}
+
+func combatPowerScore(e *entity.Entity) int {
+	if e == nil {
+		return 0
+	}
+	attrs := e.EffectiveAttrs()
+	score := e.Level*4 + attrs.STR*2 + attrs.DEX + attrs.CON
+	if e.MaxHP > 0 {
+		score += e.HP * 10 / e.MaxHP
+	}
+	if e.AI.Brave {
+		score += 6
+	}
+	return score
+}
+
+func shouldFleeCombat(ent *entity.Entity, hostiles []*entity.Entity) bool {
+	if ent == nil || len(hostiles) == 0 || ent.AI.Brave {
+		return false
+	}
+	if ent.MaxHP > 0 && ent.HP*100 <= ent.MaxHP*35 {
+		return true
+	}
+	selfScore := combatPowerScore(ent)
+	strongest := 0
+	total := 0
+	for _, other := range hostiles {
+		if other == nil || !other.Alive || other.Immortal {
+			continue
+		}
+		score := combatPowerScore(other)
+		total += score
+		if score > strongest {
+			strongest = score
+		}
+	}
+	if strongest >= selfScore+8 {
+		return true
+	}
+	if total >= selfScore*2 {
+		return true
+	}
+	return false
+}
+
+func chooseFleeDestination(sim *Simulation, ent *entity.Entity) string {
+	if sim == nil || ent == nil {
+		return ""
+	}
+	loc := sim.World.Location(ent.LocationID)
+	if loc == nil {
+		return ""
+	}
+	if loc.ParentID != "" {
+		parent := sim.World.Location(loc.ParentID)
+		if parent != nil {
+			siblings := sim.World.ChildLocations(parent.ID)
+			candidates := make([]*world.Location, 0, len(siblings))
+			for _, sib := range siblings {
+				if sib != nil && sib.ID != ent.LocationID {
+					candidates = append(candidates, sib)
+				}
+			}
+			if len(candidates) > 0 {
+				return candidates[sim.RNG.Intn(len(candidates))].ID
+			}
+		}
+		return loc.ParentID
+	}
+	children := sim.World.ChildLocations(ent.LocationID)
+	if len(children) > 0 {
+		return children[sim.RNG.Intn(len(children))].ID
+	}
+	return ""
+}
+
+func braveCombatBonus(ent *entity.Entity, hostiles []*entity.Entity) bool {
+	if ent == nil || !ent.AI.Brave || len(hostiles) == 0 {
+		return false
+	}
+	selfScore := combatPowerScore(ent)
+	strongest := 0
+	total := 0
+	for _, other := range hostiles {
+		if other == nil || !other.Alive || other.Immortal {
+			continue
+		}
+		score := combatPowerScore(other)
+		total += score
+		if score > strongest {
+			strongest = score
+		}
+	}
+	if strongest >= selfScore+8 || total >= selfScore*2 {
+		if !ent.HasMoodModifierSource("combat_bravery") {
+			ent.AddMoodModifier("combat_bravery", "brave", 6)
+		}
+		return true
+	}
+	return false
+}
+
+func fleeFromCombat(sim *Simulation, ent *entity.Entity, hostiles []*entity.Entity) bool {
+	if sim == nil || ent == nil || len(hostiles) == 0 {
+		return false
+	}
+	attacker := hostiles[0]
+	bestScore := -1
+	for _, other := range hostiles {
+		if other == nil || !other.Alive || other.Immortal {
+			continue
+		}
+		score := combatPowerScore(other)
+		if score > bestScore {
+			bestScore = score
+			attacker = other
+		}
+	}
+	if attacker != nil {
+		combat.SetTick(sim.Tick)
+		combat.ResetWeatherVisibility()
+		if loc := sim.World.Location(ent.LocationID); loc != nil && loc.IsOutside {
+			if wth := sim.World.EffectiveWeather(ent.LocationID); wth != nil {
+				combat.SetWeatherVisibility(wth.VisibilityModifier())
+			}
+		}
+		hit := combat.SimpleAttack(attacker, ent, sim.RNG)
+		combat.ResetWeatherVisibility()
+		applyCombatMoods(attacker, ent, hit, sim.Tick)
+		if !ent.Alive {
+			combat.LootCorpse(attacker, ent)
+			if attacker.Faction != ent.Faction {
+				combat.ShiftRelation(attacker.Faction, ent.Faction, -1)
+			}
+			if entity.CanLevelUp(attacker.Species) {
+				xp := 5 + ent.Level*3 + ent.MaxHP/10
+				if xp < 1 {
+					xp = 1
+				}
+				attacker.AddXP(xp)
+			}
+			questKilled(sim, ent)
+			sim.Emit(SimEvent{
+				Type:   EventEntityKilled,
+				Tick:   sim.Tick,
+				Source: attacker.ID,
+				Data:   map[string]any{"target": ent.ID, "attacker": attacker.ID},
+			})
+			return true
+		}
+	}
+	destID := chooseFleeDestination(sim, ent)
+	if destID == "" {
+		return true
+	}
+	if !fleeStarted(ent, sim, destID) {
+		return true
+	}
+	return true
+}
+
+func fleeStarted(ent *entity.Entity, sim *Simulation, destID string) bool {
+	if sim == nil || ent == nil || destID == "" {
+		return false
+	}
+	if ent.MaxHP > 0 && ent.HP*100 <= ent.MaxHP*35 {
+		ent.AddMoodModifier("combat_flee", "fearful", 5)
+	} else {
+		ent.AddMoodModifier("combat_flee", "stressed", 5)
+	}
+	return moveEntityTo(sim, ent, destID)
+}
+
+func defendPassiveSelf(ent *entity.Entity, sim *Simulation) bool {
+	if sim == nil || ent == nil {
+		return false
+	}
+	nearby := sim.Entities.ByLocation(ent.LocationID)
+	hostiles := make([]*entity.Entity, 0, len(nearby))
+	for _, other := range nearby {
+		if other == nil || other.ID == ent.ID || !other.Alive || other.Immortal {
+			continue
+		}
+		if combat.Relation(ent.Faction, other.Faction) == combat.Hostile {
+			hostiles = append(hostiles, other)
+		}
+	}
+	if len(hostiles) == 0 {
+		return false
+	}
+	if shouldFleeCombat(ent, hostiles) {
+		return fleeFromCombat(sim, ent, hostiles)
+	}
+	braveCombatBonus(ent, hostiles)
+	target := hostiles[0]
+	hit := simpleAttackAt(sim, ent, target)
+	applyCombatMoods(ent, target, hit, sim.Tick)
+	if !target.Alive {
+		combat.LootCorpse(ent, target)
+		sim.Emit(SimEvent{
+			Type:   EventEntityKilled,
+			Tick:   sim.Tick,
+			Source: ent.ID,
+			Data:   map[string]any{"target": target.ID, "attacker": ent.ID},
+		})
+		rewardXP(ent, target)
+		questKilled(sim, target)
+	}
+	return true
+}
+
 func isSleepTime(ent *entity.Entity, phase world.DayPhase) bool {
 	cycle := ent.AI.SleepCycle
 	if cycle == "none" {
@@ -590,8 +855,7 @@ func trySleep(ent *entity.Entity, sim *Simulation, home string, phase world.DayP
 	isNocturnal := cycle == "nocturnal"
 	if phase == world.Dusk || phase == world.Dawn {
 		if home != "" && ent.LocationID != home {
-			ent.LocationID = home
-			log.Printf("[ai] %s went home to sleep", ent.Name)
+			moveEntityTo(sim, ent, home)
 		}
 		if !isNocturnal {
 			ent.Activity = entity.EntityActivity{
@@ -622,15 +886,14 @@ func trySleep(ent *entity.Entity, sim *Simulation, home string, phase world.DayP
 		UntilTick: sim.Tick + 80,
 	}
 	if home != "" && ent.LocationID != home {
-		ent.LocationID = home
-		log.Printf("[ai] %s went home to sleep", ent.Name)
+		moveEntityTo(sim, ent, home)
 	}
 }
 
 func goActive(ent *entity.Entity, sim *Simulation) {
 	home := ent.AI.HomeLocation
 	if home != "" && ent.LocationID != home {
-		ent.LocationID = home
+		moveEntityTo(sim, ent, home)
 	}
 	setActivity(ent, sim.Tick, sim.Time.Phase())
 }
@@ -725,8 +988,7 @@ func roamPassive(ent *entity.Entity, sim *Simulation) {
 	if dest == home && sim.RNG.Intn(100) < 50 {
 		return
 	}
-	ent.LocationID = dest
-	log.Printf("[ai] %s wandered to %s", ent.Name, dest)
+	moveEntityTo(sim, ent, dest)
 }
 
 func wanderAggressive(ent *entity.Entity, sim *Simulation) {
@@ -754,8 +1016,14 @@ func wanderAggressive(ent *entity.Entity, sim *Simulation) {
 		return
 	}
 	dest := targets[sim.RNG.Intn(len(targets))]
-	ent.LocationID = dest
-	log.Printf("[ai] %s prowled to %s", ent.Name, dest)
+	moveEntityTo(sim, ent, dest)
+}
+
+func moveEntityTo(sim *Simulation, ent *entity.Entity, destID string) bool {
+	if sim == nil || ent == nil || destID == "" {
+		return false
+	}
+	return sim.RequestMove(ent, destID)
 }
 
 func formatTick(tick uint64) string {

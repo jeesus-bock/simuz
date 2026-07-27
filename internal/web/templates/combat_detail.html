@@ -14,28 +14,86 @@
             <div class="stat"><span>Tick</span><span>{{.tick}}</span></div>
             <div class="stat"><span>Time</span><span>{{.time}}</span></div>
             <div class="stat"><span>Location</span><span style="color:var(--accent);">{{.loc_id}}</span></div>
-            <div class="stat"><span>Combatants</span><span>{{len .combatants}}</span></div>
+            <div class="stat"><span>Combatants</span><span>{{.combatants_total}}</span></div>
+            <div class="stat"><span>Active</span><span>{{.active_count}}</span></div>
+            <div class="stat"><span>Downed</span><span>{{.downed_count}}</span></div>
         </div>
 
         <div class="card">
             <h3>Combatants</h3>
-            {{range .combatants}}
-            <div style="display:flex; align-items:center; gap:1rem; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
-                <div style="font-weight:bold; min-width:120px;"><a href="/entity/{{.ID}}" style="color:var(--accent);text-decoration:none;">{{.Name}}</a></div>
-                <div style="color:var(--text-dim); font-size:0.8rem; min-width:70px;">{{.Species}}</div>
-                <div style="color:var(--text-dim); font-size:0.8rem; min-width:80px;">{{.Faction}}</div>
-                <div style="min-width:100px;">
-                    <div class="hp-bar" style="width:80px;">
-                        <div class="hp-bar-fill" style="width:{{percent .HP .MaxHP}}%"></div>
+            <p style="color:var(--text-dim); font-size:0.85rem; margin-bottom:0.75rem;">
+                Active fighters are grouped by side. Knocked out and dead combatants are shown at the bottom.
+            </p>
+
+            {{if .active_groups}}
+                {{range .active_groups}}
+                <div style="margin-bottom:1rem;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.35rem;">
+                        <span style="padding:2px 8px; border-radius:999px; background:#20304f; color:#8fb0ff; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em;">{{.Label}}</span>
+                        <span style="color:var(--text-dim); font-size:0.75rem;">active</span>
                     </div>
+                    {{range .Combatants}}
+                    <div style="display:flex; align-items:center; gap:0.9rem; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <div style="min-width:22px; text-align:center; color:#7fd67f; font-size:0.95rem;">{{.StateIcon}}</div>
+                        <div style="font-weight:bold; min-width:120px;">
+                            <a href="/entity/{{.ID}}" style="color:var(--accent); text-decoration:none;">{{.Name}}</a>
+                        </div>
+                        <div style="color:var(--text-dim); font-size:0.8rem; min-width:70px;">{{.Species}}</div>
+                        <div style="color:var(--text-dim); font-size:0.8rem; min-width:80px;">{{.Faction}}</div>
+                        <div style="min-width:100px;">
+                            <div class="hp-bar" style="width:80px;">
+                                <div class="hp-bar-fill" style="width:{{percent .HP .MaxHP}}%"></div>
+                            </div>
+                        </div>
+                        <div>{{.HP}}/{{.MaxHP}}</div>
+                        <div style="color:var(--text-dim); font-size:0.8rem; min-width:110px;">
+                            {{.WeaponName}}
+                        </div>
+                        <div style="padding:2px 8px; border-radius:999px; font-size:0.72rem; background:#12351c; color:#8fe28f;">
+                            {{.StateLabel}}
+                        </div>
+                    </div>
+                    {{end}}
                 </div>
-                <div>{{.HP}}/{{.MaxHP}}</div>
-                <div style="color:var(--text-dim); font-size:0.8rem;">
-                    {{if .Equipment.Weapon}}{{.Equipment.Weapon.Def.Name}}{{else}}fists{{end}}
-                </div>
-            </div>
+                {{end}}
             {{else}}
-            <p style="color:var(--text-dim);">No combatants at this location.</p>
+                <p style="color:var(--text-dim);">No active combatants at this location.</p>
+            {{end}}
+
+            {{if .downed_groups}}
+                <div style="margin-top:1rem; margin-bottom:0.4rem; color:var(--text-dim); font-size:0.8rem; text-transform:uppercase; letter-spacing:0.08em;">
+                    Downed / Dead
+                </div>
+                {{range .downed_groups}}
+                <div style="margin-bottom:1rem;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.35rem;">
+                        <span style="padding:2px 8px; border-radius:999px; background:#3a2030; color:#ff9bb0; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em;">{{.Label}}</span>
+                        <span style="color:var(--text-dim); font-size:0.75rem;">{{len .Combatants}} downed</span>
+                    </div>
+                    {{range .Combatants}}
+                    <div style="display:flex; align-items:center; gap:0.9rem; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05); opacity:0.78;">
+                        <div style="min-width:22px; text-align:center; font-size:0.95rem; {{if eq .State "dead"}}color:#ff7f7f;{{else}}color:#ffcf7f;{{end}}">{{.StateIcon}}</div>
+                        <div style="font-weight:bold; min-width:120px; {{if eq .State "dead"}}color:#ff9090;{{else}}color:#ffdf7a;{{end}}">
+                            <a href="/entity/{{.ID}}" style="color:inherit; text-decoration:none;">{{.Name}}</a>
+                        </div>
+                        <div style="color:var(--text-dim); font-size:0.8rem; min-width:70px;">{{.Species}}</div>
+                        <div style="color:var(--text-dim); font-size:0.8rem; min-width:80px;">{{.Faction}}</div>
+                        <div style="min-width:100px;">
+                            <div class="hp-bar" style="width:80px;">
+                                <div class="hp-bar-fill" style="width:{{percent .HP .MaxHP}}%; background: {{if eq .State "dead"}}#a55{{else}}#caa24a{{end}};"></div>
+                            </div>
+                        </div>
+                        <div>{{.HP}}/{{.MaxHP}}</div>
+                        <div style="color:var(--text-dim); font-size:0.8rem; min-width:110px;">
+                            {{.WeaponName}}
+                        </div>
+                        <div style="padding:2px 8px; border-radius:999px; font-size:0.72rem; background:{{if eq .State "dead"}}#4a2020{{else}}#4a3d20{{end}}; color:{{if eq .State "dead"}}#ffb3b3{{else}}#ffe8a3{{end}};">
+                            {{.StateLabel}}
+                        </div>
+                    </div>
+                    {{end}}
+                </div>
+                {{end}}
             {{end}}
         </div>
     </div>

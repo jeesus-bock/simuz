@@ -40,6 +40,8 @@ func SpeciesMaxAge(species string) int {
 		return 10800
 	case "goat":
 		return 10800
+	case "dog":
+		return 12000
 	case "kobold":
 		return 6000
 	case "vampire":

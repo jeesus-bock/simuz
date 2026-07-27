@@ -19,6 +19,8 @@ type TravelState struct {
 	TotalTicks   int          `json:"total_ticks"`
 	ElapsedTicks int          `json:"elapsed_ticks"`
 	Status       TravelStatus `json:"status"`
+	Route        []string     `json:"route,omitempty"`
+	RouteIndex   int          `json:"route_index,omitempty"`
 }
 
 func TravelTime(from, to *Location, mode TravelMode) int {
@@ -72,9 +74,12 @@ func (ts *TravelState) Interrupt() {
 	ts.Status = TravelInterrupted
 }
 
-func NewTravel(entityID, fromID, toID string, totalTicks int, mode TravelMode) *TravelState {
+func NewTravel(entityID, fromID, toID string, route []string, totalTicks int, mode TravelMode) *TravelState {
 	if totalTicks < 1 {
 		totalTicks = 1
+	}
+	if len(route) == 0 {
+		route = []string{fromID, toID}
 	}
 	return &TravelState{
 		EntityID:     entityID,
@@ -84,5 +89,7 @@ func NewTravel(entityID, fromID, toID string, totalTicks int, mode TravelMode) *
 		TotalTicks:   totalTicks,
 		ElapsedTicks: 0,
 		Status:       TravelInProgress,
+		Route:        route,
+		RouteIndex:   0,
 	}
 }

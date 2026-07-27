@@ -2,6 +2,8 @@ package api
 
 import (
 	"net/http"
+	"sort"
+	"strings"
 
 	"simuz/internal/combat"
 	"simuz/internal/entity"
@@ -46,8 +48,24 @@ func (h *Handler) ListCombats(c *gin.Context) {
 		if loc != nil {
 			name = loc.Name
 		}
+		sort.SliceStable(fnames, func(i, j int) bool {
+			li := strings.ToLower(fnames[i])
+			lj := strings.ToLower(fnames[j])
+			if li != lj {
+				return li < lj
+			}
+			return fnames[i] < fnames[j]
+		})
 		zones = append(zones, zoneInfo{LocationID: locID, LocationName: name, Factions: fnames, EntityCount: total})
 	}
+	sort.SliceStable(zones, func(i, j int) bool {
+		li := strings.ToLower(zones[i].LocationName)
+		lj := strings.ToLower(zones[j].LocationName)
+		if li != lj {
+			return li < lj
+		}
+		return zones[i].LocationID < zones[j].LocationID
+	})
 
 	c.JSON(http.StatusOK, gin.H{
 		"zones": zones,

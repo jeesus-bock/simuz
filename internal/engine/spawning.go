@@ -6,6 +6,7 @@ import (
 	"math/rand"
 
 	"simuz/internal/entity"
+	"simuz/internal/items"
 	"simuz/internal/world"
 )
 
@@ -107,8 +108,89 @@ func spawnEntity(rule *SpawnRule, em *entity.Manager, tick, idx int, rng *rand.R
 		SleepCycle:   defaultSleepCycle(rule.Species),
 		HomeLocation: rule.LocationID,
 	}
+	equipSpawn(ent, rule, rng)
 	em.Add(ent)
 	return ent
+}
+
+func equipSpawnItem(ent *entity.Entity, defID string) {
+	def := items.GetDef(defID)
+	if def == nil {
+		return
+	}
+	inst := items.NewItemInstance(defID+"_"+ent.ID, defID, def, 1)
+	ent.AddItem(inst)
+	if def.Slot != "" {
+		ent.Equip(&ent.Inventory[len(ent.Inventory)-1])
+	}
+}
+
+// equipSpawn arms respawned fighters so camps stay dangerous over time.
+func equipSpawn(ent *entity.Entity, rule *SpawnRule, rng *rand.Rand) {
+	if len(rule.Equipment) > 0 {
+		for _, id := range rule.Equipment {
+			equipSpawnItem(ent, id)
+		}
+		return
+	}
+	switch rule.Species {
+	case "orc":
+		equipSpawnItem(ent, "leather_armor")
+		if rng.Intn(100) < 40 {
+			equipSpawnItem(ent, "leather_helmet")
+		}
+		roll := rng.Intn(100)
+		switch {
+		case roll < 35:
+			equipSpawnItem(ent, "orc_cleaver")
+		case roll < 60:
+			equipSpawnItem(ent, "iron_axe")
+		case roll < 80:
+			equipSpawnItem(ent, "iron_spear")
+		default:
+			equipSpawnItem(ent, "iron_sword")
+		}
+	case "human":
+		if rule.Faction == "bandit" {
+			equipSpawnItem(ent, "leather_armor")
+			equipSpawnItem(ent, "leather_boots")
+			roll := rng.Intn(100)
+			switch {
+			case roll < 40:
+				equipSpawnItem(ent, "iron_sword")
+			case roll < 65:
+				equipSpawnItem(ent, "short_sword")
+			case roll < 85:
+				equipSpawnItem(ent, "iron_axe")
+			default:
+				equipSpawnItem(ent, "iron_spear")
+			}
+		}
+	case "goblin":
+		equipSpawnItem(ent, "work_tunic")
+		if rng.Intn(100) < 60 {
+			equipSpawnItem(ent, "goblin_shiv")
+		} else {
+			equipSpawnItem(ent, "cudgel")
+		}
+	case "kobold":
+		equipSpawnItem(ent, "work_tunic")
+		roll := rng.Intn(100)
+		switch {
+		case roll < 55:
+			equipSpawnItem(ent, "dagger")
+		case roll < 80:
+			equipSpawnItem(ent, "short_sword")
+		default:
+			equipSpawnItem(ent, "goblin_shiv")
+		}
+	case "wolf", "bear":
+		equipSpawnItem(ent, "claws")
+	case "boar":
+		equipSpawnItem(ent, "tusks")
+	case "spider", "rat":
+		equipSpawnItem(ent, "fangs")
+	}
 }
 
 func baseSpeciesAttrs(species string, rng *rand.Rand) entity.Attributes {

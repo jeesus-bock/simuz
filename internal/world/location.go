@@ -1,6 +1,10 @@
 package world
 
-import "math"
+import (
+	"math"
+	"sort"
+	"strings"
+)
 
 type LocationType int
 
@@ -181,6 +185,116 @@ func (w *World) ChildLocations(parentID string) []*Location {
 		}
 	}
 	return result
+}
+
+func (w *World) Route(fromID, toID string) []string {
+	if fromID == "" || toID == "" {
+		return nil
+	}
+	if fromID == toID {
+		return []string{fromID}
+	}
+	if w.locations[fromID] == nil || w.locations[toID] == nil {
+		return nil
+	}
+
+	type node struct {
+		id   string
+		dist int
+	}
+
+	queue := []node{{id: fromID, dist: 0}}
+	prev := map[string]string{fromID: ""}
+	visited := map[string]bool{fromID: true}
+
+	for len(queue) > 0 {
+		cur := queue[0]
+		queue = queue[1:]
+		if cur.id == toID {
+			break
+		}
+
+		neighbors := w.adjacentLocationIDs(cur.id)
+		for _, next := range neighbors {
+			if visited[next] {
+				continue
+			}
+			visited[next] = true
+			prev[next] = cur.id
+			queue = append(queue, node{id: next, dist: cur.dist + 1})
+		}
+	}
+
+	if !visited[toID] {
+		return nil
+	}
+
+	var route []string
+	for cur := toID; cur != ""; cur = prev[cur] {
+		route = append(route, cur)
+		if cur == fromID {
+			break
+		}
+	}
+	if len(route) == 0 || route[len(route)-1] != fromID {
+		return nil
+	}
+	for i, j := 0, len(route)-1; i < j; i, j = i+1, j-1 {
+		route[i], route[j] = route[j], route[i]
+	}
+	return route
+}
+
+func (w *World) adjacentLocationIDs(id string) []string {
+	loc := w.locations[id]
+	if loc == nil {
+		return nil
+	}
+
+	type entry struct {
+		id   string
+		name string
+	}
+
+	var entries []entry
+	seen := make(map[string]struct{})
+	add := func(nextID string) {
+		if nextID == "" || nextID == id {
+			return
+		}
+		if _, ok := seen[nextID]; ok {
+			return
+		}
+		if next := w.locations[nextID]; next != nil {
+			seen[nextID] = struct{}{}
+			entries = append(entries, entry{id: nextID, name: next.Name})
+		}
+	}
+
+	if loc.ParentID != "" {
+		add(loc.ParentID)
+	}
+	for _, childID := range loc.Children {
+		add(childID)
+	}
+	for _, ex := range loc.Exits {
+		add(ex.TargetID)
+	}
+
+	sort.SliceStable(entries, func(i, j int) bool {
+		li := strings.ToLower(entries[i].name)
+		lj := strings.ToLower(entries[j].name)
+		if li != lj {
+			return li < lj
+		}
+		return entries[i].id < entries[j].id
+	})
+
+	out := make([]string, 0, len(entries))
+	for _, e := range entries {
+		out = append(out, e.id)
+	}
+	return out
 }
 
 func (w *World) IsInside(id string) bool {

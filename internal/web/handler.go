@@ -7,11 +7,14 @@ import (
 	"html/template"
 	"io"
 	"io/fs"
+	"sort"
+	"strings"
 
 	"simuz/internal/combat"
 	"simuz/internal/engine"
 	"simuz/internal/entity"
 	"simuz/internal/items"
+	"simuz/internal/quest"
 	"simuz/internal/world"
 
 	"github.com/gin-gonic/gin"
@@ -51,6 +54,7 @@ func (h *Handler) EntitiesPage(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
 	all := h.Sim.Entities.All()
+	sortEntitiesForDisplay(all)
 	h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
 		"title":         "Entities",
 		"page":          "entities",
@@ -65,10 +69,392 @@ func (h *Handler) EntitiesPage(c *gin.Context) {
 }
 
 type locNode struct {
-	Location *world.Location
-	Children []locNode
-	Depth    int
+	Location    *world.Location
+	Children    []locNode
+	Depth       int
 	EntityCount int
+}
+
+type exitView struct {
+	TargetID   string
+	TargetName string
+	Direction  string
+	Distance   float64
+}
+
+type combatantView struct {
+	ID         string
+	Name       string
+	Species    string
+	Faction    string
+	HP         int
+	MaxHP      int
+	WeaponName string
+	State      string
+	StateRank  int
+	StateLabel string
+	StateIcon  string
+	StateClass string
+}
+
+type combatGroup struct {
+	Faction    string
+	Label      string
+	Combatants []combatantView
+}
+
+type questProgressView struct {
+	Def    *quest.QuestDef
+	Entity *entity.Entity
+	State  *quest.EntityQuestState
+}
+
+func (h *Handler) activeQuestViews() []questProgressView {
+	var active []questProgressView
+	for _, ent := range h.Sim.Entities.All() {
+		for _, state := range h.Sim.Quests.EntityStates(ent.ID) {
+			if state.State != quest.StateActive {
+				continue
+			}
+			if def := h.Sim.Quests.GetDef(state.QuestID); def != nil {
+				active = append(active, questProgressView{Def: def, Entity: ent, State: state})
+			}
+		}
+	}
+	sort.SliceStable(active, func(i, j int) bool {
+		if active[i].Entity.Name != active[j].Entity.Name {
+			return active[i].Entity.Name < active[j].Entity.Name
+		}
+		return active[i].State.AcceptedTick < active[j].State.AcceptedTick
+	})
+	return active
+}
+
+func entityDisplayRank(e *entity.Entity) int {
+	switch {
+	case e == nil:
+		return 3
+	case !e.Alive:
+		return 2
+	case !e.Conscious:
+		return 1
+	default:
+		return 0
+	}
+}
+
+func sortEntitiesForDisplay(entities []*entity.Entity) {
+	sort.SliceStable(entities, func(i, j int) bool {
+		ri := entityDisplayRank(entities[i])
+		rj := entityDisplayRank(entities[j])
+		if ri != rj {
+			return ri < rj
+		}
+		ni := strings.ToLower(entities[i].Name)
+		nj := strings.ToLower(entities[j].Name)
+		if ni != nj {
+			return ni < nj
+		}
+		return entities[i].ID < entities[j].ID
+	})
+}
+
+func sortLocationsForDisplay(locs []*world.Location) {
+	sort.SliceStable(locs, func(i, j int) bool {
+		if locs[i] == nil {
+			return false
+		}
+		if locs[j] == nil {
+			return true
+		}
+		ni := strings.ToLower(locs[i].Name)
+		nj := strings.ToLower(locs[j].Name)
+		if ni != nj {
+			return ni < nj
+		}
+		return locs[i].ID < locs[j].ID
+	})
+}
+
+func sortInventoryForDisplay(items []items.ItemInstance) {
+	sort.SliceStable(items, func(i, j int) bool {
+		ni := ""
+		nj := ""
+		if items[i].Def != nil {
+			ni = strings.ToLower(items[i].Def.Name)
+		}
+		if items[j].Def != nil {
+			nj = strings.ToLower(items[j].Def.Name)
+		}
+		if ni != nj {
+			return ni < nj
+		}
+		di := items[i].DefID
+		dj := items[j].DefID
+		if di != dj {
+			return di < dj
+		}
+		return items[i].ID < items[j].ID
+	})
+}
+
+func sortEffectsForDisplay(effects []entity.ActiveEffect) {
+	sort.SliceStable(effects, func(i, j int) bool {
+		if effects[i].Name != effects[j].Name {
+			return strings.ToLower(effects[i].Name) < strings.ToLower(effects[j].Name)
+		}
+		if effects[i].StartTick != effects[j].StartTick {
+			return effects[i].StartTick < effects[j].StartTick
+		}
+		return effects[i].ID < effects[j].ID
+	})
+}
+
+func sortCombatZonesForDisplay(zones []combatZone) {
+	sort.SliceStable(zones, func(i, j int) bool {
+		ni := strings.ToLower(zones[i].LocationName)
+		nj := strings.ToLower(zones[j].LocationName)
+		if ni != nj {
+			return ni < nj
+		}
+		return zones[i].LocationID < zones[j].LocationID
+	})
+}
+
+func hostileFactionMixExists(factions map[string]int) bool {
+	if len(factions) < 2 {
+		return false
+	}
+	keys := make([]string, 0, len(factions))
+	for faction := range factions {
+		keys = append(keys, faction)
+	}
+	sortStringsByFoldAndRaw(keys)
+	for i := 0; i < len(keys); i++ {
+		for j := i + 1; j < len(keys); j++ {
+			if combat.Relation(keys[i], keys[j]) == combat.Hostile {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func relationLabel(rel combat.FactionRelation) string {
+	switch rel {
+	case combat.Friendly:
+		return "friendly"
+	case combat.Hostile:
+		return "hostile"
+	default:
+		return "neutral"
+	}
+}
+
+func buildFactionRelationNotes(factions []string) []string {
+	if len(factions) < 2 {
+		return nil
+	}
+	notes := make([]string, 0, len(factions))
+	for i := 0; i < len(factions); i++ {
+		for j := i + 1; j < len(factions); j++ {
+			rel := combat.Relation(factions[i], factions[j])
+			if rel == combat.Hostile {
+				continue
+			}
+			notes = append(notes, factions[i]+" + "+factions[j]+" ("+relationLabel(rel)+")")
+		}
+	}
+	sortStringsByFoldAndRaw(notes)
+	return notes
+}
+
+func sortExitsForDisplay(exits []exitView) {
+	sort.SliceStable(exits, func(i, j int) bool {
+		ni := strings.ToLower(exits[i].TargetName)
+		nj := strings.ToLower(exits[j].TargetName)
+		if ni != nj {
+			return ni < nj
+		}
+		if exits[i].Direction != exits[j].Direction {
+			return strings.ToLower(exits[i].Direction) < strings.ToLower(exits[j].Direction)
+		}
+		return exits[i].TargetID < exits[j].TargetID
+	})
+}
+
+func sortStringsByFoldAndRaw(values []string) {
+	sort.SliceStable(values, func(i, j int) bool {
+		li := strings.ToLower(values[i])
+		lj := strings.ToLower(values[j])
+		if li != lj {
+			return li < lj
+		}
+		return values[i] < values[j]
+	})
+}
+
+func sortTravelersForDisplay(travelers []gin.H) {
+	sort.SliceStable(travelers, func(i, j int) bool {
+		ni, _ := travelers[i]["name"].(string)
+		nj, _ := travelers[j]["name"].(string)
+		li := strings.ToLower(ni)
+		lj := strings.ToLower(nj)
+		if li != lj {
+			return li < lj
+		}
+		ei, _ := travelers[i]["entity_id"].(string)
+		ej, _ := travelers[j]["entity_id"].(string)
+		return ei < ej
+	})
+}
+
+func combatantState(e *entity.Entity) (state, label, icon, class string) {
+	if e == nil {
+		return "unknown", "unknown", "?", "combat-unknown"
+	}
+	switch {
+	case !e.Alive:
+		return "dead", "dead", "☠", "combat-dead"
+	case !e.Conscious:
+		return "knocked_out", "knocked out", "✖", "combat-knocked"
+	default:
+		return "active", "active", "●", "combat-active"
+	}
+}
+
+func combatantWeaponName(e *entity.Entity) string {
+	if e == nil || e.Equipment.Weapon == nil || e.Equipment.Weapon.Def == nil {
+		return "fists"
+	}
+	return e.Equipment.Weapon.Def.Name
+}
+
+func buildCombatantView(e *entity.Entity) combatantView {
+	state, label, icon, class := combatantState(e)
+	rank := 0
+	switch state {
+	case "active":
+		rank = 0
+	case "knocked_out":
+		rank = 1
+	case "dead":
+		rank = 2
+	default:
+		rank = 3
+	}
+	faction := e.Faction
+	if faction == "" {
+		faction = "unknown"
+	}
+	return combatantView{
+		ID:         e.ID,
+		Name:       e.Name,
+		Species:    e.Species,
+		Faction:    faction,
+		HP:         e.HP,
+		MaxHP:      e.MaxHP,
+		WeaponName: combatantWeaponName(e),
+		State:      state,
+		StateRank:  rank,
+		StateLabel: label,
+		StateIcon:  icon,
+		StateClass: class,
+	}
+}
+
+func buildCombatGroups(entities []*entity.Entity) (active []combatGroup, downed []combatGroup, activeCount, downedCount int) {
+	activeByFaction := make(map[string][]combatantView)
+	downedByFaction := make(map[string][]combatantView)
+
+	for _, e := range entities {
+		view := buildCombatantView(e)
+		switch view.State {
+		case "active":
+			activeByFaction[view.Faction] = append(activeByFaction[view.Faction], view)
+			activeCount++
+		default:
+			downedByFaction[view.Faction] = append(downedByFaction[view.Faction], view)
+			downedCount++
+		}
+	}
+
+	sortedFactionKeys := func(m map[string][]combatantView) []string {
+		keys := make([]string, 0, len(m))
+		for k := range m {
+			keys = append(keys, k)
+		}
+		sort.Slice(keys, func(i, j int) bool {
+			return strings.ToLower(keys[i]) < strings.ToLower(keys[j])
+		})
+		return keys
+	}
+
+	sortViews := func(vs []combatantView) {
+		sort.SliceStable(vs, func(i, j int) bool {
+			if vs[i].StateRank != vs[j].StateRank {
+				return vs[i].StateRank < vs[j].StateRank
+			}
+			if strings.ToLower(vs[i].Name) != strings.ToLower(vs[j].Name) {
+				return strings.ToLower(vs[i].Name) < strings.ToLower(vs[j].Name)
+			}
+			return vs[i].ID < vs[j].ID
+		})
+	}
+
+	for _, faction := range sortedFactionKeys(activeByFaction) {
+		vs := activeByFaction[faction]
+		sortViews(vs)
+		active = append(active, combatGroup{
+			Faction:    faction,
+			Label:      titleStr(faction),
+			Combatants: vs,
+		})
+	}
+
+	for _, faction := range sortedFactionKeys(downedByFaction) {
+		vs := downedByFaction[faction]
+		sortViews(vs)
+		downed = append(downed, combatGroup{
+			Faction:    faction,
+			Label:      titleStr(faction),
+			Combatants: vs,
+		})
+	}
+
+	return active, downed, activeCount, downedCount
+}
+
+func combatDetailData(h *Handler, locID string) gin.H {
+	loc := h.Sim.World.Location(locID)
+	name := locID
+	if loc != nil {
+		name = loc.Name
+	}
+
+	all := h.Sim.Entities.All()
+	var combatants []*entity.Entity
+	for _, e := range all {
+		if e.LocationID == locID {
+			combatants = append(combatants, e)
+		}
+	}
+
+	activeGroups, downedGroups, activeCount, downedCount := buildCombatGroups(combatants)
+	events := combat.LocationEvents(locID, 100)
+
+	return gin.H{
+		"loc_id":           locID,
+		"loc_name":         name,
+		"tick":             h.Sim.Tick,
+		"time":             h.Sim.Time.String(),
+		"combatants_total": len(combatants),
+		"active_count":     activeCount,
+		"downed_count":     downedCount,
+		"active_groups":    activeGroups,
+		"downed_groups":    downedGroups,
+		"combat_events":    events,
+	}
 }
 
 func buildLocationTree(w *world.World, entities *entity.Manager) []locNode {
@@ -81,14 +467,15 @@ func buildLocationTree(w *world.World, entities *entity.Manager) []locNode {
 
 func buildChildren(w *world.World, entities *entity.Manager, parentID string, depth int) []locNode {
 	children := w.ChildLocations(parentID)
+	sortLocationsForDisplay(children)
 	var nodes []locNode
 	for _, loc := range children {
 		ec := len(entities.ByLocation(loc.ID))
 		node := locNode{
-			Location: loc,
-			Depth:    depth,
+			Location:    loc,
+			Depth:       depth,
 			EntityCount: ec,
-			Children: buildChildren(w, entities, loc.ID, depth+1),
+			Children:    buildChildren(w, entities, loc.ID, depth+1),
 		}
 		nodes = append(nodes, node)
 	}
@@ -106,19 +493,21 @@ func (h *Handler) LocationsPage(c *gin.Context) {
 			realms = append(realms, loc)
 		}
 	}
+	sortLocationsForDisplay(realms)
 
 	h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
-		"title":      "Locations",
-		"page":       "locations",
-		"tick":       h.Sim.Tick,
-		"time":       h.Sim.Time.String(),
-		"phase":      h.Sim.Time.Phase().String(),
-		"season":     h.Sim.Time.Season().String(),
-		"entities":   len(all),
-		"locations":  len(h.Sim.World.AllLocations()),
-		"loc_tree":   buildLocationTree(h.Sim.World, h.Sim.Entities),
-		"root_name":  h.Sim.World.RootLocation().Name,
-		"realms":     realms,
+		"title":     "Locations",
+		"page":      "locations",
+		"tick":      h.Sim.Tick,
+		"time":      h.Sim.Time.String(),
+		"phase":     h.Sim.Time.Phase().String(),
+		"season":    h.Sim.Time.Season().String(),
+		"entities":  len(all),
+		"locations": len(h.Sim.World.AllLocations()),
+		"loc_tree":  buildLocationTree(h.Sim.World, h.Sim.Entities),
+		"travelers": buildTravelerViews(h.Sim, ""),
+		"root_name": h.Sim.World.RootLocation().Name,
+		"realms":    realms,
 	})
 }
 
@@ -126,48 +515,20 @@ func (h *Handler) CombatPage(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
 	all := h.Sim.Entities.All()
-
-	locFactions := make(map[string]map[string]int)
-	for _, e := range all {
-		if !e.Alive {
-			continue
-		}
-		if locFactions[e.LocationID] == nil {
-			locFactions[e.LocationID] = make(map[string]int)
-		}
-		locFactions[e.LocationID][e.Faction]++
-	}
-
-	var zones []combatZone
-	for locID, factions := range locFactions {
-		if len(factions) < 2 {
-			continue
-		}
-		total := 0
-		fnames := make([]string, 0, len(factions))
-		for f, c := range factions {
-			fnames = append(fnames, f)
-			total += c
-		}
-		loc := h.Sim.World.Location(locID)
-		name := locID
-		if loc != nil {
-			name = loc.Name
-		}
-		zones = append(zones, combatZone{LocationName: name, LocationID: locID, Factions: fnames, EntityCount: total})
-	}
+	activeZones, contestedZones := buildCombatOverviewZones(h.Sim)
 
 	h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
-		"title":       "Combat",
-		"page":        "combat",
-		"tick":        h.Sim.Tick,
-		"time":        h.Sim.Time.String(),
-		"phase":       h.Sim.Time.Phase().String(),
-		"season":      h.Sim.Time.Season().String(),
-		"entities":    len(all),
-		"locations":   len(h.Sim.World.AllLocations()),
-		"combat_zones": zones,
-		"combat_log":  combat.RecentLog(50),
+		"title":           "Combat",
+		"page":            "combat",
+		"tick":            h.Sim.Tick,
+		"time":            h.Sim.Time.String(),
+		"phase":           h.Sim.Time.Phase().String(),
+		"season":          h.Sim.Time.Season().String(),
+		"entities":        len(all),
+		"locations":       len(h.Sim.World.AllLocations()),
+		"combat_zones":    activeZones,
+		"contested_zones": contestedZones,
+		"combat_log":      combat.RecentLog(50),
 	})
 }
 
@@ -176,15 +537,16 @@ func (h *Handler) QuestsPage(c *gin.Context) {
 	defer h.Sim.RUnlock()
 	defs := h.Sim.Quests.AllDefs()
 	h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
-		"title":      "Quests",
-		"page":       "quests",
-		"tick":       h.Sim.Tick,
-		"time":       h.Sim.Time.String(),
-		"phase":      h.Sim.Time.Phase().String(),
-		"season":     h.Sim.Time.Season().String(),
-		"entities":   len(h.Sim.Entities.All()),
-		"locations":  len(h.Sim.World.AllLocations()),
-		"quest_defs": defs,
+		"title":         "Quests",
+		"page":          "quests",
+		"tick":          h.Sim.Tick,
+		"time":          h.Sim.Time.String(),
+		"phase":         h.Sim.Time.Phase().String(),
+		"season":        h.Sim.Time.Season().String(),
+		"entities":      len(h.Sim.Entities.All()),
+		"locations":     len(h.Sim.World.AllLocations()),
+		"quest_defs":    defs,
+		"active_quests": h.activeQuestViews(),
 	})
 }
 
@@ -247,6 +609,7 @@ func (h *Handler) EntitiesFragment(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
 	all := h.Sim.Entities.All()
+	sortEntitiesForDisplay(all)
 	h.Tmpls.ExecuteTemplate(c.Writer, "entities_table", gin.H{
 		"tick":          h.Sim.Tick,
 		"time":          h.Sim.Time.String(),
@@ -266,12 +629,14 @@ func (h *Handler) LocationsFragment(c *gin.Context) {
 			realms = append(realms, loc)
 		}
 	}
+	sortLocationsForDisplay(realms)
 	h.Tmpls.ExecuteTemplate(c.Writer, "locations_tree", gin.H{
 		"tick":      h.Sim.Tick,
 		"time":      h.Sim.Time.String(),
 		"entities":  len(all),
 		"locations": len(h.Sim.World.AllLocations()),
 		"loc_tree":  buildLocationTree(h.Sim.World, h.Sim.Entities),
+		"travelers": buildTravelerViews(h.Sim, ""),
 		"root_name": h.Sim.World.RootLocation().Name,
 		"realms":    realms,
 	})
@@ -291,6 +656,7 @@ func (h *Handler) locationDetailData(locID string) (gin.H, bool) {
 		}
 	}
 	ents := h.Sim.Entities.ByLocation(locID)
+	sortEntitiesForDisplay(ents)
 	type entRow struct {
 		ID, Name, Species, Faction string
 		Level, HP, MaxHP           int
@@ -305,43 +671,49 @@ func (h *Handler) locationDetailData(locID string) (gin.H, bool) {
 	}
 	wth := h.Sim.World.EffectiveWeather(locID)
 	children := h.Sim.World.ChildLocations(locID)
+	sortLocationsForDisplay(children)
 	events := combat.LocationEvents(locID, 30)
-	var travelers []gin.H
-	if h.Sim.Traveling != nil {
-		for _, ts := range h.Sim.Traveling {
-			if ts != nil && (ts.FromID == locID || ts.ToID == locID) && ts.Status == world.TravelInProgress {
-				name := ts.EntityID
-				if e := h.Sim.Entities.Get(ts.EntityID); e != nil {
-					name = e.Name
-				}
-				travelers = append(travelers, gin.H{
-					"entity_id": ts.EntityID,
-					"name":      name,
-					"from":      ts.FromID,
-					"to":        ts.ToID,
-					"progress":  int(ts.Progress() * 100),
-					"eta":       ts.TotalTicks - ts.ElapsedTicks,
-				})
-			}
-		}
-	}
+	travelers := buildTravelerViews(h.Sim, locID)
+	exits := buildLocationExits(h.Sim.World, loc)
 	return gin.H{
-		"title":     "Location: " + loc.Name,
-		"page":      "location_detail",
-		"tick":      h.Sim.Tick,
-		"time":      h.Sim.Time.String(),
-		"phase":     h.Sim.Time.Phase().String(),
-		"season":    h.Sim.Time.Season().String(),
-		"entities":  len(h.Sim.Entities.All()),
-		"locations": len(h.Sim.World.AllLocations()),
-		"loc":       loc,
-		"parent_name": parentName,
-		"entity_rows": rows,
-		"weather":   wth,
-		"children":  children,
+		"title":         "Location: " + loc.Name,
+		"page":          "location_detail",
+		"tick":          h.Sim.Tick,
+		"time":          h.Sim.Time.String(),
+		"phase":         h.Sim.Time.Phase().String(),
+		"season":        h.Sim.Time.Season().String(),
+		"entities":      len(h.Sim.Entities.All()),
+		"locations":     len(h.Sim.World.AllLocations()),
+		"loc":           loc,
+		"parent_name":   parentName,
+		"exits":         exits,
+		"entity_rows":   rows,
+		"weather":       wth,
+		"children":      children,
 		"combat_events": events,
-		"travelers": travelers,
+		"travelers":     travelers,
 	}, true
+}
+
+func buildLocationExits(w *world.World, loc *world.Location) []exitView {
+	if loc == nil || len(loc.Exits) == 0 {
+		return nil
+	}
+	exits := make([]exitView, 0, len(loc.Exits))
+	for _, ex := range loc.Exits {
+		targetName := ex.TargetID
+		if target := w.Location(ex.TargetID); target != nil {
+			targetName = target.Name
+		}
+		exits = append(exits, exitView{
+			TargetID:   ex.TargetID,
+			TargetName: targetName,
+			Direction:  ex.Direction,
+			Distance:   ex.Distance,
+		})
+	}
+	sortExitsForDisplay(exits)
+	return exits
 }
 
 func (h *Handler) LocationDetailPage(c *gin.Context) {
@@ -367,54 +739,28 @@ func (h *Handler) LocationDetailFragment(c *gin.Context) {
 }
 
 type combatZone struct {
-	LocationName string
-	LocationID   string
-	Factions     []string
-	EntityCount  int
+	LocationName  string
+	LocationID    string
+	Factions      []string
+	RelationNotes []string
+	EntityCount   int
+	Href          string
 }
 
 func (h *Handler) CombatFragment(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
 	all := h.Sim.Entities.All()
-
-	locFactions := make(map[string]map[string]int)
-	for _, e := range all {
-		if !e.Alive {
-			continue
-		}
-		if locFactions[e.LocationID] == nil {
-			locFactions[e.LocationID] = make(map[string]int)
-		}
-		locFactions[e.LocationID][e.Faction]++
-	}
-
-	var zones []combatZone
-	for locID, factions := range locFactions {
-		if len(factions) < 2 {
-			continue
-		}
-		total := 0
-		fnames := make([]string, 0, len(factions))
-		for f, c := range factions {
-			fnames = append(fnames, f)
-			total += c
-		}
-		loc := h.Sim.World.Location(locID)
-		name := locID
-		if loc != nil {
-			name = loc.Name
-		}
-		zones = append(zones, combatZone{LocationName: name, LocationID: locID, Factions: fnames, EntityCount: total})
-	}
+	activeZones, contestedZones := buildCombatOverviewZones(h.Sim)
 
 	h.Tmpls.ExecuteTemplate(c.Writer, "combat_status", gin.H{
-		"tick":        h.Sim.Tick,
-		"time":        h.Sim.Time.String(),
-		"entities":    len(all),
-		"locations":   len(h.Sim.World.AllLocations()),
-		"combat_zones": zones,
-		"combat_log":  combat.RecentLog(50),
+		"tick":            h.Sim.Tick,
+		"time":            h.Sim.Time.String(),
+		"entities":        len(all),
+		"locations":       len(h.Sim.World.AllLocations()),
+		"combat_zones":    activeZones,
+		"contested_zones": contestedZones,
+		"combat_log":      combat.RecentLog(50),
 	})
 }
 
@@ -423,11 +769,12 @@ func (h *Handler) QuestsFragment(c *gin.Context) {
 	defer h.Sim.RUnlock()
 	defs := h.Sim.Quests.AllDefs()
 	h.Tmpls.ExecuteTemplate(c.Writer, "quests_list", gin.H{
-		"tick":       h.Sim.Tick,
-		"time":       h.Sim.Time.String(),
-		"entities":   len(h.Sim.Entities.All()),
-		"locations":  len(h.Sim.World.AllLocations()),
-		"quest_defs": defs,
+		"tick":          h.Sim.Tick,
+		"time":          h.Sim.Time.String(),
+		"entities":      len(h.Sim.Entities.All()),
+		"locations":     len(h.Sim.World.AllLocations()),
+		"quest_defs":    defs,
+		"active_quests": h.activeQuestViews(),
 	})
 }
 
@@ -435,12 +782,14 @@ func (h *Handler) AIFragment(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
 	all := h.Sim.Entities.All()
+	sortEntitiesForDisplay(all)
 	var activeEntities []*entity.Entity
 	for _, e := range all {
 		if e.AI.Type == "scripted" || e.AI.Type == "aggressive" || e.AI.Type == "dormant" {
 			activeEntities = append(activeEntities, e)
 		}
 	}
+	sortEntitiesForDisplay(activeEntities)
 	h.Tmpls.ExecuteTemplate(c.Writer, "ai_status", gin.H{
 		"tick":          h.Sim.Tick,
 		"time":          h.Sim.Time.String(),
@@ -454,71 +803,224 @@ func (h *Handler) CombatDetailPage(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
 	locID := c.Param("location")
-	loc := h.Sim.World.Location(locID)
-	name := locID
-	if loc != nil {
-		name = loc.Name
+	all := h.Sim.Entities.All()
+	data := combatDetailData(h, locID)
+	data["title"] = "Combat: " + data["loc_name"].(string)
+	data["page"] = "combat_detail"
+	data["phase"] = h.Sim.Time.Phase().String()
+	data["season"] = h.Sim.Time.Season().String()
+	data["entities"] = len(all)
+	data["locations"] = len(h.Sim.World.AllLocations())
+
+	h.Tmpls.ExecuteTemplate(c.Writer, "base.html", data)
+}
+
+func buildCombatOverviewZones(sim *engine.Simulation) (activeZones []combatZone, contestedZones []combatZone) {
+	if sim == nil {
+		return nil, nil
+	}
+	locFactions := make(map[string]map[string]int)
+	for _, e := range sim.Entities.All() {
+		if !e.Alive {
+			continue
+		}
+		if locFactions[e.LocationID] == nil {
+			locFactions[e.LocationID] = make(map[string]int)
+		}
+		locFactions[e.LocationID][e.Faction]++
 	}
 
-	all := h.Sim.Entities.All()
-	var combatants []*entity.Entity
-	for _, e := range all {
-		if e.LocationID == locID && e.Alive {
-			combatants = append(combatants, e)
+	for locID, factions := range locFactions {
+		if len(factions) < 2 {
+			continue
+		}
+		total := 0
+		fnames := make([]string, 0, len(factions))
+		for f, c := range factions {
+			fnames = append(fnames, f)
+			total += c
+		}
+		sortStringsByFoldAndRaw(fnames)
+		loc := sim.World.Location(locID)
+		name := locID
+		if loc != nil {
+			name = loc.Name
+		}
+		zone := combatZone{
+			LocationName:  name,
+			LocationID:    locID,
+			Factions:      fnames,
+			RelationNotes: buildFactionRelationNotes(fnames),
+			EntityCount:   total,
+		}
+		if hostileFactionMixExists(factions) {
+			zone.Href = "/combat/" + locID
+			activeZones = append(activeZones, zone)
+		} else {
+			zone.Href = "/location/" + locID
+			contestedZones = append(contestedZones, zone)
 		}
 	}
 
-	events := combat.LocationEvents(locID, 100)
-
-	h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
-		"title":       "Combat: " + name,
-		"page":        "combat_detail",
-		"tick":        h.Sim.Tick,
-		"time":        h.Sim.Time.String(),
-		"phase":       h.Sim.Time.Phase().String(),
-		"season":      h.Sim.Time.Season().String(),
-		"entities":    len(all),
-		"locations":   len(h.Sim.World.AllLocations()),
-		"loc_id":      locID,
-		"loc_name":    name,
-		"combatants":  combatants,
-		"combat_events": events,
-	})
+	sortCombatZonesForDisplay(activeZones)
+	sortCombatZonesForDisplay(contestedZones)
+	return activeZones, contestedZones
 }
 
 func (h *Handler) CombatDetailFragment(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
 	locID := c.Param("location")
-	loc := h.Sim.World.Location(locID)
-	name := locID
-	if loc != nil {
-		name = loc.Name
-	}
-
-	all := h.Sim.Entities.All()
-	var combatants []*entity.Entity
-	for _, e := range all {
-		if e.LocationID == locID && e.Alive {
-			combatants = append(combatants, e)
-		}
-	}
-
-	events := combat.LocationEvents(locID, 100)
-
-	h.Tmpls.ExecuteTemplate(c.Writer, "combat_detail_status", gin.H{
-		"tick":         h.Sim.Tick,
-		"time":         h.Sim.Time.String(),
-		"loc_id":       locID,
-		"loc_name":     name,
-		"combatants":   combatants,
-		"combat_events": events,
-	})
+	h.Tmpls.ExecuteTemplate(c.Writer, "combat_detail_status", combatDetailData(h, locID))
 }
 
 type equipSlot struct {
 	Slot string
 	Item *items.ItemInstance
+}
+
+type travelStepView struct {
+	ID      string
+	Name    string
+	Current bool
+}
+
+type travelRouteView struct {
+	FromID      string
+	ToID        string
+	Steps       []travelStepView
+	CurrentStep int
+	TotalSteps  int
+	Progress    int
+}
+
+func buildTravelRouteView(sim *engine.Simulation, ent *entity.Entity) *travelRouteView {
+	if sim == nil || ent == nil {
+		return nil
+	}
+	ts := sim.TravelState(ent.ID)
+	if ts == nil || ts.Status != world.TravelInProgress {
+		return nil
+	}
+	route := ts.Route
+	if len(route) == 0 {
+		route = []string{ts.FromID, ts.ToID}
+	}
+	if len(route) == 0 {
+		return nil
+	}
+	currentIdx := ts.RouteIndex
+	if currentIdx < 0 {
+		currentIdx = 0
+	}
+	if currentIdx >= len(route) {
+		currentIdx = len(route) - 1
+	}
+	steps := make([]travelStepView, 0, len(route))
+	for i, id := range route {
+		name := id
+		if loc := sim.World.Location(id); loc != nil {
+			name = loc.Name
+		}
+		steps = append(steps, travelStepView{
+			ID:      id,
+			Name:    name,
+			Current: i == currentIdx,
+		})
+	}
+	progress := 0
+	if len(route) > 1 {
+		progress = currentIdx * 100 / (len(route) - 1)
+	}
+	return &travelRouteView{
+		FromID:      ts.FromID,
+		ToID:        ts.ToID,
+		Steps:       steps,
+		CurrentStep: currentIdx,
+		TotalSteps:  len(route) - 1,
+		Progress:    progress,
+	}
+}
+
+type travelerView struct {
+	EntityID    string
+	Name        string
+	From        string
+	To          string
+	Progress    int
+	Eta         int
+	Route       []travelStepView
+	CurrentStep int
+	TotalSteps  int
+}
+
+func buildTravelerViews(sim *engine.Simulation, locID string) []travelerView {
+	if sim == nil {
+		return nil
+	}
+	var travelers []travelerView
+	if sim.Traveling == nil {
+		return travelers
+	}
+	for _, ts := range sim.Traveling {
+		if ts == nil || ts.Status != world.TravelInProgress {
+			continue
+		}
+		if locID != "" && ts.FromID != locID && ts.ToID != locID {
+			continue
+		}
+		name := ts.EntityID
+		if e := sim.Entities.Get(ts.EntityID); e != nil {
+			name = e.Name
+		}
+		route := ts.Route
+		if len(route) == 0 {
+			route = []string{ts.FromID, ts.ToID}
+		}
+		currentIdx := ts.RouteIndex
+		if currentIdx < 0 {
+			currentIdx = 0
+		}
+		if len(route) > 0 && currentIdx >= len(route) {
+			currentIdx = len(route) - 1
+		}
+		steps := make([]travelStepView, 0, len(route))
+		for i, id := range route {
+			stepName := id
+			if loc := sim.World.Location(id); loc != nil {
+				stepName = loc.Name
+			}
+			steps = append(steps, travelStepView{
+				ID:      id,
+				Name:    stepName,
+				Current: i == currentIdx,
+			})
+		}
+		progress := 0
+		if len(route) > 1 {
+			progress = currentIdx * 100 / (len(route) - 1)
+		}
+		travelers = append(travelers, travelerView{
+			EntityID:    ts.EntityID,
+			Name:        name,
+			From:        ts.FromID,
+			To:          ts.ToID,
+			Progress:    progress,
+			Eta:         ts.TotalTicks - ts.ElapsedTicks,
+			Route:       steps,
+			CurrentStep: currentIdx,
+			TotalSteps:  len(route) - 1,
+		})
+	}
+	sort.SliceStable(travelers, func(i, j int) bool {
+		ni := strings.ToLower(travelers[i].Name)
+		nj := strings.ToLower(travelers[j].Name)
+		if ni != nj {
+			return ni < nj
+		}
+		return travelers[i].EntityID < travelers[j].EntityID
+	})
+	return travelers
 }
 
 func (h *Handler) EntityDetailPage(c *gin.Context) {
@@ -556,6 +1058,12 @@ func (h *Handler) EntityDetailPage(c *gin.Context) {
 			flagsJSON = string(b)
 		}
 	}
+	inventory := make([]items.ItemInstance, len(ent.Inventory))
+	copy(inventory, ent.Inventory)
+	sortInventoryForDisplay(inventory)
+	effects := make([]entity.ActiveEffect, len(ent.Effects))
+	copy(effects, ent.Effects)
+	sortEffectsForDisplay(effects)
 
 	eff := ent.EffectiveAttrs()
 
@@ -570,25 +1078,28 @@ func (h *Handler) EntityDetailPage(c *gin.Context) {
 	}
 
 	h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
-		"title":        "Entity: " + ent.Name,
-		"page":         "entity_detail",
-		"tick":         h.Sim.Tick,
-		"time":         h.Sim.Time.String(),
-		"phase":        h.Sim.Time.Phase().String(),
-		"season":       h.Sim.Time.Season().String(),
-		"entities":     len(all),
-		"locations":    len(h.Sim.World.AllLocations()),
-		"entity":       ent,
-		"loc_name":     locName,
-		"equip_slots":  getEquipSlots(ent),
+		"title":         "Entity: " + ent.Name,
+		"page":          "entity_detail",
+		"tick":          h.Sim.Tick,
+		"time":          h.Sim.Time.String(),
+		"phase":         h.Sim.Time.Phase().String(),
+		"season":        h.Sim.Time.Season().String(),
+		"entities":      len(all),
+		"locations":     len(h.Sim.World.AllLocations()),
+		"entity":        ent,
+		"loc_name":      locName,
+		"equip_slots":   getEquipSlots(ent),
+		"inventory":     inventory,
+		"effects":       effects,
+		"travel_route":  buildTravelRouteView(h.Sim, ent),
 		"combat_events": entEvents,
-		"flags_json":   flagsJSON,
-		"effective_str":  eff.STR,
-		"effective_dex":  eff.DEX,
-		"effective_con":  eff.CON,
-		"effective_int":  eff.INT,
-		"effective_wis":  eff.WIS,
-		"effective_cha":  eff.CHA,
+		"flags_json":    flagsJSON,
+		"effective_str": eff.STR,
+		"effective_dex": eff.DEX,
+		"effective_con": eff.CON,
+		"effective_int": eff.INT,
+		"effective_wis": eff.WIS,
+		"effective_cha": eff.CHA,
 		"xp_for_next":   xpForNext,
 		"xp_percent":    xpPercent,
 		"can_level_up":  canLevelUp,
@@ -631,6 +1142,12 @@ func (h *Handler) EntityDetailFragment(c *gin.Context) {
 			flagsJSON = string(b)
 		}
 	}
+	inventory := make([]items.ItemInstance, len(ent.Inventory))
+	copy(inventory, ent.Inventory)
+	sortInventoryForDisplay(inventory)
+	effects := make([]entity.ActiveEffect, len(ent.Effects))
+	copy(effects, ent.Effects)
+	sortEffectsForDisplay(effects)
 
 	eff := ent.EffectiveAttrs()
 
@@ -645,17 +1162,20 @@ func (h *Handler) EntityDetailFragment(c *gin.Context) {
 	}
 
 	h.Tmpls.ExecuteTemplate(c.Writer, "entity_detail_status", gin.H{
-		"entity":       ent,
-		"loc_name":     locName,
-		"equip_slots":  getEquipSlots(ent),
+		"entity":        ent,
+		"loc_name":      locName,
+		"equip_slots":   getEquipSlots(ent),
+		"inventory":     inventory,
+		"effects":       effects,
+		"travel_route":  buildTravelRouteView(h.Sim, ent),
 		"combat_events": entEvents,
-		"flags_json":   flagsJSON,
-		"effective_str":  eff.STR,
-		"effective_dex":  eff.DEX,
-		"effective_con":  eff.CON,
-		"effective_int":  eff.INT,
-		"effective_wis":  eff.WIS,
-		"effective_cha":  eff.CHA,
+		"flags_json":    flagsJSON,
+		"effective_str": eff.STR,
+		"effective_dex": eff.DEX,
+		"effective_con": eff.CON,
+		"effective_int": eff.INT,
+		"effective_wis": eff.WIS,
+		"effective_cha": eff.CHA,
 		"xp_for_next":   xpForNext,
 		"xp_percent":    xpPercent,
 		"can_level_up":  canLevelUp,
@@ -706,12 +1226,14 @@ func getEquipSlots(e *entity.Entity) []equipSlot {
 }
 
 type mapNode struct {
-	loc      *world.Location
-	depth    int
-	count    int
-	x, y     float64
-	w, h     float64
-	children []mapNode
+	loc         *world.Location
+	depth       int
+	count       int
+	travelCount int
+	routeNotes  []string
+	x, y        float64
+	w, h        float64
+	children    []mapNode
 }
 
 func buildMapLayout(nodes []locNode, depth int) []mapNode {
@@ -726,6 +1248,64 @@ func buildMapLayout(nodes []locNode, depth int) []mapNode {
 		out = append(out, mn)
 	}
 	return out
+}
+
+func annotateMapTravelers(nodes []mapNode, travelers []travelerView) {
+	if len(nodes) == 0 || len(travelers) == 0 {
+		return
+	}
+	notesByLoc := make(map[string][]string)
+	countsByLoc := make(map[string]int)
+	for _, tv := range travelers {
+		if len(tv.Route) == 0 {
+			continue
+		}
+		currentIdx := tv.CurrentStep
+		if currentIdx < 0 {
+			currentIdx = 0
+		}
+		if currentIdx >= len(tv.Route) {
+			currentIdx = len(tv.Route) - 1
+		}
+		routeIDs := make([]string, 0, len(tv.Route))
+		for i, step := range tv.Route {
+			label := step.Name
+			if label == "" {
+				label = step.ID
+			}
+			if i == currentIdx {
+				label = "[" + label + "]"
+			}
+			routeIDs = append(routeIDs, label)
+		}
+		routeText := strings.Join(routeIDs, " -> ")
+		for _, step := range tv.Route {
+			if step.ID == "" {
+				continue
+			}
+			countsByLoc[step.ID]++
+			notesByLoc[step.ID] = append(notesByLoc[step.ID], fmt.Sprintf("%s: %s (%d/%d, %dt)",
+				tv.Name,
+				routeText,
+				currentIdx+1,
+				len(tv.Route),
+				tv.Eta,
+			))
+		}
+	}
+	var walk func([]mapNode)
+	walk = func(ns []mapNode) {
+		for i := range ns {
+			if ns[i].loc != nil {
+				ns[i].travelCount = countsByLoc[ns[i].loc.ID]
+				ns[i].routeNotes = notesByLoc[ns[i].loc.ID]
+			}
+			if len(ns[i].children) > 0 {
+				walk(ns[i].children)
+			}
+		}
+	}
+	walk(nodes)
 }
 
 func assignMapPositions(nodes []mapNode, startX, levelW float64, levelY float64, vSpacing float64) (float64, float64) {
@@ -811,7 +1391,13 @@ func renderNodeSVG(n mapNode, entCount int) string {
 		name = name[:14] + "…"
 	}
 	link := fmt.Sprintf(`/combat/%s`, n.loc.ID)
-	title := fmt.Sprintf(`%s (%s)\n%d entities`, n.loc.Name, n.loc.ID, entCount)
+	title := fmt.Sprintf("%s (%s)\n%d entities", n.loc.Name, n.loc.ID, entCount)
+	if n.travelCount > 0 {
+		title += fmt.Sprintf("\n%d traveler(s) in transit", n.travelCount)
+		for _, note := range n.routeNotes {
+			title += "\n" + note
+		}
+	}
 
 	var svg string
 	svg += fmt.Sprintf(`<a xlink:href="%s" target="_top">`, link)
@@ -819,6 +1405,11 @@ func renderNodeSVG(n mapNode, entCount int) string {
 		n.x-w/2, n.y, w, h, fill, stroke)
 	svg += fmt.Sprintf(`<text x="%.0f" y="%.0f" text-anchor="middle" fill="%s" font-size="11" font-family="monospace">%s</text>`,
 		n.x, n.y+h/2+4, textClr, name)
+	if n.travelCount > 0 {
+		badge := fmt.Sprintf(`<g><rect x="%.0f" y="%.0f" width="18" height="14" rx="4" ry="4" fill="#e94560" opacity="0.95"/><text x="%.0f" y="%.0f" text-anchor="middle" fill="#fff" font-size="10" font-family="monospace">%d</text></g>`,
+			n.x+w/2-20, n.y+4, n.x+w/2-11, n.y+14, n.travelCount)
+		svg += badge
+	}
 	svg += fmt.Sprintf(`<title>%s</title>`, html.EscapeString(title))
 	svg += `</a>`
 
@@ -835,11 +1426,12 @@ func renderNodeSVG(n mapNode, entCount int) string {
 	return svg
 }
 
-func renderLocationMap(nodes []locNode) template.HTML {
+func renderLocationMap(nodes []locNode, travelers []travelerView) template.HTML {
 	layout := buildMapLayout(nodes, 0)
 	if len(layout) == 0 {
 		return template.HTML("")
 	}
+	annotateMapTravelers(layout, travelers)
 
 	levelW := 110.0
 	vSpacing := 80.0

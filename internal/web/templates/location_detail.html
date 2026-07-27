@@ -37,14 +37,14 @@
 </div>
 {{end}}
 
-{{if .loc.Exits}}
+{{if .exits}}
 <div class="card">
     <h2>Travel Exits</h2>
     <table>
         <tr><th>Target</th><th>Dir</th><th>Distance</th></tr>
-        {{range .loc.Exits}}
+        {{range .exits}}
         <tr>
-            <td><a href="/location/{{.TargetID}}">{{.TargetID}}</a></td>
+            <td><a href="/location/{{.TargetID}}">{{.TargetName}}</a></td>
             <td>{{.Direction}}</td>
             <td>{{printf "%.0f" .Distance}}</td>
         </tr>
@@ -66,9 +66,23 @@
 <div class="card">
     <h2>In Transit</h2>
     {{range .travelers}}
-    <div class="stat">
-        <span><a href="/entity/{{.entity_id}}">{{.name}}</a> {{.from}} → {{.to}}</span>
-        <span>{{.progress}}% ({{.eta}}t)</span>
+    <div style="padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+        <div class="stat">
+            <span><a href="/entity/{{.EntityID}}">{{.Name}}</a> {{.From}} → {{.To}}</span>
+            <span>{{.Progress}}% ({{.Eta}}t)</span>
+        </div>
+        {{if .Route}}
+        <div style="margin-top:6px; padding-left:8px; border-left:2px solid rgba(255,255,255,0.08);">
+            <div style="color:var(--text-dim); font-size:0.75rem; margin-bottom:4px;">Route</div>
+            <ol style="margin:0 0 0 18px; padding:0; color:var(--text-dim); font-size:0.85rem;">
+                {{range .Route}}
+                <li style="margin:2px 0; {{if .Current}}color:var(--accent); font-weight:bold;{{end}}">
+                    {{.Name}} <span style="color:#666;">({{.ID}}{{if .Current}} current{{end}})</span>
+                </li>
+                {{end}}
+            </ol>
+        </div>
+        {{end}}
     </div>
     {{end}}
 </div>

@@ -34,12 +34,14 @@ func WeaponSkillName(weaponDefID string) string {
 	switch weaponDefID {
 	case "iron_sword", "short_sword", "kusanagi":
 		return "swords"
-	case "iron_axe", "iron_gauntlets":
+	case "iron_axe", "iron_gauntlets", "orc_cleaver":
 		return "axes"
 	case "iron_spear", "gungnir", "bident", "trident":
 		return "spears"
-	case "dagger", "vampire_fang":
+	case "dagger", "vampire_fang", "goblin_shiv", "cultist_dagger":
 		return "daggers"
+	case "claws", "fangs", "tusks":
+		return "unarmed"
 	default:
 		return "unarmed"
 	}

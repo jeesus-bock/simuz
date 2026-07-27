@@ -11,11 +11,32 @@
     <h2>Quests ({{len .quest_defs}})</h2>
     <div class="stat"><span>Tick</span><span>{{.tick}}</span></div>
 </div>
+<div class="card">
+    <h2>Ongoing Quests ({{len .active_quests}})</h2>
+    {{range .active_quests}}
+    <div style="border-left:3px solid #ffd700;padding:6px 10px;margin:6px 0;background:#0f1a2e;border-radius:3px;">
+        <div style="display:flex;justify-content:space-between;gap:8px;">
+            <strong>{{.Def.Title}}</strong>
+            <span style="color:#aaa;font-size:.85rem;">Level {{.Def.Level}} · {{.Def.Type}}</span>
+        </div>
+        <div style="margin-top:3px;font-size:.9rem;">Being pursued by <a href="/entity/{{.Entity.ID}}" style="color:var(--accent)">{{.Entity.Name}}</a> · Stage: {{.State.CurrentStage}}</div>
+        {{if .State.Activity}}
+        <div style="margin-top:6px;color:var(--text-dim);font-family:monospace;font-size:.82rem;max-height:150px;overflow-y:auto;">
+            {{range .State.Activity}}<div><span style="color:#666">#{{.Tick}}</span> {{.Message}}</div>{{end}}
+        </div>
+        {{else}}
+        <div style="margin-top:6px;color:#666;font-size:.85rem;">No activity recorded yet.</div>
+        {{end}}
+    </div>
+    {{else}}
+    <p style="color:var(--text-dim);">No entities are currently pursuing a quest.</p>
+    {{end}}
+</div>
 {{range .quest_defs}}
 <div class="card">
     <h3>{{.Title}}</h3>
-    <div class="stat"><span>Level</span><span>{{.Level}}</span></div>
-    <div class="stat"><span>Type</span><span>{{.Type}}</span></div>
+    <div class="stat"><span>Quest ID</span><span>{{.ID}}</span></div>
+    <div class="stat"><span>Level / Type</span><span>{{.Level}} / {{.Type}}</span></div>
     <p style="margin-top: 8px; color: var(--text-dim);">{{.Description}}</p>
     {{if .Source}}
     <div class="stat" style="margin-top: 4px;"><span>Source</span><span>{{.Source.NPCID}}</span></div>

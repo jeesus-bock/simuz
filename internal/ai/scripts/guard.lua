@@ -6,6 +6,7 @@
 local patrol_targets = nil
 local patrol_index = 1
 local patrolling = false
+local rescue_target_id = nil
 
 local function get_patrol_route()
     if patrol_targets then return patrol_targets end
@@ -49,6 +50,86 @@ local function attack_hostiles()
                 return true
             end
         end
+    end
+    return false
+end
+
+local function find_courier_to_rescue()
+    local nearby = world.nearby_entities()
+    if not nearby then
+        return nil
+    end
+    for _, eid in ipairs(nearby) do
+        if eid ~= self.id then
+            local info = world.entity_info(eid)
+            if info and info.alive and info.faction == "civilian" and info.species == "human" then
+                local name = info.name or ""
+                if string.find(name, "Courier") then
+                    local leashed, dragger = world.is_leashed(eid)
+                    if not leashed or dragger == self.id then
+                        return eid, info
+                    end
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function current_location_needs_rescue()
+    local ctl = world.location_control(self.loc_id)
+    if ctl and ctl.faction and ctl.faction ~= "" and ctl.faction ~= "civilian" and ctl.faction ~= "guard" then
+        return true
+    end
+    local nearby = world.nearby_entities()
+    if not nearby then
+        return false
+    end
+    for _, eid in ipairs(nearby) do
+        local info = world.entity_info(eid)
+        if info and info.alive and world.is_hostile(self.faction, info.faction) then
+            return true
+        end
+    end
+    return false
+end
+
+local function rescue_courier()
+    if rescue_target_id then
+        return false
+    end
+    if not current_location_needs_rescue() and world.phase ~= "night" then
+        return false
+    end
+    local target_id, target_info = find_courier_to_rescue()
+    if not target_id then
+        return false
+    end
+    local started = world.start_rescue(target_id)
+    local dragged = world.drag_entity(target_id)
+    if started or dragged then
+        rescue_target_id = target_id
+        util.log(self.name .. " escorted " .. (target_info and target_info.name or target_id) .. " to safety")
+        return true
+    end
+    return false
+end
+
+local function complete_rescue_if_safe()
+    if not rescue_target_id then
+        return false
+    end
+    local target_info = world.entity_info(rescue_target_id)
+    if not target_info or not target_info.alive then
+        rescue_target_id = nil
+        return false
+    end
+    if self.home and self.loc_id == self.home then
+        world.complete_rescue(rescue_target_id)
+        world.undrag_entity(rescue_target_id)
+        util.log(self.name .. " completed rescue of " .. (target_info.name or rescue_target_id))
+        rescue_target_id = nil
+        return true
     end
     return false
 end
@@ -125,10 +206,15 @@ local function do_tick()
             world.move_to(self.home)
         end
         patrolling = false
+        complete_rescue_if_safe()
         return
     end
 
     if attack_hostiles() then
+        return
+    end
+
+    if rescue_courier() then
         return
     end
 
@@ -160,7 +246,9 @@ local function do_tick()
         world.move_to(self.home)
         patrolling = true
     end
-    
+
+    complete_rescue_if_safe()
+
     if world.tick % 30 == 0 then
         update_mood()
     end

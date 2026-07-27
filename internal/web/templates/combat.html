@@ -19,15 +19,46 @@
     <div class="card">
         <h3 style="color: var(--accent);">Active Combat Zones</h3>
         {{range .combat_zones}}
-        <div style="padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
-            <a href="/combat/{{.LocationID}}" style="color: var(--accent); text-decoration: none;"><strong>{{.LocationName}}</strong></a>
-            <span style="color: var(--text-dim); font-size: 0.8rem; margin-left: 8px;">{{.LocationID}}</span>
+        <a href="{{.Href}}" style="display:block; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); color: inherit; text-decoration: none;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; gap:8px;">
+                <strong style="color: var(--accent);">{{.LocationName}}</strong>
+                <span style="color: var(--text-dim); font-size: 0.8rem;">{{.LocationID}}</span>
+            </div>
             <div class="stat"><span>Entities</span><span>{{.EntityCount}}</span></div>
             <div class="stat"><span>Factions</span><span style="color: var(--accent);">{{join .Factions ", "}}</span></div>
-        </div>
+        </a>
         {{end}}
     </div>
-{{else}}
+{{end}}
+
+{{if .contested_zones}}
+<div class="card">
+    <h3 style="color: #ffd166;">Contested Locations</h3>
+    <p style="color: var(--text-dim); font-size:0.85rem; margin-bottom:0.75rem;">
+        Contested means multiple factions are present in the same location, but none of those factions are currently hostile to each other.
+    </p>
+    {{range .contested_zones}}
+    <a href="{{.Href}}" style="display:block; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); color: inherit; text-decoration: none;">
+        <div style="display:flex; justify-content:space-between; align-items:baseline; gap:8px;">
+            <strong style="color: #ffd166;">{{.LocationName}}</strong>
+            <span style="color: var(--text-dim); font-size: 0.8rem;">{{.LocationID}}</span>
+        </div>
+        <div class="stat"><span>Entities</span><span>{{.EntityCount}}</span></div>
+        <div class="stat"><span>Factions</span><span style="color: #ffd166;">{{join .Factions ", "}}</span></div>
+        {{if .RelationNotes}}
+        <div class="stat" style="align-items:flex-start;">
+            <span style="color: var(--text-dim);">Why contested</span>
+            <span style="color: var(--text-dim); text-align:right;">
+                {{join .RelationNotes "; "}}
+            </span>
+        </div>
+        {{end}}
+    </a>
+    {{end}}
+</div>
+{{end}}
+
+{{if and (not .combat_zones) (not .contested_zones)}}
 <div class="card">
     <p style="color: var(--text-dim);">No multi-faction zones detected.</p>
 </div>

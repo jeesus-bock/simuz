@@ -2,6 +2,8 @@ package api
 
 import (
 	"net/http"
+	"sort"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -47,16 +49,81 @@ func (h *Handler) GetLocation(c *gin.Context) {
 	}
 
 	children := h.Sim.World.ChildLocations(id)
+	sort.SliceStable(children, func(i, j int) bool {
+		if children[i] == nil {
+			return false
+		}
+		if children[j] == nil {
+			return true
+		}
+		li := strings.ToLower(children[i].Name)
+		lj := strings.ToLower(children[j].Name)
+		if li != lj {
+			return li < lj
+		}
+		return children[i].ID < children[j].ID
+	})
 	childIDs := make([]string, len(children))
 	for i, ch := range children {
 		childIDs[i] = ch.ID
 	}
 
 	entities := h.Sim.Entities.ByLocation(id)
+	sort.SliceStable(entities, func(i, j int) bool {
+		switch {
+		case entities[i] == nil:
+			return false
+		case entities[j] == nil:
+			return true
+		case entities[i].Alive != entities[j].Alive:
+			return entities[i].Alive && !entities[j].Alive
+		case entities[i].Conscious != entities[j].Conscious:
+			return entities[i].Conscious && !entities[j].Conscious
+		default:
+			li := strings.ToLower(entities[i].Name)
+			lj := strings.ToLower(entities[j].Name)
+			if li != lj {
+				return li < lj
+			}
+			return entities[i].ID < entities[j].ID
+		}
+	})
 	entityIDs := make([]string, len(entities))
 	for i, e := range entities {
 		entityIDs[i] = e.ID
 	}
+
+	exits := make([]gin.H, 0, len(loc.Exits))
+	for _, ex := range loc.Exits {
+		targetName := ex.TargetID
+		if target := h.Sim.World.Location(ex.TargetID); target != nil {
+			targetName = target.Name
+		}
+		exits = append(exits, gin.H{
+			"target_id":   ex.TargetID,
+			"target_name": targetName,
+			"direction":   ex.Direction,
+			"travel_mode": ex.TravelMode,
+			"distance":    ex.Distance,
+		})
+	}
+	sort.SliceStable(exits, func(i, j int) bool {
+		li, _ := exits[i]["target_name"].(string)
+		lj, _ := exits[j]["target_name"].(string)
+		li = strings.ToLower(li)
+		lj = strings.ToLower(lj)
+		if li != lj {
+			return li < lj
+		}
+		di, _ := exits[i]["direction"].(string)
+		dj, _ := exits[j]["direction"].(string)
+		if strings.ToLower(di) != strings.ToLower(dj) {
+			return strings.ToLower(di) < strings.ToLower(dj)
+		}
+		ti, _ := exits[i]["target_id"].(string)
+		tj, _ := exits[j]["target_id"].(string)
+		return ti < tj
+	})
 
 	c.JSON(http.StatusOK, gin.H{
 		"id":         loc.ID,
@@ -68,7 +135,7 @@ func (h *Handler) GetLocation(c *gin.Context) {
 		"area":       loc.Area,
 		"is_outside": loc.IsOutside,
 		"weather":    loc.Weather,
-		"exits":      loc.Exits,
+		"exits":      exits,
 		"entities":   entityIDs,
 	})
 }

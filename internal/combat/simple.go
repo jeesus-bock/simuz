@@ -89,8 +89,8 @@ func recordEvent(locID string, e Event) {
 type FactionRelation int
 
 const (
-	Neutral  FactionRelation = 0
-	Hostile  FactionRelation = iota
+	Neutral FactionRelation = 0
+	Hostile FactionRelation = iota
 	Friendly
 )
 
@@ -256,16 +256,178 @@ func LootCorpse(winner, loser *entity.Entity) {
 	})
 }
 
+// KillChance returns the percent chance an attacker finishes a downed foe
+// instead of leaving them knocked out. Merciless factions almost always kill.
+func KillChance(attacker *entity.Entity) int {
+	if attacker == nil {
+		return 50
+	}
+	switch attacker.Species {
+	case "orc":
+		return 95 // orcs almost never spare anyone
+	case "wolf", "bear", "boar", "spider", "bat", "badger", "rat", "rat_king", "dog":
+		return 90 // beasts rarely show mercy
+	case "dragon":
+		return 98
+	case "vampire", "hag":
+		return 88
+	case "kobold", "goblin":
+		return 85
+	case "werewolf":
+		return 92
+	}
+
+	switch attacker.Faction {
+	case "orc":
+		return 95
+	case "beast", "vermin":
+		return 90
+	case "dragon":
+		return 98
+	case "undead", "hag", "kobold", "goblin", "cultist", "werewolf":
+		return 85
+	case "bandit", "thief":
+		return 72
+	case "guard":
+		return 40 // often take prisoners
+	case "civilian", "merchant", "elf", "fey", "ranger":
+		return 28
+	case "deity":
+		return 55
+	default:
+		return 55
+	}
+}
+
+// resolveLethality decides whether a downed defender dies based on the attacker's nature.
+// alreadyDown is true when the defender was unconscious before this blow (finishing move).
+func resolveLethality(attacker, defender *entity.Entity, alreadyDown bool, damage int, rng *rand.Rand) {
+	if defender == nil || !defender.Alive || defender.Conscious || defender.Immortal {
+		return
+	}
+	chance := KillChance(attacker)
+	if alreadyDown {
+		chance += 15 // finishing a helpless foe is easier / more deliberate
+	}
+	if defender.MaxHP > 0 && damage >= defender.MaxHP/2 {
+		chance += 10 // brutal overkill
+	}
+	if chance > 100 {
+		chance = 100
+	}
+	if chance < 5 {
+		chance = 5
+	}
+	if rng.Intn(100) < chance {
+		defender.Kill()
+	}
+}
+
+func weaponDisplayName(attacker *entity.Entity) string {
+	if attacker == nil || attacker.Equipment.Weapon == nil || attacker.Equipment.Weapon.Def == nil {
+		return "fists"
+	}
+	return attacker.Equipment.Weapon.Def.Name
+}
+
+func combatPowerScore(e *entity.Entity) int {
+	if e == nil {
+		return 0
+	}
+	attrs := e.EffectiveAttrs()
+	score := e.Level*4 + attrs.STR*2 + attrs.DEX + attrs.CON
+	if e.MaxHP > 0 {
+		score += e.HP * 10 / e.MaxHP
+	}
+	if e.AI.Brave {
+		score += 6
+	}
+	return score
+}
+
+func applyBraveryBoost(ent, opponent *entity.Entity) {
+	if ent == nil || opponent == nil || !ent.AI.Brave {
+		return
+	}
+	if ent.HasMoodModifierSource("combat_bravery") {
+		return
+	}
+	if combatPowerScore(opponent) >= combatPowerScore(ent)+8 {
+		ent.AddMoodModifier("combat_bravery", "brave", 6)
+	}
+}
+
 func SimpleAttack(attacker, defender *entity.Entity, rng *rand.Rand) bool {
+	if attacker == nil || defender == nil || !attacker.Alive || !defender.Alive {
+		return false
+	}
+	if !attacker.Conscious {
+		return false
+	}
+
+	applyBraveryBoost(attacker, defender)
+	applyBraveryBoost(defender, attacker)
+
+	wpnName := weaponDisplayName(attacker)
+	weapon := attacker.Equipment.Weapon
+	alreadyDown := !defender.Conscious
+
+	// Coup de grace: already unconscious targets cannot evade.
+	if alreadyDown {
+		finalDmg := 1 + attacker.EffectiveAttrs().STRMod()
+		if finalDmg < 1 {
+			finalDmg = 1
+		}
+		if weapon != nil && weapon.Def != nil {
+			for _, mwd := range meleeWeapons {
+				if mwd.DefID == weapon.DefID {
+					finalDmg = mwd.Damage.Flat + mwd.Damage.Dice + attacker.EffectiveAttrs().STRMod()
+					if finalDmg < 2 {
+						finalDmg = 2
+					}
+					break
+				}
+			}
+		}
+		defender.TakeDamage(finalDmg)
+		resolveLethality(attacker, defender, true, finalDmg, rng)
+
+		action := "knockout"
+		if !defender.Alive {
+			action = "death"
+		}
+		if !defender.Alive {
+			addLog(fmt.Sprintf("%s finishes %s with %s — %s is slain!", attacker.Name, defender.Name, wpnName, defender.Name))
+		} else {
+			addLog(fmt.Sprintf("%s stands over %s but spares their life", attacker.Name, defender.Name))
+			action = "spare"
+		}
+		recordEvent(defender.LocationID, Event{
+			Tick:         globalTick,
+			LocationID:   defender.LocationID,
+			AttackerID:   attacker.ID,
+			AttackerName: attacker.Name,
+			DefenderID:   defender.ID,
+			DefenderName: defender.Name,
+			Action:       action,
+			Damage:       finalDmg,
+			HPLeft:       defender.HP,
+			Weapon:       wpnName,
+		})
+		wpnDefID := "fists"
+		if weapon != nil && weapon.Def != nil {
+			wpnDefID = weapon.DefID
+		}
+		attacker.AddSkillXP(entity.WeaponSkillName(wpnDefID), 5+defender.Level)
+		return true
+	}
+
 	atkAttrs := attacker.EffectiveAttrs()
 	defAttrs := defender.EffectiveAttrs()
 	atkSkill := 10 + attacker.Level + (atkAttrs.DEX-10)/2 + (atkAttrs.STR-10)/4
 	defSkill := 8 + defender.Level + (defAttrs.DEX-10)/2
 
-	weapon := attacker.Equipment.Weapon
-	wpnName := "fists"
 	if weapon != nil && weapon.Def != nil {
-		wpnName = weapon.Def.Name
 		atkSkill += 2
 	}
 
@@ -367,6 +529,9 @@ func SimpleAttack(attacker, defender *entity.Entity, rng *rand.Rand) bool {
 	}
 
 	defender.TakeDamage(finalDmg)
+	if defender.Alive && !defender.Conscious {
+		resolveLethality(attacker, defender, false, finalDmg, rng)
+	}
 
 	action := "hit"
 	hpLeft := defender.HP
@@ -390,6 +555,8 @@ func SimpleAttack(attacker, defender *entity.Entity, rng *rand.Rand) bool {
 
 	if !defender.Alive {
 		addLog(fmt.Sprintf("%s strikes %s with %s for %d damage — %s is slain!", attacker.Name, defender.Name, wpnName, finalDmg, defender.Name))
+	} else if !defender.Conscious {
+		addLog(fmt.Sprintf("%s hits %s with %s for %d damage — %s is knocked out!", attacker.Name, defender.Name, wpnName, finalDmg, defender.Name))
 	} else {
 		addLog(fmt.Sprintf("%s hits %s with %s for %d damage (%d HP left)", attacker.Name, defender.Name, wpnName, finalDmg, defender.HP))
 	}
@@ -429,6 +596,11 @@ var meleeWeapons = []meleeWeaponDef{
 	{"cultist_dagger", items.DamageRoll{Dice: 1, Sides: 4, Flat: 2}},
 	{"necromancer_staff", items.DamageRoll{Dice: 1, Sides: 8, Flat: 3}},
 	{"vampire_fang", items.DamageRoll{Dice: 2, Sides: 4, Flat: 2}},
+	{"claws", items.DamageRoll{Dice: 1, Sides: 6, Flat: 1}},
+	{"fangs", items.DamageRoll{Dice: 1, Sides: 4, Flat: 2}},
+	{"tusks", items.DamageRoll{Dice: 1, Sides: 8, Flat: 1}},
+	{"goblin_shiv", items.DamageRoll{Dice: 1, Sides: 4, Flat: 1}},
+	{"orc_cleaver", items.DamageRoll{Dice: 2, Sides: 6, Flat: 3}},
 }
 
 type armorDef struct {

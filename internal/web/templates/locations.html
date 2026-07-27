@@ -14,9 +14,9 @@
         <p>{{.locations}} locations, {{.entities}} entities</p>
     </div>
     <div style="display:flex;gap:8px;">
-        <button onclick="document.getElementById('tree-view').style.display='block';document.getElementById('map-view').style.display='none';this.style.color='var(--accent)';document.getElementById('map-btn').style.color='var(--text-dim)'"
+        <button onclick="setLocationView('tree')"
                 id="tree-btn" style="background:none;border:1px solid #444;color:var(--accent);padding:6px 14px;border-radius:4px;cursor:pointer;font-family:monospace;">Tree</button>
-        <button onclick="document.getElementById('map-view').style.display='block';document.getElementById('tree-view').style.display='none';this.style.color='var(--accent)';document.getElementById('tree-btn').style.color='var(--text-dim)'"
+        <button onclick="setLocationView('map')"
                 id="map-btn" style="background:none;border:1px solid #444;color:var(--text-dim);padding:6px 14px;border-radius:4px;cursor:pointer;font-family:monospace;">Map</button>
     </div>
 </div>
@@ -39,7 +39,7 @@
 </div>
 <div id="map-view" style="display:none;">
     <div class="card" style="padding:4px;overflow-x:auto;">
-        {{renderLocationMap .loc_tree}}
+        {{renderLocationMap .loc_tree .travelers}}
     </div>
 </div>
 {{end}}

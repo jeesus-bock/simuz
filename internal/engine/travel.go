@@ -34,6 +34,36 @@ func (s *Simulation) RequestMove(ent *entity.Entity, destID string) bool {
 	if ent.LocationID == destID {
 		return true
 	}
+
+	route := s.World.Route(ent.LocationID, destID)
+	if len(route) >= 2 {
+		if len(route) == 2 && s.World.CanInstantMove(ent.LocationID, destID) {
+			ent.LocationID = destID
+			s.moveLeashedEntities(ent, destID)
+			if s.Quests != nil {
+				s.Quests.CheckVisitLocation(ent.ID, destID)
+			}
+			return true
+		}
+		if ts := s.TravelState(ent.ID); ts != nil && ts.Status == world.TravelInProgress {
+			if ts.ToID == destID {
+				return true
+			}
+			delete(s.Traveling, ent.ID)
+		}
+		if s.Traveling == nil {
+			s.Traveling = make(map[string]*world.TravelState)
+		}
+		s.Traveling[ent.ID] = world.NewTravel(ent.ID, ent.LocationID, destID, route, len(route)-1, world.TravelWalk)
+		ent.Activity = entity.EntityActivity{
+			Type:      entity.ActivityTravel,
+			SinceTick: s.Tick,
+			UntilTick: s.Tick + uint64(len(route)-1),
+		}
+		log.Printf("[travel] %s plotting route %s → %s (%d steps)", ent.Name, ent.LocationID, destID, len(route)-1)
+		return true
+	}
+
 	// Already traveling to this dest
 	if ts := s.TravelState(ent.ID); ts != nil && ts.Status == world.TravelInProgress {
 		if ts.ToID == destID {
@@ -78,7 +108,7 @@ func (s *Simulation) RequestMove(ent *entity.Entity, destID string) bool {
 	if s.Traveling == nil {
 		s.Traveling = make(map[string]*world.TravelState)
 	}
-	s.Traveling[ent.ID] = world.NewTravel(ent.ID, ent.LocationID, destID, ticks, world.TravelWalk)
+	s.Traveling[ent.ID] = world.NewTravel(ent.ID, ent.LocationID, destID, nil, ticks, world.TravelWalk)
 	ent.Activity = entity.EntityActivity{
 		Type:      entity.ActivityTravel,
 		SinceTick: s.Tick,
@@ -115,7 +145,34 @@ func processTravel(s *Simulation) {
 			continue
 		}
 		ts.Tick()
+		if len(ts.Route) > 1 && ts.RouteIndex < len(ts.Route)-1 {
+			nextIdx := ts.RouteIndex + 1
+			nextID := ts.Route[nextIdx]
+			ent.LocationID = nextID
+			s.moveLeashedEntities(ent, nextID)
+			ts.RouteIndex = nextIdx
+			if ts.RouteIndex >= len(ts.Route)-1 {
+				ts.Status = world.TravelArrived
+			}
+			log.Printf("[travel] %s moved along route to %s (%d/%d)", ent.Name, nextID, ts.RouteIndex, len(ts.Route)-1)
+		}
 		if ts.Status == world.TravelArrived {
+			ent.Activity = entity.EntityActivity{
+				Type:      entity.ActivityIdle,
+				SinceTick: s.Tick,
+			}
+			if s.Quests != nil {
+				s.Quests.CheckVisitLocation(ent.ID, ts.ToID)
+			}
+			log.Printf("[travel] %s arrived at %s", ent.Name, ts.ToID)
+			s.Emit(SimEvent{
+				Type:   EventTravelCompleted,
+				Tick:   s.Tick,
+				Source: ent.ID,
+				Data:   map[string]any{"from": ts.FromID, "to": ts.ToID, "route": ts.Route},
+			})
+			delete(s.Traveling, id)
+		} else if len(ts.Route) == 0 && ts.Status == world.TravelArrived {
 			ent.LocationID = ts.ToID
 			s.moveLeashedEntities(ent, ts.ToID)
 			ent.Activity = entity.EntityActivity{

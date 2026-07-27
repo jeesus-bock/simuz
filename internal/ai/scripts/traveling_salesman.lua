@@ -107,6 +107,10 @@ local function do_tick()
     local tick = world.tick
     local phase = world.phase
 
+    if world.defend_self and world.defend_self() then
+        return
+    end
+
     if world.is_traveling() then
         return
     end

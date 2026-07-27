@@ -109,6 +109,7 @@ func (s *SQLiteStore) migrate() error {
 			current_stage TEXT DEFAULT '',
 			objectives_json TEXT,
 			variables_json TEXT,
+			activity_json TEXT DEFAULT '[]',
 			accepted_tick INTEGER DEFAULT 0,
 			PRIMARY KEY (entity_id, quest_id)
 		)`,
@@ -124,6 +125,7 @@ func (s *SQLiteStore) migrate() error {
 		"ALTER TABLE entities ADD COLUMN max_age INTEGER NOT NULL DEFAULT 0",
 		"ALTER TABLE entities ADD COLUMN last_meal INTEGER NOT NULL DEFAULT 0",
 		"ALTER TABLE entity_quests ADD COLUMN completed_stages_json TEXT DEFAULT '[]'",
+		"ALTER TABLE entity_quests ADD COLUMN activity_json TEXT DEFAULT '[]'",
 		"ALTER TABLE locations ADD COLUMN controlling_faction TEXT DEFAULT ''",
 		"ALTER TABLE locations ADD COLUMN control_strength INTEGER DEFAULT 0",
 		"ALTER TABLE locations ADD COLUMN exits_json TEXT DEFAULT '[]'",
@@ -212,9 +214,10 @@ func (s *SQLiteStore) Save(sim *engine.Simulation) error {
 			objectivesJSON, _ := json.Marshal(state.Objectives)
 			variablesJSON, _ := json.Marshal(state.Variables)
 			completedStagesJSON, _ := json.Marshal(state.CompletedStages)
-			_, err = tx.Exec(`INSERT OR REPLACE INTO entity_quests (entity_id, quest_id, state, current_stage, completed_stages_json, objectives_json, variables_json, accepted_tick) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+			activityJSON, _ := json.Marshal(state.Activity)
+			_, err = tx.Exec(`INSERT OR REPLACE INTO entity_quests (entity_id, quest_id, state, current_stage, completed_stages_json, objectives_json, variables_json, activity_json, accepted_tick) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 				ent.ID, state.QuestID, string(state.State), state.CurrentStage,
-				string(completedStagesJSON), string(objectivesJSON), string(variablesJSON), state.AcceptedTick)
+				string(completedStagesJSON), string(objectivesJSON), string(variablesJSON), string(activityJSON), state.AcceptedTick)
 			if err != nil {
 				return err
 			}
@@ -383,17 +386,17 @@ func (s *SQLiteStore) Load() (*engine.Simulation, error) {
 		sim.Entities.Add(ent)
 	}
 
-	questRows, err := s.db.Query(`SELECT entity_id, quest_id, state, current_stage, completed_stages_json, objectives_json, variables_json, accepted_tick FROM entity_quests`)
+	questRows, err := s.db.Query(`SELECT entity_id, quest_id, state, current_stage, completed_stages_json, objectives_json, variables_json, activity_json, accepted_tick FROM entity_quests`)
 	if err != nil {
 		log.Printf("Warning: could not read entity_quests: %v", err)
 	} else {
 		defer questRows.Close()
 		for questRows.Next() {
 			var entityID, questID, stateStr, currentStage string
-			var completedStagesJSON, objectivesJSON, variablesJSON sql.NullString
+			var completedStagesJSON, objectivesJSON, variablesJSON, activityJSON sql.NullString
 			var acceptedTick uint64
 
-			if err := questRows.Scan(&entityID, &questID, &stateStr, &currentStage, &completedStagesJSON, &objectivesJSON, &variablesJSON, &acceptedTick); err != nil {
+			if err := questRows.Scan(&entityID, &questID, &stateStr, &currentStage, &completedStagesJSON, &objectivesJSON, &variablesJSON, &activityJSON, &acceptedTick); err != nil {
 				log.Printf("Warning: could not scan quest row: %v", err)
 				continue
 			}
@@ -413,7 +416,15 @@ func (s *SQLiteStore) Load() (*engine.Simulation, error) {
 				json.Unmarshal([]byte(variablesJSON.String), &variables)
 			}
 
+			var activity []quest.QuestActivity
+			if activityJSON.Valid && activityJSON.String != "" {
+				json.Unmarshal([]byte(activityJSON.String), &activity)
+			}
+
 			sim.Quests.LoadState(entityID, questID, quest.State(stateStr), currentStage, completedStages, objectives, variables, acceptedTick)
+			if state := sim.Quests.GetState(entityID, questID); state != nil {
+				state.Activity = activity
+			}
 		}
 	}
 
