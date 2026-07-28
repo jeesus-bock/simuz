@@ -297,16 +297,12 @@ func sortStringsByFoldAndRaw(values []string) {
 
 func sortTravelersForDisplay(travelers []travelerView) {
 	sort.SliceStable(travelers, func(i, j int) bool {
-		ni, _ := travelers[i]["name"].(string)
-		nj, _ := travelers[j]["name"].(string)
-		li := strings.ToLower(ni)
-		lj := strings.ToLower(nj)
-		if li != lj {
-			return li < lj
+		ni := strings.ToLower(travelers[i].Name)
+		nj := strings.ToLower(travelers[j].Name)
+		if ni != nj {
+			return ni < nj
 		}
-		ei, _ := travelers[i]["entity_id"].(string)
-		ej, _ := travelers[j]["entity_id"].(string)
-		return ei < ej
+		return travelers[i].EntityID < travelers[j].EntityID
 	})
 }
 
@@ -1013,14 +1009,7 @@ func buildTravelerViews(sim *engine.Simulation, locID string) []travelerView {
 			TotalSteps:  len(route) - 1,
 		})
 	}
-	sort.SliceStable(travelers, func(i, j int) bool {
-		ni := strings.ToLower(travelers[i].Name)
-		nj := strings.ToLower(travelers[j].Name)
-		if ni != nj {
-			return ni < nj
-		}
-		return travelers[i].EntityID < travelers[j].EntityID
-	})
+	sortTravelersForDisplay(travelers)
 	return travelers
 }
 
@@ -1568,6 +1557,34 @@ type relationshipView struct {
 	SinceTick   uint64
 }
 
+// SpeciesGestationTicks returns the gestation period in ticks for a given species.
+func SpeciesGestationTicks(species string) int {
+	switch species {
+	case "human":
+		return 200
+	case "orc":
+		return 150
+	case "elf":
+		return 250
+	case "dwarf":
+		return 180
+	case "goblin":
+		return 120
+	case "fey":
+		return 160
+	case "rat_king":
+		return 100
+	case "kobold":
+		return 90
+	case "vampire":
+		return 0
+	case "hag":
+		return 140
+	default:
+		return 200
+	}
+}
+
 func (h *Handler) PregnanciesPage(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
@@ -1617,18 +1634,9 @@ func buildPregnantEntities(sim *engine.Simulation) []pregnantEntityView {
 		if gestation <= 0 {
 			gestation = 200
 		}
-		elapsed := int(sim.Tick) - e.PregnancyTick
-		if elapsed < 0 {
-			elapsed = 0
-		}
-		progress := elapsed * 100 / gestation
-		if progress > 100 {
-			progress = 100
-		}
-		remaining := gestation - elapsed
-		if remaining < 0 {
-			remaining = 0
-		}
+		// PregnancyTick not yet available on entity.Entity; progress unavailable.
+		progress := 0
+		remaining := gestation
 
 		locName := e.LocationID
 		if loc := sim.World.Location(e.LocationID); loc != nil {
@@ -1658,32 +1666,38 @@ func buildPregnantEntities(sim *engine.Simulation) []pregnantEntityView {
 
 func buildRecentBirths(sim *engine.Simulation) []recentBirthView {
 	var out []recentBirthView
-	// Birth events are tracked in the combat event log; filter for birth actions.
 	events := combat.LocationEvents("", 500)
 	for _, evt := range events {
 		if evt.Action != "birth" {
 			continue
 		}
-		parent := sim.Entities.Get(evt.Source)
-		parentName := evt.Source
+		parent := sim.Entities.Get(evt.AttackerID)
+		parentName := evt.AttackerID
 		if parent != nil {
 			parentName = parent.Name
 		}
+		offspring := sim.Entities.Get(evt.DefenderID)
+		offspringName := evt.DefenderName
+		species := ""
+		gender := ""
+		if offspring != nil {
+			offspringName = offspring.Name
+			species = offspring.Species
+			gender = offspring.Gender
+		}
 		out = append(out, recentBirthView{
 			OffspringID:   evt.DefenderID,
-			OffspringName: evt.DefenderName,
-			Species:       evt.Species,
-			Gender:        evt.Gender,
-			ParentID:      evt.Source,
+			OffspringName: offspringName,
+			Species:       species,
+			Gender:        gender,
+			ParentID:      evt.AttackerID,
 			ParentName:    parentName,
 			Tick:          evt.Tick,
 		})
 	}
-	// Sort most recent first.
 	sort.SliceStable(out, func(i, j int) bool {
 		return out[i].Tick > out[j].Tick
 	})
-	// Keep only the last 50 births.
 	if len(out) > 50 {
 		out = out[:50]
 	}
@@ -1695,7 +1709,6 @@ func buildRelationships(sim *engine.Simulation) []relationshipView {
 	seen := make(map[string]bool)
 	for _, e := range sim.Entities.All() {
 		for _, rel := range e.Relationships {
-			// Deduplicate symmetric pairs (A,B) and (B,A).
 			key := rel.OtherID + ":" + e.ID
 			reverseKey := e.ID + ":" + rel.OtherID
 			if seen[key] || seen[reverseKey] {
