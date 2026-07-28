@@ -11,6 +11,29 @@ import (
 	"simuz/internal/world"
 )
 
+type EventType int
+
+const (
+	EventEntityKilled EventType = iota
+	EventEntityTalked
+	EventLocationEntered
+	EventItemCollected
+	EventItemDelivered
+	EventItemUsed
+	EventCraftCompleted
+	EventTravelCompleted
+	EventTick
+	EventTimePassed
+	EventEntityBorn
+)
+
+type SimEvent struct {
+	Type   EventType
+	Tick   uint64
+	Source string
+	Data   map[string]any
+}
+
 type Event struct {
 	Tick    uint64
 	Type    string

@@ -32,6 +32,18 @@ func init() {
 		scripts: make(map[string]*lua.FunctionProto),
 	}
 }
+func goValue(value lua.LValue) any {
+	switch v := value.(type) {
+	case lua.LString:
+		return string(v)
+	case lua.LNumber:
+		return float64(v)
+	case lua.LBool:
+		return bool(v)
+	default:
+		return nil // Handles lua.LNil
+	}
+}
 
 func LoadScript(name, source string) error {
 	L := lua.NewState()
@@ -91,46 +103,19 @@ func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manag
 		return nil, fmt.Errorf("run script %s: %w", name, err)
 	}
 
-	top := L.GetTop()
-
-	// Read return values from the stack using 1-based indexing from the bottom.
-	didAct := false
-	if top >= 1 {
-		didAct = L.ToBool(1)
-	}
-
-	var messages []string
-	if top >= 2 {
-		val := L.Get(2)
-		if tbl, ok := val.(*lua.LTable); ok {
-			messages = make([]string, 0, tbl.Len())
-			tbl.ForEach(func(k, v lua.LValue) {
-				if str, ok := v.(lua.LString); ok {
-					messages = append(messages, string(str))
-				}
-			})
-		}
-	}
-
 	var simEvents []*events.SimEvent
-	if top >= 3 {
-		val := L.Get(3)
-		if tbl, ok := val.(*lua.LTable); ok {
-			simEvents = decodeSimEvents(L, tbl, tm.Tick)
-		}
+
+	val := L.Get(-1)
+	if tbl, ok := val.(*lua.LTable); ok {
+		simEvents = decodeSimEvents(tbl, tm.Tick)
 	}
-
-	L.Pop(top)
-
-	_ = didAct
-	_ = messages
 
 	return simEvents, nil
 }
 
 // decodeSimEvents converts a Lua table of event tables into []*events.SimEvent.
 // Each entry in the Lua table should have keys: type (int), tick (uint64), source (string), data (table).
-func decodeSimEvents(L *lua.LState, tbl *lua.LTable, defaultTick uint64) []*events.SimEvent {
+func decodeSimEvents(tbl *lua.LTable, defaultTick uint64) []*events.SimEvent {
 	var luaEvents []*events.SimEvent
 	tbl.ForEach(func(k, v lua.LValue) {
 		eventTbl, ok := v.(*lua.LTable)
@@ -143,24 +128,44 @@ func decodeSimEvents(L *lua.LState, tbl *lua.LTable, defaultTick uint64) []*even
 
 		// type (EventType int)
 		if typeVal := eventTbl.RawGetString("type"); typeVal != lua.LNil {
-			ev.Type = events.EventType(L.ToInt(typeVal))
+			typeInt, err := strconv.Atoi(typeVal.String())
+			if err != nil {
+				log.Printf("Error converting type to int: %v", err)
+				return
+			}
+			ev.Type = events.EventType(typeInt)
 		}
 
 		// tick (uint64)
 		if tickVal := eventTbl.RawGetString("tick"); tickVal != lua.LNil {
-			ev.Tick = uint64(L.ToInt(tickVal))
+			tickInt, err := strconv.Atoi(tickVal.String())
+			if err != nil {
+				log.Printf("Error converting tick to int: %v", err)
+				return
+			}
+			ev.Tick = uint64(tickInt)
 		}
 
 		// source (string)
 		if srcVal := eventTbl.RawGetString("source"); srcVal != lua.LNil {
-			ev.Source = L.ToString(srcVal)
+			ev.Source = srcVal.String()
 		}
 
 		// data (table -> map[string]any)
-		if dataVal := eventTbl.RawGetString("data"); dataVal != lua.LNil {
-			if dataTbl, ok := dataVal.(*lua.LTable); ok {
-				ev.Data = luaTableToMap(L, dataTbl)
+		if dataVal := eventTbl.RawGet(lua.LString("data")); dataVal != lua.LNil {
+			result := make(map[string]any)
+			table, ok := dataVal.(*lua.LTable)
+			if !ok {
+				log.Printf("Error: data is not a table")
+				return
 			}
+			// Iterate through the Lua table keys and values
+			table.ForEach(func(key lua.LValue, val lua.LValue) {
+				// Ensure the key is a string (ignores numeric array indices if necessary)
+				if strKey, ok := key.(lua.LString); ok {
+					result[string(strKey)] = goValue(val)
+				}
+			})
 		}
 
 		luaEvents = append(luaEvents, ev)

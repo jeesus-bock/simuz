@@ -14,6 +14,7 @@ import (
 	"simuz/internal/combat"
 	"simuz/internal/engine"
 	"simuz/internal/entity"
+	"simuz/internal/events"
 	"simuz/internal/items"
 	"simuz/internal/quest"
 	"simuz/internal/world"
@@ -1541,7 +1542,7 @@ func (h *Handler) SSEEvents(c *gin.Context) {
 	c.Header("Connection", "keep-alive")
 
 	ch := make(chan uint64, 64)
-	h.Sim.OnEvent(func(evt engine.SimEvent) {
+	h.Sim.OnEvent(func(evt events.SimEvent) {
 		select {
 		case ch <- evt.Tick:
 		default:
@@ -1705,7 +1706,7 @@ func buildPregnantEntities(sim *engine.Simulation) []pregnantEntityView {
 func buildRecentBirths(sim *engine.Simulation) []recentBirthView {
 	var out []recentBirthView
 	for _, evt := range sim.EventsCopy() {
-		if evt.Type != engine.EventEntityBorn {
+		if evt.Type != events.EventEntityBorn {
 			continue
 		}
 		data := evt.Data
