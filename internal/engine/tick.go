@@ -421,6 +421,25 @@ func processReproduction(s *Simulation) {
 		}
 
 		s.Entities.Add(child)
+
+		// Establish family relationships: parent↔child and mate↔mate.
+		mother.AddRelationship(child.ID, entity.RelationshipParent, s.Tick)
+		father.AddRelationship(child.ID, entity.RelationshipParent, s.Tick)
+		child.AddRelationship(mother.ID, entity.RelationshipChild, s.Tick)
+		child.AddRelationship(father.ID, entity.RelationshipChild, s.Tick)
+		mother.AddRelationship(father.ID, entity.RelationshipMate, s.Tick)
+		father.AddRelationship(mother.ID, entity.RelationshipMate, s.Tick)
+
+		// Sibling relationships with existing children of the mother.
+		for _, rel := range mother.Relationships {
+			if rel.Type == entity.RelationshipChild && rel.OtherID != child.ID {
+				child.AddRelationship(rel.OtherID, entity.RelationshipSibling, s.Tick)
+				if sibling := s.Entities.Get(rel.OtherID); sibling != nil {
+					sibling.AddRelationship(child.ID, entity.RelationshipSibling, s.Tick)
+				}
+			}
+		}
+
 		mother.LastReproductionTick = s.Tick
 		father.LastReproductionTick = s.Tick
 		log.Printf("[birth] %s born to %s and %s at %s", child.Name, mother.Name, father.Name, key.locID)
