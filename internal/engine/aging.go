@@ -3,8 +3,10 @@ package engine
 
 import (
 	"log"
+	"math/rand"
 
 	"simuz/internal/entity"
+	"simuz/internal/events"
 )
 
 func processAging(ent *entity.Entity, sim *Simulation) {
@@ -23,7 +25,7 @@ func processAging(ent *entity.Entity, sim *Simulation) {
 		return
 	}
 
-	if entity.ShouldAutoFeed(ent.Species) {
+	if entity.GetSpecies(ent.Species).AutoFeed {
 		ent.LastMealTick = int(sim.Tick)
 		return
 	}
@@ -32,7 +34,7 @@ func processAging(ent *entity.Entity, sim *Simulation) {
 }
 
 func starvationCheck(ent *entity.Entity, sim *Simulation) {
-	threshold := entity.SpeciesStarvationThreshold(ent.Species)
+	threshold := entity.GetSpecies(ent.Species).StarvationThreshold
 	if threshold <= 0 {
 		return
 	}
@@ -41,7 +43,15 @@ func starvationCheck(ent *entity.Entity, sim *Simulation) {
 	if ticksSinceMeal > threshold {
 		interval := entity.StarvationDamageInterval()
 		if (ticksSinceMeal-threshold)%interval == 0 {
-			ent.TakeDamage(1)
+			dmg := rand.Intn(entity.StarvationDamageMax()-entity.StarvationDamageMin()+1) + entity.StarvationDamageMin()
+			ent.TakeDamage(dmg)
+			sim.Emit(&events.SimEvent{
+				Type:   events.EventTypeStarvation,
+				Source: ent.ID,
+				Data: map[string]interface{}{
+					"damage": dmg,
+				},
+			})
 			if !ent.Alive {
 				log.Printf("%s starved to death at tick %d (age %d)", ent.Name, sim.Tick, ent.Age)
 			}
