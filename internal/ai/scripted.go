@@ -56,12 +56,16 @@ var MoveRequest func(ent *entity.Entity, destID string) bool
 // IsEntityTraveling is set by the engine.
 var IsEntityTraveling func(entityID string) bool
 
-func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manager, tm *world.GameTime, rng *rand.Rand, qm *quest.Manager) error {
+// RunScript executes a loaded Lua AI script and returns whether the script
+// performed an action (didAct) and any log messages it produced.
+// The Lua script is expected to return two values: a boolean and a table of
+// strings. If the script returns fewer values, missing values are zero-filled.
+func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manager, tm *world.GameTime, rng *rand.Rand, qm *quest.Manager) (bool, []string, error) {
 	globalScripts.mu.RLock()
 	proto, ok := globalScripts.scripts[name]
 	globalScripts.mu.RUnlock()
 	if !ok {
-		return fmt.Errorf("script not found: %s", name)
+		return false, nil, fmt.Errorf("script not found: %s", name)
 	}
 
 	L := lua.NewState()
@@ -74,14 +78,36 @@ func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manag
 	closure := L.NewFunctionFromProto(proto)
 	err := L.CallByParam(lua.P{
 		Fn:      closure,
-		NRet:    0,
+		NRet:    2,
 		Protect: true,
 	})
 	if err != nil {
-		return fmt.Errorf("run script %s: %w", name, err)
+		return false, nil, fmt.Errorf("run script %s: %w", name, err)
 	}
 
-	return nil
+	// Read the boolean return value (didAct).
+	didAct := false
+	if L.GetTop() >= 1 {
+		didAct = L.ToBool(-1)
+		L.Pop(1)
+	}
+
+	// Read the table return value (log messages).
+	var messages []string
+	if L.GetTop() >= 1 {
+		if L.IsTable(-1) {
+			tbl := L.ToTable(-1)
+			messages = make([]string, 0, tbl.Len())
+			tbl.ForEach(func(k, v lua.LValue) {
+				if str, ok := v.(lua.LString); ok {
+					messages = append(messages, string(str))
+				}
+			})
+		}
+		L.Pop(1)
+	}
+
+	return didAct, messages, nil
 }
 
 func bindEntity(L *lua.LState, e *entity.Entity, tick uint64) {
