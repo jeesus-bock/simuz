@@ -1,3 +1,4 @@
+// Package entity defines the simulation entities, their attributes, and related behaviors.
 package entity
 
 // CanMate checks whether two entities are compatible for reproduction.

@@ -1,3 +1,4 @@
+// Package world defines the simulation world model, locations, travel rules, and weather systems.
 package world
 
 import "fmt"
@@ -51,11 +52,11 @@ func (dp DayPhase) String() string {
 }
 
 type GameTime struct {
-	Tick  uint64 `json:"tick"`
-	Day   int    `json:"day"`
-	Hour  int    `json:"hour"`
-	Minute int   `json:"minute"`
-	Speed int    `json:"speed"`
+	Tick   uint64 `json:"tick"`
+	Day    int    `json:"day"`
+	Hour   int    `json:"hour"`
+	Minute int    `json:"minute"`
+	Speed  int    `json:"speed"`
 }
 
 func NewGameTime(speed int) GameTime {

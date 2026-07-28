@@ -1,3 +1,4 @@
+// Package ai contains the AI runtime, script loading, and Lua-facing helpers for entities.
 package ai
 
 import (
@@ -8,13 +9,14 @@ import (
 	"strconv"
 	"sync"
 
-	lua "github.com/yuin/gopher-lua"
 	"simuz/internal/combat"
 	"simuz/internal/economy"
 	"simuz/internal/entity"
 	"simuz/internal/items"
 	"simuz/internal/quest"
 	"simuz/internal/world"
+
+	lua "github.com/yuin/gopher-lua"
 )
 
 type ScriptManager struct {

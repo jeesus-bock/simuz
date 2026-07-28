@@ -1,3 +1,4 @@
+// Package items defines item definitions, instances, and registry support for the simulation.
 package items
 
 type ItemType int
@@ -13,26 +14,26 @@ const (
 )
 
 type ItemDef struct {
-	ID          string   `json:"id" yaml:"id"`
-	Name        string   `json:"name" yaml:"name"`
-	Type        ItemType `json:"type" yaml:"type"`
-	Weight      float64  `json:"weight" yaml:"weight"`
-	Value       int      `json:"value" yaml:"value"`
-	Description string   `json:"description" yaml:"description"`
-	Slot        string   `json:"slot,omitempty" yaml:"slot,omitempty"`
-	Tags        []string `json:"tags,omitempty" yaml:"tags,omitempty"`
+	ID          string           `json:"id" yaml:"id"`
+	Name        string           `json:"name" yaml:"name"`
+	Type        ItemType         `json:"type" yaml:"type"`
+	Weight      float64          `json:"weight" yaml:"weight"`
+	Value       int              `json:"value" yaml:"value"`
+	Description string           `json:"description" yaml:"description"`
+	Slot        string           `json:"slot,omitempty" yaml:"slot,omitempty"`
+	Tags        []string         `json:"tags,omitempty" yaml:"tags,omitempty"`
 	Stackable   bool             `json:"stackable" yaml:"stackable"`
 	MaxStack    int              `json:"max_stack,omitempty" yaml:"max_stack,omitempty"`
 	Substance   *SubstanceEffect `json:"substance,omitempty" yaml:"substance,omitempty"`
 }
 
 type ItemInstance struct {
-	ID        string  `json:"id"`
-	DefID     string  `json:"def_id"`
+	ID        string   `json:"id"`
+	DefID     string   `json:"def_id"`
 	Def       *ItemDef `json:"-"`
-	Count     int     `json:"count"`
-	Condition float64 `json:"condition"`
-	Equipped  bool    `json:"equipped"`
+	Count     int      `json:"count"`
+	Condition float64  `json:"condition"`
+	Equipped  bool     `json:"equipped"`
 }
 
 func NewItemInstance(id, defID string, def *ItemDef, count int) ItemInstance {

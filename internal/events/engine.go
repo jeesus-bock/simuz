@@ -1,3 +1,4 @@
+// Package events contains the simulation event engine and tick-based event processing helpers.
 package events
 
 import (
@@ -150,7 +151,7 @@ var ambientEvents = []ambientTemplate{
 	{
 		Title:   "Firelight",
 		Message: "Firelight dances warmly, casting long shadows on the walls.",
-		Check:   func(loc *world.Location, rng *rand.Rand, ents []*entity.Entity) bool {
+		Check: func(loc *world.Location, rng *rand.Rand, ents []*entity.Entity) bool {
 			return !loc.IsOutside && hasTag(loc, "inn")
 		},
 	},

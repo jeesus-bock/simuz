@@ -1,3 +1,4 @@
+// Package combat contains the core combat rules, relation handling, and attack resolution helpers.
 package combat
 
 import (
@@ -28,33 +29,33 @@ const (
 )
 
 type Attack struct {
-	ID         string           `json:"id"`
-	AttackerID string           `json:"attacker_id"`
-	DefenderID string           `json:"defender_id"`
-	Action     CombatAction     `json:"action"`
-	Type       AttackType       `json:"type"`
-	Weapon     *items.ItemInstance `json:"weapon,omitempty"`
-	HitLocation items.HitLocation `json:"hit_location"`
-	Roll       int              `json:"roll"`
-	SkillLevel int              `json:"skill_level"`
-	Margin     int              `json:"margin"`
-	Hit        bool             `json:"hit"`
+	ID          string              `json:"id"`
+	AttackerID  string              `json:"attacker_id"`
+	DefenderID  string              `json:"defender_id"`
+	Action      CombatAction        `json:"action"`
+	Type        AttackType          `json:"type"`
+	Weapon      *items.ItemInstance `json:"weapon,omitempty"`
+	HitLocation items.HitLocation   `json:"hit_location"`
+	Roll        int                 `json:"roll"`
+	SkillLevel  int                 `json:"skill_level"`
+	Margin      int                 `json:"margin"`
+	Hit         bool                `json:"hit"`
 }
 
 type AttackResult struct {
-	Attack         Attack               `json:"attack"`
-	Damage         int                  `json:"damage"`
-	DamageType     items.DamageType     `json:"damage_type"`
-	RawDamage      int                  `json:"raw_damage"`
-	DR             float64              `json:"dr"`
-	NetDamage      int                  `json:"net_damage"`
-	WoundMultiplier float64             `json:"wound_multiplier"`
-	WoundDamage    int                  `json:"wound_damage"`
-	Location       items.HitLocation    `json:"location"`
-	Defended       bool                 `json:"defended"`
-	DefenseRoll    int                  `json:"defense_roll,omitempty"`
-	DefenseType    string               `json:"defense_type,omitempty"`
-	Critical       bool                 `json:"critical"`
+	Attack          Attack            `json:"attack"`
+	Damage          int               `json:"damage"`
+	DamageType      items.DamageType  `json:"damage_type"`
+	RawDamage       int               `json:"raw_damage"`
+	DR              float64           `json:"dr"`
+	NetDamage       int               `json:"net_damage"`
+	WoundMultiplier float64           `json:"wound_multiplier"`
+	WoundDamage     int               `json:"wound_damage"`
+	Location        items.HitLocation `json:"location"`
+	Defended        bool              `json:"defended"`
+	DefenseRoll     int               `json:"defense_roll,omitempty"`
+	DefenseType     string            `json:"defense_type,omitempty"`
+	Critical        bool              `json:"critical"`
 }
 
 type DefenseType int
@@ -82,16 +83,16 @@ func ResolveMeleeAttack(attacker, defender *entity.Entity, action CombatAction, 
 	roll := rng.Intn(16) + 3
 
 	atk := Attack{
-		AttackerID: attacker.ID,
-		DefenderID: defender.ID,
-		Action:     action,
-		Type:       AttackMelee,
-		Weapon:     weapon,
+		AttackerID:  attacker.ID,
+		DefenderID:  defender.ID,
+		Action:      action,
+		Type:        AttackMelee,
+		Weapon:      weapon,
 		HitLocation: hitLoc,
-		Roll:       roll,
-		SkillLevel: skill,
-		Margin:     skill - roll,
-		Hit:        roll <= skill,
+		Roll:        roll,
+		SkillLevel:  skill,
+		Margin:      skill - roll,
+		Hit:         roll <= skill,
 	}
 	result.Attack = atk
 

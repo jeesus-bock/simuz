@@ -1,3 +1,4 @@
+// Package ai contains the AI runtime, script loading, and Lua-facing helpers for entities.
 package ai
 
 import (

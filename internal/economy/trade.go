@@ -1,3 +1,4 @@
+// Package economy contains trade pricing and economy-related helpers used by the simulation.
 package economy
 
 import (
