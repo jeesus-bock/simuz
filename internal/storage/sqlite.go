@@ -314,6 +314,9 @@ func (s *SQLiteStore) Load() (*engine.Simulation, error) {
 
 		w.AddLocation(loc)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read locations: %w", err)
+	}
 
 	sim := engine.NewSimulation(w)
 	sim.Tick = tick
@@ -402,6 +405,9 @@ func (s *SQLiteStore) Load() (*engine.Simulation, error) {
 
 		sim.Entities.Add(ent)
 	}
+	if err := entRows.Err(); err != nil {
+		return nil, fmt.Errorf("read entities: %w", err)
+	}
 
 	questRows, err := s.db.Query(`SELECT entity_id, quest_id, state, current_stage, completed_stages_json, objectives_json, variables_json, activity_json, accepted_tick FROM entity_quests`)
 	if err != nil {
@@ -450,6 +456,9 @@ func (s *SQLiteStore) Load() (*engine.Simulation, error) {
 			if state := sim.Quests.GetState(entityID, questID); state != nil {
 				state.Activity = activity
 			}
+		}
+		if err := questRows.Err(); err != nil {
+			return nil, fmt.Errorf("read quest states: %w", err)
 		}
 	}
 
