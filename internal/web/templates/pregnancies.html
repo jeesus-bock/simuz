@@ -1,0 +1,113 @@
+{{define "pregnancies"}}
+<div hx-ext="sse" sse-connect="/api/v1/ui/events">
+    <div id="pregnancies-content" hx-get="/api/v1/ui/fragments/pregnancies" hx-trigger="sse:tick" hx-target="#pregnancies-content" hx-swap="innerHTML">
+        {{template "pregnancies_list" .}}
+    </div>
+</div>
+{{end}}
+
+{{define "pregnancies_list"}}
+<div class="card">
+    <h2>Pregnancies ({{len .pregnant_entities}})</h2>
+    <div class="stat"><span>Tick</span><span>{{.tick}}</span></div>
+</div>
+
+{{if .pregnant_entities}}
+<div class="card">
+    <h3>Pregnant Entities</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Species</th>
+                <th>Faction</th>
+                <th>Level</th>
+                <th>Gestation</th>
+                <th>Due In</th>
+                <th>Location</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .pregnant_entities}}
+            <tr>
+                <td><a href="/entity/{{.EntityID}}" style="color:var(--accent);text-decoration:none;">{{.EntityName}}</a></td>
+                <td>{{.Species}}</td>
+                <td>{{.Faction}}</td>
+                <td>{{.Level}}</td>
+                <td>
+                    <div class="hp-bar" style="width:100px;">
+                        <div class="hp-bar-fill" style="width:{{percent .Progress 100}}%"></div>
+                    </div>
+                    <span style="font-size:0.8rem;">{{.Progress}}%</span>
+                </td>
+                <td>{{.TicksRemaining}}t</td>
+                <td><a href="/location/{{.LocationID}}" style="color:var(--accent)">{{.LocationName}}</a></td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+{{else}}
+<div class="card">
+    <p style="color:var(--text-dim);">No entities are currently pregnant.</p>
+</div>
+{{end}}
+
+{{if .recent_births}}
+<div class="card">
+    <h3>Recent Births ({{len .recent_births}})</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Offspring</th>
+                <th>Species</th>
+                <th>Gender</th>
+                <th>Parent</th>
+                <th>Tick</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .recent_births}}
+            <tr>
+                <td><a href="/entity/{{.OffspringID}}" style="color:var(--accent);text-decoration:none;">{{.OffspringName}}</a></td>
+                <td>{{.Species}}</td>
+                <td>{{.Gender}}</td>
+                <td><a href="/entity/{{.ParentID}}" style="color:var(--accent)">{{.ParentName}}</a></td>
+                <td>{{.Tick}}</td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+{{end}}
+
+{{if .relationships}}
+<div class="card">
+    <h3>Relationships ({{len .relationships}})</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Entity A</th>
+                <th>Entity B</th>
+                <th>Type</th>
+                <th>Since Tick</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .relationships}}
+            <tr>
+                <td><a href="/entity/{{.EntityAID}}" style="color:var(--accent);text-decoration:none;">{{.EntityAName}}</a></td>
+                <td><a href="/entity/{{.EntityBID}}" style="color:var(--accent);text-decoration:none;">{{.EntityBName}}</a></td>
+                <td>{{.Type}}</td>
+                <td>{{.SinceTick}}</td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+{{else}}
+<div class="card">
+    <p style="color:var(--text-dim);">No relationships recorded yet.</p>
+</div>
+{{end}}
+{{end}}
