@@ -1,3 +1,4 @@
+// Package entity defines core simulation types, including entities, attributes, and hostility relations.
 package entity
 
 type HostilityRelation int
@@ -22,11 +23,7 @@ type Hostilities struct {
 	EntityRelation     EntityRelation     `json:"entityRelation,omitempty"`
 }
 
-type FactionRelation map[string]HostilityRelation
-type SpeciesRelation map[string]HostilityRelation
-type ProfessionRelation map[string]HostilityRelation
-type EntityRelation map[string]HostilityRelation
-
+// Relation calculates the combined hostility relation based on species, faction, profession, and entity relations.
 func (f *Hostilities) Relation(ent Entity) HostilityRelation {
 	combined := 0
 	combined += f.GetEntityRelation(ent.ID).Int()
@@ -36,6 +33,7 @@ func (f *Hostilities) Relation(ent Entity) HostilityRelation {
 	return HostilityRelation(combined)
 }
 
+// SetSpeciesRelation sets the hostility relation for a specific species.
 func (f *Hostilities) SetSpeciesRelation(species string, relation HostilityRelation) {
 	if f.SpeciesRelation == nil {
 		f.SpeciesRelation = make(SpeciesRelation)
@@ -43,6 +41,7 @@ func (f *Hostilities) SetSpeciesRelation(species string, relation HostilityRelat
 	f.SpeciesRelation[species] = relation
 }
 
+// GetSpeciesRelation retrieves the hostility relation for a specific species.
 func (f *Hostilities) GetSpeciesRelation(species string) HostilityRelation {
 	if f.SpeciesRelation == nil {
 		return HostilityRelation(0) // Default to neutral if no relations are defined
@@ -53,6 +52,7 @@ func (f *Hostilities) GetSpeciesRelation(species string) HostilityRelation {
 	return HostilityRelation(0) // Default to neutral if no specific relation is defined
 }
 
+// ChangeSpeciesRelation adjusts the hostility relation for a specific species by a change amount.
 func (f *Hostilities) ChangeSpeciesRelation(species string, change int) HostilityRelation {
 	if f.SpeciesRelation == nil {
 		f.SpeciesRelation = make(SpeciesRelation)
@@ -169,6 +169,7 @@ func (f *Hostilities) ChangeEntityRelation(entityID string, change int) Hostilit
 	return f.EntityRelation[entityID]
 }
 
+// CombineHostilities merges two Hostilities structs, summing up relations for overlapping keys.
 func CombineHostilities(h1, h2 Hostilities) Hostilities {
 	combined := Hostilities{
 		SpeciesRelation:    make(SpeciesRelation),
@@ -224,86 +225,123 @@ func CombineHostilities(h1, h2 Hostilities) Hostilities {
 	return combined
 }
 
+// EmptyHostilities is a zero-value Hostilities struct with all relation maps initialized but empty.
 var EmptyHostilities = Hostilities{
 	SpeciesRelation:    SpeciesRelation{},
 	FactionRelation:    FactionRelation{},
 	ProfessionRelation: ProfessionRelation{},
 	EntityRelation:     EntityRelation{},
 }
+
+// OrcHostilities defines the default hostility relations for Orc species.
 var OrcHostilities = Hostilities{
 	SpeciesRelation:    SpeciesRelation{"elf": -100, "orc": 50},                         // SpeciesRelation (Populated)
 	FactionRelation:    FactionRelation{"orcslayer": -1000},                             // FactionRelation (Empty but non-nil)
 	ProfessionRelation: ProfessionRelation{"wizard": -20, "rangers": -50, "guard": -50}, // ProfessionRelation (Populated)
 	EntityRelation:     EntityRelation{},                                                // EntityRelation (Empty but non-nil)
 }
+
+// ChildHostilities defines the default hostility relations for Child species.
 var ChildHostilities = Hostilities{
 	SpeciesRelation:    SpeciesRelation{},
 	FactionRelation:    FactionRelation{},
 	ProfessionRelation: ProfessionRelation{},
 	EntityRelation:     EntityRelation{},
 }
+
+// DragonHostilities defines the default hostility relations for Dragon species.
 var DragonHostilities = Hostilities{
 	SpeciesRelation:    SpeciesRelation{},
 	FactionRelation:    FactionRelation{},
 	ProfessionRelation: ProfessionRelation{},
 	EntityRelation:     EntityRelation{},
 }
+
+// HagHostilities defines the default hostility relations for Hag species.
 var HagHostilities = Hostilities{
 	SpeciesRelation:    SpeciesRelation{"humans": -50, "elves": -20},
 	FactionRelation:    FactionRelation{},
 	ProfessionRelation: ProfessionRelation{},
 	EntityRelation:     EntityRelation{},
 }
+
+// KoboldHostilities defines the default hostility relations for Kobold species.
 var KoboldHostilities = Hostilities{
 	SpeciesRelation:    SpeciesRelation{},
 	FactionRelation:    FactionRelation{},
 	ProfessionRelation: ProfessionRelation{},
 	EntityRelation:     EntityRelation{},
 }
+
+// RatKingHostilities defines the default hostility relations for Rat King species.
 var RatKingHostilities = Hostilities{
 	SpeciesRelation:    SpeciesRelation{},
 	FactionRelation:    FactionRelation{},
 	ProfessionRelation: ProfessionRelation{},
 	EntityRelation:     EntityRelation{},
 }
+
+// HumanHostilities defines the default hostility relations for Human species.
 var HumanHostilities = Hostilities{
 	SpeciesRelation:    SpeciesRelation{},
 	FactionRelation:    FactionRelation{},
 	ProfessionRelation: ProfessionRelation{},
 	EntityRelation:     EntityRelation{},
 }
+
+// ElfHostilities defines the default hostility relations for Elf species.
 var ElfHostilities = Hostilities{
 	SpeciesRelation:    SpeciesRelation{},
 	FactionRelation:    FactionRelation{},
 	ProfessionRelation: ProfessionRelation{},
 	EntityRelation:     EntityRelation{},
 }
+
+// GoblinHostilities defines the default hostility relations for Goblin species.
 var GoblinHostilities = Hostilities{
 	SpeciesRelation:    SpeciesRelation{},
 	FactionRelation:    FactionRelation{},
 	ProfessionRelation: ProfessionRelation{},
 	EntityRelation:     EntityRelation{},
 }
+
+// FeyHostilities defines the default hostility relations for Fey species.
 var FeyHostilities = Hostilities{
 	SpeciesRelation:    SpeciesRelation{},
 	FactionRelation:    FactionRelation{},
 	ProfessionRelation: ProfessionRelation{},
 	EntityRelation:     EntityRelation{},
 }
+
+// ThiefHostilities defines the default hostility relations for Thief profession.
 var ThiefHostilities = Hostilities{
 	SpeciesRelation:    SpeciesRelation{},
 	FactionRelation:    FactionRelation{"thieves_guild": 150, "military": -50, "guard": -50},
 	ProfessionRelation: ProfessionRelation{"guard": -50, "thief": 50},
 	EntityRelation:     EntityRelation{},
 }
+
+// BanditHostilities defines the default hostility relations for Bandit profession.
 var BanditHostilities = Hostilities{
 	SpeciesRelation:    SpeciesRelation{},
 	FactionRelation:    FactionRelation{"bandit": 100, "military": -50, "guard": -50, "thieves_guild": 20},
 	ProfessionRelation: ProfessionRelation{"guard": -50, "bandit": 50},
 	EntityRelation:     EntityRelation{},
 }
+
+// BeastHostilities defines the default hostility relations for Beast species.
 var BeastHostilities = Hostilities{
-	SpeciesRelation:    SpeciesRelation{},
+	SpeciesRelation:    SpeciesRelation{
+		"human": -50,
+		"elf":   -30,
+		"orc":   -80,
+		"goblin": -60,
+		"kobold": -70,
+		"fey":   -40,
+		"dragon": -100,
+		"hag":   -90,
+		"rat":   -100,
+	},
 	FactionRelation:    FactionRelation{},
 	ProfessionRelation: ProfessionRelation{},
 	EntityRelation:     EntityRelation{},
