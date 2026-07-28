@@ -642,7 +642,7 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 
 	worldTbl.RawSetString("move_to", L.NewFunction(func(L *lua.LState) int {
 		id := L.ToString(1)
-		if w.Location(id) == nil {
+		if w.Location(id) == nil || ((w.IsDivineRealm(ent.LocationID) || w.IsDivineRealm(id)) && ent.Species != "deity" && ent.Faction != "deity") {
 			L.Push(lua.LBool(false))
 			return 1
 		}

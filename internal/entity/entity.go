@@ -104,6 +104,7 @@ type Entity struct {
 	PregnantSinceTick uint64 `json:"pregnant_since_tick,omitempty"`
 	FatherID          string `json:"father_id,omitempty"`
 	Relationships     map[string]EntityRelationship `json:"relationships,omitempty"`
+	LastReproductionTick uint64 `json:"last_reproduction_tick,omitempty"`
 }
 
 func NewEntity(id, name, species string, attrs Attributes, level int) *Entity {
@@ -140,6 +141,22 @@ func NewEntity(id, name, species string, attrs Attributes, level int) *Entity {
 			Type: "passive",
 		},
 	}
+}
+
+// CanReproduce returns true for species that can breed naturally.
+func CanReproduce(species string) bool {
+	switch species {
+	case "human", "orc", "elf", "goblin", "fey", "rat_king",
+		"kobold", "vampire", "hag":
+		return true
+	default:
+		return false
+	}
+}
+
+// IsAdult returns true if the entity is old enough to reproduce.
+func (e *Entity) IsAdult() bool {
+	return e.Level >= 3
 }
 
 func randomGender() string {
