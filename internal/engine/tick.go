@@ -84,7 +84,7 @@ func NewSimulation(w *world.World) *Simulation {
 		if ent == nil || !ent.Alive {
 			return
 		}
-		if rewards.Experience > 0 && entity.GetSpecies(ent.Species).CanLevelUp {
+		if rewards.Experience > 0 && entity.GetSpeciesByID(ent.Species).CanLevelUp {
 			sim.Emit(events.SimEvent{
 				Type:   events.EventTypeQuestComplete,
 				Source: ent.ID,
