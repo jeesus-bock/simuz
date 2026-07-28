@@ -1,0 +1,5 @@
+
+Loads a Lua script source string under the given name. Scripts are compiled and stored for later execution.
+
+### Running Scripts
+
