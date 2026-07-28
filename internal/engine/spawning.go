@@ -652,7 +652,7 @@ func seedFamilyAtLocation(em *entity.Manager, locID string, rng *rand.Rand) {
 }
 
 func pickFamilySpecies(rng *rand.Rand) string {
-	species := []string{"human", "elf", "orc", "goblin", "kobold"}
+	species := []string{"human", "elf", "orc", "goblin", "kobold", "hobit", "dwarf"}
 	return species[rng.Intn(len(species))]
 }
 
