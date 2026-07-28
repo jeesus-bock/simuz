@@ -12,6 +12,7 @@ import (
 	"simuz/internal/combat"
 	"simuz/internal/economy"
 	"simuz/internal/entity"
+	"simuz/internal/events"
 	"simuz/internal/items"
 	"simuz/internal/quest"
 	"simuz/internal/world"
@@ -30,15 +31,6 @@ func init() {
 	globalScripts = &ScriptManager{
 		scripts: make(map[string]*lua.FunctionProto),
 	}
-}
-
-// LuaSimEvent mirrors engine.SimEvent so Lua scripts can emit events
-// without the ai package needing to import the engine package.
-type LuaSimEvent struct {
-	Type   entity.EventType
-	Tick   uint64
-	Source string
-	Data   map[string]any
 }
 
 func LoadScript(name, source string) error {
@@ -75,7 +67,7 @@ var IsEntityTraveling func(entityID string) bool
 //
 // If the script returns fewer values, missing values are zero-filled
 // (false, nil, EventTick, nil data).
-func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manager, tm *world.GameTime, rng *rand.Rand, qm *quest.Manager) ([]*LuaSimEvent, error) {
+func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manager, tm *world.GameTime, rng *rand.Rand, qm *quest.Manager) ([]*events.SimEvent, error) {
 	globalScripts.mu.RLock()
 	proto, ok := globalScripts.scripts[name]
 	globalScripts.mu.RUnlock()
@@ -121,9 +113,9 @@ func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manag
 		}
 	}
 
-	eventType := entity.EventTick
+	eventType := events.EventTick
 	if top >= 3 {
-		eventType = entity.EventType(L.ToInt(3))
+		eventType = events.EventType(L.ToInt(3))
 	}
 
 	var data map[string]any
@@ -144,7 +136,7 @@ func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manag
 
 	L.Pop(top)
 
-	event := &LuaSimEvent{
+	event := &events.SimEvent{
 		Type:   eventType,
 		Tick:   tm.Tick,
 		Source: ent.ID,
@@ -154,7 +146,7 @@ func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manag
 	_ = didAct
 	_ = messages
 
-	return []*LuaSimEvent{event}, nil
+	return []*events.SimEvent{event}, nil
 }
 
 func bindEntity(L *lua.LState, e *entity.Entity, tick uint64) {
