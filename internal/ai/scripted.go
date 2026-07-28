@@ -88,6 +88,7 @@ func bindEntity(L *lua.LState, e *entity.Entity, tick uint64) {
 	entTbl.RawSetString("name", lua.LString(e.Name))
 	entTbl.RawSetString("species", lua.LString(e.Species))
 	entTbl.RawSetString("faction", lua.LString(e.Faction))
+	entTbl.RawSetString("profession", lua.LString(e.Profession))
 	entTbl.RawSetString("loc_id", lua.LString(e.LocationID))
 	entTbl.RawSetString("hp", lua.LNumber(e.HP))
 	entTbl.RawSetString("max_hp", lua.LNumber(e.MaxHP))
@@ -287,6 +288,25 @@ func bindEntity(L *lua.LState, e *entity.Entity, tick uint64) {
 			rel.Type == entity.RelationshipMate ||
 			rel.Type == entity.RelationshipSibling
 		L.Push(lua.LBool(family))
+		return 1
+	}))
+
+	// Faction and profession setters
+	entTbl.RawSetString("set_faction", L.NewFunction(func(L *lua.LState) int {
+		newFaction := L.ToString(1)
+		if newFaction == "" {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		e.Faction = newFaction
+		L.Push(lua.LTrue)
+		return 1
+	}))
+
+	entTbl.RawSetString("set_profession", L.NewFunction(func(L *lua.LState) int {
+		newProfession := L.ToString(1)
+		e.Profession = newProfession
+		L.Push(lua.LTrue)
 		return 1
 	}))
 
@@ -890,6 +910,7 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 		tbl.RawSetString("name", lua.LString(e.Name))
 		tbl.RawSetString("species", lua.LString(e.Species))
 		tbl.RawSetString("faction", lua.LString(e.Faction))
+		tbl.RawSetString("profession", lua.LString(e.Profession))
 		tbl.RawSetString("hp", lua.LNumber(e.HP))
 		tbl.RawSetString("max_hp", lua.LNumber(e.MaxHP))
 		tbl.RawSetString("level", lua.LNumber(e.Level))
@@ -908,6 +929,82 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 		b := L.ToString(2)
 		L.Push(lua.LBool(combat.Relation(a, b) == combat.Hostile))
 		return 1
+	}))
+
+	worldTbl.RawSetString("get_faction", L.NewFunction(func(L *lua.LState) int {
+		id := L.ToString(1)
+		e := em.Get(id)
+		if e == nil {
+			L.Push(lua.LNil)
+			return 1
+		}
+		L.Push(lua.LString(e.Faction))
+		return 1
+	}))
+
+	worldTbl.RawSetString("set_faction", L.NewFunction(func(L *lua.LState) int {
+		id := L.ToString(1)
+		newFaction := L.ToString(2)
+		e := em.Get(id)
+		if e == nil || newFaction == "" {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		e.Faction = newFaction
+		log.Printf("[lua] %s set faction of %s to %s", ent.Name, id, newFaction)
+		L.Push(lua.LTrue)
+		return 1
+	}))
+
+	worldTbl.RawSetString("get_profession", L.NewFunction(func(L *lua.LState) int {
+		id := L.ToString(1)
+		e := em.Get(id)
+		if e == nil {
+			L.Push(lua.LNil)
+			return 1
+		}
+		L.Push(lua.LString(e.Profession))
+		return 1
+	}))
+
+	worldTbl.RawSetString("set_profession", L.NewFunction(func(L *lua.LState) int {
+		id := L.ToString(1)
+		newProfession := L.ToString(2)
+		e := em.Get(id)
+		if e == nil {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		e.Profession = newProfession
+		log.Printf("[lua] %s set profession of %s to %s", ent.Name, id, newProfession)
+		L.Push(lua.LTrue)
+		return 1
+	}))
+
+	worldTbl.RawSetString("get_relation", L.NewFunction(func(L *lua.LState) int {
+		factionA := L.ToString(1)
+		factionB := L.ToString(2)
+		rel := combat.Relation(factionA, factionB)
+		L.Push(lua.LString(rel.String()))
+		return 1
+	}))
+
+	worldTbl.RawSetString("set_relation", L.NewFunction(func(L *lua.LState) int {
+		a := L.ToString(1)
+		b := L.ToString(2)
+		rel := L.ToString(3)
+		var r combat.FactionRelation
+		switch rel {
+		case "hostile":
+			r = combat.Hostile
+		case "friendly":
+			r = combat.Friendly
+		default:
+			r = combat.Neutral
+		}
+		combat.SetRelation(a, b, r)
+		log.Printf("[lua] %s set relation %s <-> %s = %s", ent.Name, a, b, rel)
+		return 0
 	}))
 
 	worldTbl.RawSetString("defend_self", L.NewFunction(func(L *lua.LState) int {
@@ -938,24 +1035,6 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 	worldTbl.RawSetString("avoid_combat", L.NewFunction(func(L *lua.LState) int {
 		L.Push(lua.LBool(passiveCombatResponseLua(w, em, ent, rng)))
 		return 1
-	}))
-
-	worldTbl.RawSetString("set_relation", L.NewFunction(func(L *lua.LState) int {
-		a := L.ToString(1)
-		b := L.ToString(2)
-		rel := L.ToString(3)
-		var r combat.FactionRelation
-		switch rel {
-		case "hostile":
-			r = combat.Hostile
-		case "friendly":
-			r = combat.Friendly
-		default:
-			r = combat.Neutral
-		}
-		combat.SetRelation(a, b, r)
-		log.Printf("[lua] %s set relation %s <-> %s = %s", ent.Name, a, b, rel)
-		return 0
 	}))
 
 	worldTbl.RawSetString("attack", L.NewFunction(func(L *lua.LState) int {
