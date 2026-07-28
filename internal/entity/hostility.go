@@ -3,6 +3,14 @@ package entity
 
 type HostilityRelation int
 
+type SpeciesRelation map[string]HostilityRelation
+
+type FactionRelation map[string]HostilityRelation
+
+type ProfessionRelation map[string]HostilityRelation
+
+type EntityRelation map[string]HostilityRelation
+
 func (r HostilityRelation) Int() int {
 	return int(r)
 }
@@ -331,16 +339,16 @@ var BanditHostilities = Hostilities{
 
 // BeastHostilities defines the default hostility relations for Beast species.
 var BeastHostilities = Hostilities{
-	SpeciesRelation:    SpeciesRelation{
-		"human": -50,
-		"elf":   -30,
-		"orc":   -80,
+	SpeciesRelation: SpeciesRelation{
+		"human":  -50,
+		"elf":    -30,
+		"orc":    -80,
 		"goblin": -60,
 		"kobold": -70,
-		"fey":   -40,
+		"fey":    -40,
 		"dragon": -100,
-		"hag":   -90,
-		"rat":   -100,
+		"hag":    -90,
+		"rat":    -100,
 	},
 	FactionRelation:    FactionRelation{},
 	ProfessionRelation: ProfessionRelation{},
