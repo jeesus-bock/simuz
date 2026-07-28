@@ -6,11 +6,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"os"
-	"path/filepath"
 	"strconv"
-	"strings"
-	"sync"
 
 	"simuz/internal/combat"
 	"simuz/internal/economy"
@@ -24,16 +20,18 @@ import (
 )
 
 type ScriptManager struct {
-	mu      sync.RWMutex
-	scripts map[string]*lua.FunctionProto
+	scripts     map[string]*lua.FunctionProto
+	scriptTypes map[string]string
 }
 
 var globalScripts *ScriptManager
 
 func init() {
 	globalScripts = &ScriptManager{
-		scripts: make(map[string]*lua.FunctionProto),
+		scripts:     make(map[string]*lua.FunctionProto),
+		scriptTypes: make(map[string]string),
 	}
+
 }
 func goValue(value lua.LValue) any {
 	switch v := value.(type) {
@@ -48,56 +46,6 @@ func goValue(value lua.LValue) any {
 	}
 }
 
-// LoadScript loads a Lua script from source code and stores it under the given name.
-// The name may include subdirectory prefixes (e.g. "action/aggressive", "faction/fairy").
-func LoadScript(name, source string) error {
-	L := lua.NewState()
-	defer L.Close()
-
-	fn, err := L.LoadString(source)
-	if err != nil {
-		return fmt.Errorf("load script %s: %w", name, err)
-	}
-
-	proto := fn.Proto
-
-	globalScripts.mu.Lock()
-	defer globalScripts.mu.Unlock()
-	globalScripts.scripts[name] = proto
-	log.Printf("Loaded AI script: %s", name)
-	return nil
-}
-
-// LoadScriptsFromDir walks the given root directory recursively and loads every
-// .lua file it finds.  The script name is the path relative to root with the
-// ".lua" extension stripped and path separators normalised to forward slashes
-// (e.g. "action/aggressive", "faction/fairy", "profession/miner").
-func LoadScriptsFromDir(root string) error {
-	return filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() {
-			return nil
-		}
-		if filepath.Ext(path) != ".lua" {
-			return nil
-		}
-		rel, err := filepath.Rel(root, path)
-		if err != nil {
-			return fmt.Errorf("rel path for %s: %w", path, err)
-		}
-		name := filepath.ToSlash(rel)
-		name = strings.TrimSuffix(name, ".lua")
-
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return fmt.Errorf("read script %s: %w", name, err)
-		}
-		return LoadScript(name, string(data))
-	})
-}
-
 // MoveRequest is set by the engine to handle instant vs multi-tick travel.
 var MoveRequest func(ent *entity.Entity, destID string) bool
 
@@ -106,9 +54,8 @@ var IsEntityTraveling func(entityID string) bool
 
 // RunScript executes a loaded Lua AI script and returns the events it generated.
 func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manager, tm *world.GameTime, rng *rand.Rand, qm *quest.Manager) ([]*events.SimEvent, error) {
-	globalScripts.mu.RLock()
 	proto, ok := globalScripts.scripts[name]
-	globalScripts.mu.RUnlock()
+
 	if !ok {
 		return nil, fmt.Errorf("script not found: %s", name)
 	}

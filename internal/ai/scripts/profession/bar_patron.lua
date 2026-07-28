@@ -1,4 +1,4 @@
--- Bard Patron AI
+-- Bar Patron AI
 -- A regular tavern-goer who listens to bards, buys drinks, and occasionally tips
 -- performers. Sits in the common room during the evening, returns home at night.
 
