@@ -221,6 +221,25 @@ func bindEntity(L *lua.LState, e *entity.Entity, tick uint64) {
 		return 1
 	}))
 
+	entTbl.RawSetString("get_relationship_to", L.NewFunction(func(L *lua.LState) int {
+		relationshipType := L.ToString(1)
+		if relationshipType == "" {
+			L.Push(lua.LNil)
+			return 1
+		}
+		rel, ok := e.GetRelationshipTo(entity.RelationshipType(relationshipType))
+		if !ok {
+			L.Push(lua.LNil)
+			return 1
+		}
+		tbl := L.NewTable()
+		tbl.RawSetString("other_id", lua.LString(rel.OtherID))
+		tbl.RawSetString("type", lua.LString(string(rel.Type)))
+		tbl.RawSetString("since_tick", lua.LNumber(rel.SinceTick))
+		L.Push(tbl)
+		return 1
+	}))
+
 	entTbl.RawSetString("get_relationships", L.NewFunction(func(L *lua.LState) int {
 		tbl := L.NewTable()
 		for otherID, rel := range e.Relationships {

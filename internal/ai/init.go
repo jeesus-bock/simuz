@@ -22,7 +22,7 @@ func InitScripts() {
 	if err != nil {
 		log.Fatalf("Failed to load embedded scripts: %v", err)
 	}
-	for name, _ := range globalScripts.scripts {
+	for name := range globalScripts.scripts {
 		log.Printf("%s - %s\n", name, globalScripts.scriptTypes[name])
 	}
 }
