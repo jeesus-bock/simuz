@@ -45,6 +45,8 @@ func NewSpawnManager() *SpawnManager {
 			{ID: "kobold_warren", LocationID: "kobold_warren", Species: "kobold", Faction: "", Profession: "warrior", FactionID: "kobold", DesiredCount: 4, Interval: 150, MinLevel: 1, MaxLevel: 2},
 			{ID: "ash_scorpions", LocationID: "scorpion_dunes", Species: "spider", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 2, Interval: 160, MinLevel: 2, MaxLevel: 4},
 			{ID: "ash_orcs", LocationID: "ash_ruins", Species: "orc", Faction: "", Profession: "warrior", FactionID: "orc", DesiredCount: 2, Interval: 180, MinLevel: 2, MaxLevel: 4},
+			{ID: "town_bard", LocationID: "tavern", Species: "human", Faction: "", Profession: "bard", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 1, MaxLevel: 3},
+			{ID: "town_priest", LocationID: "temple", Species: "human", Faction: "", Profession: "priest", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 1, MaxLevel: 3},
 		},
 	}
 }
@@ -112,7 +114,7 @@ func spawnEntity(rule *SpawnRule, em *entity.Manager, tick, idx int, rng *rand.R
 	}
 	ent.AI = entity.EntityAI{
 		Type:         "scripted",
-		ScriptIDs:    defaultScripts(rule.Species),
+		ScriptIDs:    defaultScripts(rule.Species, rule.Profession),
 		FactionID:    rule.FactionID,
 		SleepCycle:   defaultSleepCycle(rule.Species),
 		HomeLocation: rule.LocationID,
@@ -176,6 +178,14 @@ func equipSpawn(ent *entity.Entity, rule *SpawnRule, rng *rand.Rand) {
 				equipSpawnItem(ent, "iron_spear")
 			}
 		}
+		if rule.Profession == "bard" {
+			equipSpawnItem(ent, "work_tunic")
+			equipSpawnItem(ent, "lute")
+		}
+		if rule.Profession == "priest" {
+			equipSpawnItem(ent, "robes")
+			equipSpawnItem(ent, "holy_symbol")
+		}
 	case "goblin":
 		equipSpawnItem(ent, "work_tunic")
 		if rng.Intn(100) < 60 {
@@ -235,10 +245,11 @@ func generateName(species string, rng *rand.Rand) string {
 	spiderNames := []string{"Legs", "Weaver", "Sting", "Crawl"}
 	goblinNames := []string{"Snag", "Grib", "Nog", "Blink", "Mug"}
 	koboldNames := []string{"Skrit", "Yip", "Klik", "Drak", "Snik"}
+	humanNames := []string{"Aldric", "Brenna", "Cedric", "Delara", "Eamon", "Fiona", "Gareth", "Hilda", "Ivan", "Jenna", "Kol", "Lyssa", "Maren", "Nolan", "Opal", "Petra", "Quinn", "Rhea", "Soren", "Tessa"}
 	names := map[string][]string{
 		"orc": orcNames, "wolf": wolfNames, "bear": bearNames,
 		"boar": boarNames, "rat": ratNames, "spider": spiderNames, "goblin": goblinNames,
-		"kobold": koboldNames,
+		"kobold": koboldNames, "human": humanNames,
 	}
 	pool, ok := names[species]
 	if !ok || len(pool) == 0 {
@@ -247,7 +258,7 @@ func generateName(species string, rng *rand.Rand) string {
 	return pool[rng.Intn(len(pool))]
 }
 
-func defaultScripts(species string) []string {
+func defaultScripts(species, profession string) []string {
 	switch species {
 	case "orc":
 		return []string{"aggressive"}
@@ -264,7 +275,22 @@ func defaultScripts(species string) []string {
 	case "kobold":
 		return []string{"kobold"}
 	default:
-		return []string{"aggressive"}
+		switch profession {
+		case "bard":
+			return []string{"bard"}
+		case "priest":
+			return []string{"priest"}
+		case "bandit":
+			return []string{"bandit"}
+		case "ranger":
+			return []string{"ranger"}
+		case "merchant":
+			return []string{"merchant"}
+		case "cultist":
+			return []string{"cult_member"}
+		default:
+			return []string{"aggressive"}
+		}
 	}
 }
 
@@ -300,6 +326,8 @@ func clampInt(v, min, max int) int {
 }
 
 // randomXPForLevel returns a random XP value for a given level.
+// The XP is randomized from 0 up to (but not including) the level-up threshold,
+// so the entity stays at its intended level.
 func randomXPForLevel(level int, rng func(int) int) int {
 	if level <= 0 {
 		return 0
@@ -641,6 +669,6 @@ func createSeededEntity(species, gender string, level int, locID string, rng *ra
 }
 
 func pickCivilianProfession(rng *rand.Rand) string {
-	professions := []string{"", "farmer", "merchant", "herbalist", "miner", "fisherman", "craftsman", "scholar"}
+	professions := []string{"", "farmer", "merchant", "herbalist", "miner", "fisherman", "craftsman", "scholar", "bard", "priest"}
 	return professions[rng.Intn(len(professions))]
 }
