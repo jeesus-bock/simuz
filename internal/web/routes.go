@@ -66,6 +66,7 @@ func SetupRoutes(router *gin.Engine, sim *engine.Simulation) {
 	router.GET("/quests", h.QuestsPage)
 	router.GET("/events", h.EventsPage)
 	router.GET("/ai", h.AIPage)
+	router.GET("/pregnancies", h.PregnanciesPage)
 	router.GET("/api/v1/ui/events", h.SSEEvents)
 	router.GET("/api/v1/ui/fragments/dashboard", h.DashboardFragment)
 	router.GET("/api/v1/ui/fragments/entities", h.EntitiesFragment)
@@ -75,6 +76,7 @@ func SetupRoutes(router *gin.Engine, sim *engine.Simulation) {
 	router.GET("/api/v1/ui/fragments/combat/:location", h.CombatDetailFragment)
 	router.GET("/api/v1/ui/fragments/entity/:id", h.EntityDetailFragment)
 	router.GET("/api/v1/ui/fragments/quests", h.QuestsFragment)
+	router.GET("/api/v1/ui/fragments/pregnancies", h.PregnanciesFragment)
 	router.GET("/api/v1/ui/fragments/ai", h.AIFragment)
 
 	staticSub, _ := fs.Sub(staticFS, "templates/static")

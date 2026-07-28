@@ -9,6 +9,7 @@ const (
 	RelationshipSibling RelationshipType = "sibling"
 	RelationshipFriend  RelationshipType = "friend"
 	RelationshipRival   RelationshipType = "rival"
+	RelationshipLove    RelationshipType = "love"
 )
 
 type EntityRelationship struct {
