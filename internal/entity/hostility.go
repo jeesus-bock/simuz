@@ -350,7 +350,13 @@ var BeastHostilities = Hostilities{
 		"hag":    -90,
 		"rat":    -100,
 	},
-	FactionRelation:    FactionRelation{},
+	FactionRelation:    FactionRelation{"beast_slayers": -100, "military": -50, "guard": -50},
+	ProfessionRelation: ProfessionRelation{"hunter": -50, "guard": -50},
+	EntityRelation:     EntityRelation{},
+}
+var MerchantHostilities = Hostilities{
+	SpeciesRelation:    SpeciesRelation{},
+	FactionRelation:    FactionRelation{"merchant_guild": 100, "guard": 20},
 	ProfessionRelation: ProfessionRelation{},
 	EntityRelation:     EntityRelation{},
 }
