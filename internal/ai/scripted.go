@@ -32,6 +32,15 @@ func init() {
 	}
 }
 
+// LuaSimEvent mirrors engine.SimEvent so Lua scripts can emit events
+// without the ai package needing to import the engine package.
+type LuaSimEvent struct {
+	Type   entity.EventType
+	Tick   uint64
+	Source string
+	Data   map[string]any
+}
+
 func LoadScript(name, source string) error {
 	L := lua.NewState()
 	defer L.Close()
@@ -57,17 +66,23 @@ var MoveRequest func(ent *entity.Entity, destID string) bool
 var IsEntityTraveling func(entityID string) bool
 
 // RunScript executes a loaded Lua AI script and returns whether the script
-// performed an action (didAct), any log messages it produced, and the
-// EventType of the event it generated.
-// The Lua script is expected to return three values: a boolean, a table of
-// strings, and an integer EventType. If the script returns fewer values,
-// missing values are zero-filled (false, nil, EventTick).
-func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manager, tm *world.GameTime, rng *rand.Rand, qm *quest.Manager) (bool, []string, entity.EventType, error) {
+// performed an action (didAct), any log messages it produced, and a
+// LuaSimEvent describing the event the script generated.
+//
+// The Lua script is expected to return up to four values:
+//   1. boolean — didAct (true if the script performed an action)
+//   2. table of strings — log messages
+//   3. integer — EventType
+//   4. table (optional) — event data as key-value pairs
+//
+// If the script returns fewer values, missing values are zero-filled
+// (false, nil, EventTick, nil data).
+func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manager, tm *world.GameTime, rng *rand.Rand, qm *quest.Manager) (bool, []string, *LuaSimEvent, error) {
 	globalScripts.mu.RLock()
 	proto, ok := globalScripts.scripts[name]
 	globalScripts.mu.RUnlock()
 	if !ok {
-		return false, nil, 0, fmt.Errorf("script not found: %s", name)
+		return false, nil, nil, fmt.Errorf("script not found: %s", name)
 	}
 
 	L := lua.NewState()
@@ -80,11 +95,11 @@ func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manag
 	closure := L.NewFunctionFromProto(proto)
 	err := L.CallByParam(lua.P{
 		Fn:      closure,
-		NRet:    3,
+		NRet:    4,
 		Protect: true,
 	})
 	if err != nil {
-		return false, nil, 0, fmt.Errorf("run script %s: %w", name, err)
+		return false, nil, nil, fmt.Errorf("run script %s: %w", name, err)
 	}
 
 	// Read return values from the stack using 1-based indexing from the bottom.
@@ -111,9 +126,32 @@ func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manag
 		eventType = entity.EventType(L.ToInt(3))
 	}
 
+	var data map[string]any
+	if L.GetTop() >= 4 {
+		val := L.Get(4)
+		if val != lua.LNil {
+			goVal := luaValueToGo(L, val)
+			if m, ok := goVal.(map[string]any); ok {
+				data = m
+			} else if arr, ok := goVal.([]any); ok {
+				data = make(map[string]any, len(arr))
+				for i, v := range arr {
+					data[strconv.Itoa(i)] = v
+				}
+			}
+		}
+	}
+
 	L.Pop(L.GetTop())
 
-	return didAct, messages, eventType, nil
+	event := &LuaSimEvent{
+		Type:   eventType,
+		Tick:   tm.Tick,
+		Source: ent.ID,
+		Data:   data,
+	}
+
+	return didAct, messages, event, nil
 }
 
 func bindEntity(L *lua.LState, e *entity.Entity, tick uint64) {
