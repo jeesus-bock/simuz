@@ -22,6 +22,19 @@ type Hostilities struct {
 	EntityRelation     EntityRelation     `json:"entityRelation,omitempty"`
 }
 
+var EmptyHostilities = Hostilities{
+	SpeciesRelation:    SpeciesRelation{},
+	FactionRelation:    FactionRelation{},
+	ProfessionRelation: ProfessionRelation{},
+	EntityRelation:     EntityRelation{},
+}
+var OrcHostilities = Hostilities{
+	SpeciesRelation:    SpeciesRelation{"elves": -100, "orcs": 50},         // SpeciesRelation (Populated)
+	FactionRelation:    FactionRelation{"orcslayers": -1000},               // FactionRelation (Empty but non-nil)
+	ProfessionRelation: ProfessionRelation{"wizards": -20, "rangers": -50}, // ProfessionRelation (Populated)
+	EntityRelation:     EntityRelation{},                                   // EntityRelation (Empty but non-nil)
+}
+
 type FactionRelation map[string]HostilityRelation
 type SpeciesRelation map[string]HostilityRelation
 type ProfessionRelation map[string]HostilityRelation

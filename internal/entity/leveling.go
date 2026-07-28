@@ -1,14 +1,20 @@
 // Package entity defines the simulation entities, their attributes, and related behaviors.
 package entity
 
-import "log"
+import (
+	"log"
+)
 
 func (e *Entity) LevelUpThreshold() int {
 	return e.Level * 100
 }
 
 func (e *Entity) CheckLevelUp() bool {
-	if !GetSpecies(e.Species).CanLevelUp || e.XP < e.LevelUpThreshold() {
+	if species, exists := GetSpeciesByID(e.Species); exists {
+		if !species.CanLevelUp || e.XP < e.LevelUpThreshold() {
+			return false
+		}
+	} else {
 		return false
 	}
 

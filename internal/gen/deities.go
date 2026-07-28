@@ -95,7 +95,7 @@ func GenerateDeities(w *world.World) ([]*entity.Entity, []*world.Location) {
 		realmID := findRealmForDeity(dd.ID)
 		attrs := dd.Attributes
 		level := 50
-		ent := entity.NewEntity(dd.ID, dd.Name, "deity", attrs, level)
+		ent := entity.NewEntity(dd.ID, dd.Name, "deity", attrs, level, entity.Hostilities{})
 		ent.Immortal = true
 		ent.LocationID = realmID
 		ent.Faction = "deity"
