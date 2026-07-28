@@ -1,3 +1,4 @@
+// Package items defines item definitions, instances, and registry support for the simulation.
 package items
 
 type DamageType int
@@ -69,13 +70,13 @@ func (d DamageRoll) Average() int {
 }
 
 type MeleeWeaponDef struct {
-	Skill         string     `json:"skill"`
-	Damage        DamageRoll `json:"damage"`
-	DamageType    DamageType `json:"damage_type"`
-	Reach         int        `json:"reach"`
-	Parry         int        `json:"parry"`
-	MinST         int        `json:"min_st"`
-	Weight        float64    `json:"weight"`
+	Skill      string     `json:"skill"`
+	Damage     DamageRoll `json:"damage"`
+	DamageType DamageType `json:"damage_type"`
+	Reach      int        `json:"reach"`
+	Parry      int        `json:"parry"`
+	MinST      int        `json:"min_st"`
+	Weight     float64    `json:"weight"`
 }
 
 type RangedWeaponDef struct {

@@ -1,3 +1,4 @@
+// Package quest defines quest definitions, state handling, and quest progression logic.
 package quest
 
 type State string
@@ -12,30 +13,30 @@ const (
 type QuestType string
 
 const (
-	TypeMain      QuestType = "main"
-	TypeSide      QuestType = "side"
-	TypeFaction   QuestType = "faction"
-	TypeDaily     QuestType = "daily"
+	TypeMain       QuestType = "main"
+	TypeSide       QuestType = "side"
+	TypeFaction    QuestType = "faction"
+	TypeDaily      QuestType = "daily"
 	TypeRepeatable QuestType = "repeatable"
 )
 
 type QuestDef struct {
-	ID            string              `yaml:"id"`
-	Title         string              `yaml:"title"`
-	Type          QuestType           `yaml:"type"`
-	Level         int                 `yaml:"level"`
-	Description   string              `yaml:"description,omitempty"`
-	Source        *QuestSource        `yaml:"source,omitempty"`
-	Prereqs       *Prerequisites      `yaml:"prerequisites,omitempty"`
-	Stages        []StageDef          `yaml:"stages"`
-	Rewards       *Rewards            `yaml:"rewards,omitempty"`
-	FailConditions []FailCondition    `yaml:"failure_conditions,omitempty"`
+	ID             string          `yaml:"id"`
+	Title          string          `yaml:"title"`
+	Type           QuestType       `yaml:"type"`
+	Level          int             `yaml:"level"`
+	Description    string          `yaml:"description,omitempty"`
+	Source         *QuestSource    `yaml:"source,omitempty"`
+	Prereqs        *Prerequisites  `yaml:"prerequisites,omitempty"`
+	Stages         []StageDef      `yaml:"stages"`
+	Rewards        *Rewards        `yaml:"rewards,omitempty"`
+	FailConditions []FailCondition `yaml:"failure_conditions,omitempty"`
 }
 
 type QuestSource struct {
-	Type       string `yaml:"type"`
-	NPCID      string `yaml:"npc_id,omitempty"`
-	LocationID string `yaml:"location_id,omitempty"`
+	Type       string       `yaml:"type"`
+	NPCID      string       `yaml:"npc_id,omitempty"`
+	LocationID string       `yaml:"location_id,omitempty"`
 	Dialog     *QuestDialog `yaml:"dialog,omitempty"`
 }
 
@@ -46,12 +47,12 @@ type QuestDialog struct {
 }
 
 type Prerequisites struct {
-	QuestsCompleted []string            `yaml:"quests_completed,omitempty"`
-	QuestsActive    []string            `yaml:"quests_active,omitempty"`
-	LevelMin        int                 `yaml:"level_min,omitempty"`
-	LevelMax        int                 `yaml:"level_max,omitempty"`
-	FactionRep      map[string]int      `yaml:"faction_reputation,omitempty"`
-	Flags           []FlagCondition     `yaml:"flags,omitempty"`
+	QuestsCompleted []string        `yaml:"quests_completed,omitempty"`
+	QuestsActive    []string        `yaml:"quests_active,omitempty"`
+	LevelMin        int             `yaml:"level_min,omitempty"`
+	LevelMax        int             `yaml:"level_max,omitempty"`
+	FactionRep      map[string]int  `yaml:"faction_reputation,omitempty"`
+	Flags           []FlagCondition `yaml:"flags,omitempty"`
 }
 
 type FlagCondition struct {
@@ -60,10 +61,10 @@ type FlagCondition struct {
 }
 
 type StageDef struct {
-	ID           string        `yaml:"id"`
-	Name         string        `yaml:"name"`
-	Description  string        `yaml:"description"`
-	Requirements []string      `yaml:"requirements,omitempty"`
+	ID           string         `yaml:"id"`
+	Name         string         `yaml:"name"`
+	Description  string         `yaml:"description"`
+	Requirements []string       `yaml:"requirements,omitempty"`
 	Objectives   []ObjectiveDef `yaml:"objectives"`
 }
 
@@ -80,11 +81,11 @@ type ObjectiveDef struct {
 }
 
 type Rewards struct {
-	Experience int               `yaml:"experience,omitempty"`
-	Gold       int               `yaml:"gold,omitempty"`
-	Items      []RewardItem      `yaml:"items,omitempty"`
-	FactionRep map[string]int    `yaml:"faction_reputation,omitempty"`
-	Unlocks    *Unlocks          `yaml:"unlocks,omitempty"`
+	Experience int            `yaml:"experience,omitempty"`
+	Gold       int            `yaml:"gold,omitempty"`
+	Items      []RewardItem   `yaml:"items,omitempty"`
+	FactionRep map[string]int `yaml:"faction_reputation,omitempty"`
+	Unlocks    *Unlocks       `yaml:"unlocks,omitempty"`
 }
 
 type RewardItem struct {

@@ -1,3 +1,4 @@
+// Package quest defines quest definitions, state handling, and quest progression logic.
 package quest
 
 import (

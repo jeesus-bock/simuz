@@ -1,3 +1,4 @@
+// Package gen contains world generation helpers and seeded simulation setup utilities.
 package gen
 
 import (
@@ -9,12 +10,12 @@ import (
 
 func defineItem(id, name string, typ items.ItemType, weight float64, value int, slot string) *items.ItemDef {
 	return &items.ItemDef{
-		ID:    id,
-		Name:  name,
-		Type:  typ,
+		ID:     id,
+		Name:   name,
+		Type:   typ,
 		Weight: weight,
-		Value: value,
-		Slot:  slot,
+		Value:  value,
+		Slot:   slot,
 	}
 }
 

@@ -1,3 +1,4 @@
+// Package combat contains the core combat rules, relation handling, and attack resolution helpers.
 package combat
 
 import (

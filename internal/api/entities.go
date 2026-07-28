@@ -1,3 +1,4 @@
+// Package api provides the HTTP API router and handlers for world, entity, and quest data.
 package api
 
 import (
@@ -58,10 +59,10 @@ func (h *Handler) GetEntity(c *gin.Context) {
 
 func (h *Handler) CreateEntity(c *gin.Context) {
 	var req struct {
-		ID        string `json:"id" binding:"required"`
-		Name      string `json:"name" binding:"required"`
-		Species   string `json:"species"`
-		Level     int    `json:"level"`
+		ID         string `json:"id" binding:"required"`
+		Name       string `json:"name" binding:"required"`
+		Species    string `json:"species"`
+		Level      int    `json:"level"`
 		LocationID string `json:"location_id"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -133,25 +134,25 @@ func entityToDetail(e *entity.Entity) gin.H {
 		}
 	}
 	return gin.H{
-		"id":         e.ID,
-		"name":       e.Name,
-		"species":    e.Species,
-		"level":      e.Level,
-		"alive":      e.Alive,
-		"attributes": e.Attributes,
-		"skills":     skills,
-		"hp":         e.HP,
-		"max_hp":     e.MaxHP,
-		"fp":         e.FP,
-		"max_fp":     e.MaxFP,
-		"xp":         e.XP,
+		"id":          e.ID,
+		"name":        e.Name,
+		"species":     e.Species,
+		"level":       e.Level,
+		"alive":       e.Alive,
+		"attributes":  e.Attributes,
+		"skills":      skills,
+		"hp":          e.HP,
+		"max_hp":      e.MaxHP,
+		"fp":          e.FP,
+		"max_fp":      e.MaxFP,
+		"xp":          e.XP,
 		"location_id": e.LocationID,
-		"position":   e.Position,
-		"equipment":  e.Equipment,
-		"inventory":  e.Inventory,
-		"activity":   e.Activity,
-		"ai":         e.AI,
-		"faction":    e.Faction,
+		"position":    e.Position,
+		"equipment":   e.Equipment,
+		"inventory":   e.Inventory,
+		"activity":    e.Activity,
+		"ai":          e.AI,
+		"faction":     e.Faction,
 		"encumbrance": e.Encumbrance(),
 	}
 }

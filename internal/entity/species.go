@@ -1,3 +1,4 @@
+// Package entity defines the simulation entities, their attributes, and related behaviors.
 package entity
 
 func SpeciesMaxAge(species string) int {

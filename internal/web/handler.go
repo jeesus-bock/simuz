@@ -39,7 +39,7 @@ func (h *Handler) Dashboard(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
 
-	h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
 		"title":     "Simuz",
 		"page":      "dashboard",
 		"tick":      h.Sim.Tick,
@@ -48,7 +48,9 @@ func (h *Handler) Dashboard(c *gin.Context) {
 		"season":    h.Sim.Time.Season().String(),
 		"entities":  len(h.Sim.Entities.All()),
 		"locations": len(h.Sim.World.AllLocations()),
-	})
+	}); err != nil {
+		_ = c.Error(err)
+	}
 }
 
 func (h *Handler) EntitiesPage(c *gin.Context) {
@@ -56,7 +58,7 @@ func (h *Handler) EntitiesPage(c *gin.Context) {
 	defer h.Sim.RUnlock()
 	all := h.Sim.Entities.All()
 	sortEntitiesForDisplay(all)
-	h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
 		"title":         "Entities",
 		"page":          "entities",
 		"tick":          h.Sim.Tick,
@@ -66,7 +68,9 @@ func (h *Handler) EntitiesPage(c *gin.Context) {
 		"entities":      len(all),
 		"entities_list": all,
 		"locations":     len(h.Sim.World.AllLocations()),
-	})
+	}); err != nil {
+		_ = c.Error(err)
+	}
 }
 
 type locNode struct {
@@ -492,7 +496,7 @@ func (h *Handler) LocationsPage(c *gin.Context) {
 	}
 	sortLocationsForDisplay(realms)
 
-	h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
 		"title":     "Locations",
 		"page":      "locations",
 		"tick":      h.Sim.Tick,
@@ -505,7 +509,9 @@ func (h *Handler) LocationsPage(c *gin.Context) {
 		"travelers": buildTravelerViews(h.Sim, ""),
 		"root_name": h.Sim.World.RootLocation().Name,
 		"realms":    realms,
-	})
+	}); err != nil {
+		_ = c.Error(err)
+	}
 }
 
 func (h *Handler) CombatPage(c *gin.Context) {
@@ -514,7 +520,7 @@ func (h *Handler) CombatPage(c *gin.Context) {
 	all := h.Sim.Entities.All()
 	activeZones, contestedZones := buildCombatOverviewZones(h.Sim)
 
-	h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
 		"title":           "Combat",
 		"page":            "combat",
 		"tick":            h.Sim.Tick,
@@ -526,14 +532,16 @@ func (h *Handler) CombatPage(c *gin.Context) {
 		"combat_zones":    activeZones,
 		"contested_zones": contestedZones,
 		"combat_log":      combat.RecentLog(50),
-	})
+	}); err != nil {
+		_ = c.Error(err)
+	}
 }
 
 func (h *Handler) QuestsPage(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
 	defs := h.Sim.Quests.AllDefs()
-	h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
 		"title":         "Quests",
 		"page":          "quests",
 		"tick":          h.Sim.Tick,
@@ -544,13 +552,15 @@ func (h *Handler) QuestsPage(c *gin.Context) {
 		"locations":     len(h.Sim.World.AllLocations()),
 		"quest_defs":    defs,
 		"active_quests": h.activeQuestViews(),
-	})
+	}); err != nil {
+		_ = c.Error(err)
+	}
 }
 
 func (h *Handler) AIPage(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
-	h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
 		"title":     "AI",
 		"page":      "ai",
 		"tick":      h.Sim.Tick,
@@ -559,14 +569,16 @@ func (h *Handler) AIPage(c *gin.Context) {
 		"season":    h.Sim.Time.Season().String(),
 		"entities":  len(h.Sim.Entities.All()),
 		"locations": len(h.Sim.World.AllLocations()),
-	})
+	}); err != nil {
+		_ = c.Error(err)
+	}
 }
 
 func (h *Handler) EventsPage(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
 	evList := h.Sim.Events.RecentEvents(100)
-	h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
 		"title":     "Events",
 		"page":      "events",
 		"tick":      h.Sim.Tick,
@@ -576,30 +588,36 @@ func (h *Handler) EventsPage(c *gin.Context) {
 		"entities":  len(h.Sim.Entities.All()),
 		"locations": len(h.Sim.World.AllLocations()),
 		"events":    evList,
-	})
+	}); err != nil {
+		_ = c.Error(err)
+	}
 }
 
 func (h *Handler) EventsFragment(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
 	evList := h.Sim.Events.RecentEvents(50)
-	h.Tmpls.ExecuteTemplate(c.Writer, "events_list", gin.H{
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "events_list", gin.H{
 		"events": evList,
 		"tick":   h.Sim.Tick,
-	})
+	}); err != nil {
+		_ = c.Error(err)
+	}
 }
 
 func (h *Handler) DashboardFragment(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
-	h.Tmpls.ExecuteTemplate(c.Writer, "dashboard_stats", gin.H{
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "dashboard_stats", gin.H{
 		"tick":      h.Sim.Tick,
 		"time":      h.Sim.Time.String(),
 		"phase":     h.Sim.Time.Phase().String(),
 		"season":    h.Sim.Time.Season().String(),
 		"entities":  len(h.Sim.Entities.All()),
 		"locations": len(h.Sim.World.AllLocations()),
-	})
+	}); err != nil {
+		_ = c.Error(err)
+	}
 }
 
 func (h *Handler) EntitiesFragment(c *gin.Context) {
@@ -607,13 +625,15 @@ func (h *Handler) EntitiesFragment(c *gin.Context) {
 	defer h.Sim.RUnlock()
 	all := h.Sim.Entities.All()
 	sortEntitiesForDisplay(all)
-	h.Tmpls.ExecuteTemplate(c.Writer, "entities_table", gin.H{
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "entities_table", gin.H{
 		"tick":          h.Sim.Tick,
 		"time":          h.Sim.Time.String(),
 		"entities":      len(all),
 		"entities_list": all,
 		"locations":     len(h.Sim.World.AllLocations()),
-	})
+	}); err != nil {
+		_ = c.Error(err)
+	}
 }
 
 func (h *Handler) LocationsFragment(c *gin.Context) {
@@ -627,7 +647,7 @@ func (h *Handler) LocationsFragment(c *gin.Context) {
 		}
 	}
 	sortLocationsForDisplay(realms)
-	h.Tmpls.ExecuteTemplate(c.Writer, "locations_tree", gin.H{
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "locations_tree", gin.H{
 		"tick":      h.Sim.Tick,
 		"time":      h.Sim.Time.String(),
 		"entities":  len(all),
@@ -636,7 +656,9 @@ func (h *Handler) LocationsFragment(c *gin.Context) {
 		"travelers": buildTravelerViews(h.Sim, ""),
 		"root_name": h.Sim.World.RootLocation().Name,
 		"realms":    realms,
-	})
+	}); err != nil {
+		_ = c.Error(err)
+	}
 }
 
 func (h *Handler) locationDetailData(locID string) (gin.H, bool) {
@@ -721,7 +743,9 @@ func (h *Handler) LocationDetailPage(c *gin.Context) {
 		c.String(404, "Location not found")
 		return
 	}
-	h.Tmpls.ExecuteTemplate(c.Writer, "base.html", data)
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "base.html", data); err != nil {
+		_ = c.Error(err)
+	}
 }
 
 func (h *Handler) LocationDetailFragment(c *gin.Context) {
@@ -732,7 +756,9 @@ func (h *Handler) LocationDetailFragment(c *gin.Context) {
 		c.String(404, "Location not found")
 		return
 	}
-	h.Tmpls.ExecuteTemplate(c.Writer, "location_detail_status", data)
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "location_detail_status", data); err != nil {
+		_ = c.Error(err)
+	}
 }
 
 type combatZone struct {
@@ -750,7 +776,7 @@ func (h *Handler) CombatFragment(c *gin.Context) {
 	all := h.Sim.Entities.All()
 	activeZones, contestedZones := buildCombatOverviewZones(h.Sim)
 
-	h.Tmpls.ExecuteTemplate(c.Writer, "combat_status", gin.H{
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "combat_status", gin.H{
 		"tick":            h.Sim.Tick,
 		"time":            h.Sim.Time.String(),
 		"entities":        len(all),
@@ -758,21 +784,25 @@ func (h *Handler) CombatFragment(c *gin.Context) {
 		"combat_zones":    activeZones,
 		"contested_zones": contestedZones,
 		"combat_log":      combat.RecentLog(50),
-	})
+	}); err != nil {
+		_ = c.Error(err)
+	}
 }
 
 func (h *Handler) QuestsFragment(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
 	defs := h.Sim.Quests.AllDefs()
-	h.Tmpls.ExecuteTemplate(c.Writer, "quests_list", gin.H{
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "quests_list", gin.H{
 		"tick":          h.Sim.Tick,
 		"time":          h.Sim.Time.String(),
 		"entities":      len(h.Sim.Entities.All()),
 		"locations":     len(h.Sim.World.AllLocations()),
 		"quest_defs":    defs,
 		"active_quests": h.activeQuestViews(),
-	})
+	}); err != nil {
+		_ = c.Error(err)
+	}
 }
 
 func (h *Handler) AIFragment(c *gin.Context) {
@@ -787,13 +817,15 @@ func (h *Handler) AIFragment(c *gin.Context) {
 		}
 	}
 	sortEntitiesForDisplay(activeEntities)
-	h.Tmpls.ExecuteTemplate(c.Writer, "ai_status", gin.H{
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "ai_status", gin.H{
 		"tick":          h.Sim.Tick,
 		"time":          h.Sim.Time.String(),
 		"entities":      len(all),
 		"locations":     len(h.Sim.World.AllLocations()),
 		"entities_list": activeEntities,
-	})
+	}); err != nil {
+		_ = c.Error(err)
+	}
 }
 
 func (h *Handler) CombatDetailPage(c *gin.Context) {
@@ -809,7 +841,9 @@ func (h *Handler) CombatDetailPage(c *gin.Context) {
 	data["entities"] = len(all)
 	data["locations"] = len(h.Sim.World.AllLocations())
 
-	h.Tmpls.ExecuteTemplate(c.Writer, "base.html", data)
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "base.html", data); err != nil {
+		_ = c.Error(err)
+	}
 }
 
 func buildCombatOverviewZones(sim *engine.Simulation) (activeZones []combatZone, contestedZones []combatZone) {
@@ -868,7 +902,9 @@ func (h *Handler) CombatDetailFragment(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
 	locID := c.Param("location")
-	h.Tmpls.ExecuteTemplate(c.Writer, "combat_detail_status", combatDetailData(h, locID))
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "combat_detail_status", combatDetailData(h, locID)); err != nil {
+		_ = c.Error(err)
+	}
 }
 
 type equipSlot struct {
@@ -1061,7 +1097,7 @@ func (h *Handler) EntityDetailPage(c *gin.Context) {
 		}
 	}
 
-	h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
 		"title":         "Entity: " + ent.Name,
 		"page":          "entity_detail",
 		"tick":          h.Sim.Tick,
@@ -1089,7 +1125,9 @@ func (h *Handler) EntityDetailPage(c *gin.Context) {
 		"can_level_up":  canLevelUp,
 		"mood_mods_str": moodModsString(ent),
 		"skills":        buildSkillInfo(ent),
-	})
+	}); err != nil {
+		_ = c.Error(err)
+	}
 }
 
 func (h *Handler) EntityDetailFragment(c *gin.Context) {
@@ -1145,7 +1183,7 @@ func (h *Handler) EntityDetailFragment(c *gin.Context) {
 		}
 	}
 
-	h.Tmpls.ExecuteTemplate(c.Writer, "entity_detail_status", gin.H{
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "entity_detail_status", gin.H{
 		"entity":        ent,
 		"loc_name":      locName,
 		"equip_slots":   getEquipSlots(ent),
@@ -1166,7 +1204,9 @@ func (h *Handler) EntityDetailFragment(c *gin.Context) {
 		"mood_mods_str": moodModsString(ent),
 		"quest_states":  h.Sim.Quests.EntityStates(ent.ID),
 		"skills":        buildSkillInfo(ent),
-	})
+	}); err != nil {
+		_ = c.Error(err)
+	}
 }
 
 func moodModsString(e *entity.Entity) string {
@@ -1587,7 +1627,7 @@ func (h *Handler) PregnanciesPage(c *gin.Context) {
 	recentBirths := buildRecentBirths(h.Sim)
 	relationships := buildRelationships(h.Sim)
 
-	h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
 		"title":             "Pregnancies & Births",
 		"page":              "pregnancies",
 		"tick":              h.Sim.Tick,
@@ -1599,7 +1639,9 @@ func (h *Handler) PregnanciesPage(c *gin.Context) {
 		"pregnant_entities": pregnantEntities,
 		"recent_births":     recentBirths,
 		"relationships":     relationships,
-	})
+	}); err != nil {
+		_ = c.Error(err)
+	}
 }
 
 func (h *Handler) PregnanciesFragment(c *gin.Context) {
@@ -1610,12 +1652,14 @@ func (h *Handler) PregnanciesFragment(c *gin.Context) {
 	recentBirths := buildRecentBirths(h.Sim)
 	relationships := buildRelationships(h.Sim)
 
-	h.Tmpls.ExecuteTemplate(c.Writer, "pregnancies_list", gin.H{
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "pregnancies_list", gin.H{
 		"tick":              h.Sim.Tick,
 		"pregnant_entities": pregnantEntities,
 		"recent_births":     recentBirths,
 		"relationships":     relationships,
-	})
+	}); err != nil {
+		_ = c.Error(err)
+	}
 }
 
 func buildPregnantEntities(sim *engine.Simulation) []pregnantEntityView {

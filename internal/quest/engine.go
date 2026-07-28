@@ -1,3 +1,4 @@
+// Package quest defines quest definitions, state handling, and quest progression logic.
 package quest
 
 import (
@@ -8,14 +9,14 @@ import (
 )
 
 type EntityQuestState struct {
-	QuestID        string         `json:"quest_id"`
-	State          State          `json:"state"`
-	CurrentStage   string         `json:"current_stage,omitempty"`
-	CompletedStages []string      `json:"completed_stages,omitempty"`
-	Objectives     map[string]int `json:"objectives,omitempty"`
-	Variables      map[string]any `json:"variables,omitempty"`
-	AcceptedTick   uint64         `json:"accepted_tick,omitempty"`
-	Activity       []QuestActivity `json:"activity,omitempty"`
+	QuestID         string          `json:"quest_id"`
+	State           State           `json:"state"`
+	CurrentStage    string          `json:"current_stage,omitempty"`
+	CompletedStages []string        `json:"completed_stages,omitempty"`
+	Objectives      map[string]int  `json:"objectives,omitempty"`
+	Variables       map[string]any  `json:"variables,omitempty"`
+	AcceptedTick    uint64          `json:"accepted_tick,omitempty"`
+	Activity        []QuestActivity `json:"activity,omitempty"`
 }
 
 // QuestActivity records an observable decision or outcome while an entity is
@@ -104,13 +105,13 @@ func (m *Manager) Accept(entityID, questID string, entityLevel int, currentTick 
 	}
 
 	m.states[entityID][questID] = &EntityQuestState{
-		QuestID:        questID,
-		State:          StateActive,
-		Objectives:     make(map[string]int),
-		Variables:      make(map[string]any),
+		QuestID:         questID,
+		State:           StateActive,
+		Objectives:      make(map[string]int),
+		Variables:       make(map[string]any),
 		CompletedStages: make([]string, 0),
-		AcceptedTick:   currentTick,
-		Activity:       []QuestActivity{{Tick: currentTick, Message: "Quest accepted"}},
+		AcceptedTick:    currentTick,
+		Activity:        []QuestActivity{{Tick: currentTick, Message: "Quest accepted"}},
 	}
 
 	if len(def.Stages) > 0 {
@@ -431,12 +432,12 @@ func (m *Manager) triggerUnlocks(def *QuestDef, entityID string) {
 			m.states[entityID] = make(map[string]*EntityQuestState)
 		}
 		m.states[entityID][qid] = &EntityQuestState{
-			QuestID:        qid,
-			State:          StateInactive,
-			Objectives:     make(map[string]int),
-			Variables:      make(map[string]any),
+			QuestID:         qid,
+			State:           StateInactive,
+			Objectives:      make(map[string]int),
+			Variables:       make(map[string]any),
 			CompletedStages: make([]string, 0),
-			Activity:       []QuestActivity{{Tick: m.currentTick, Message: "Quest unlocked"}},
+			Activity:        []QuestActivity{{Tick: m.currentTick, Message: "Quest unlocked"}},
 		}
 		log.Printf("[quest] unlocked quest '%s' for %s", qid, entityID)
 	}

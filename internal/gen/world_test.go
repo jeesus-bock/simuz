@@ -97,8 +97,8 @@ func TestWeatherClimate(t *testing.T) {
 	if r1 == nil || r2 == nil {
 		t.Fatal("weather nil")
 	}
-	// highlands colder bias
+	// highlands colder bias; any positive delta within the threshold is acceptable.
 	if r1.Temperature > r2.Temperature+5 {
-		// acceptable variance
+		t.Logf("weather variance acceptable: %v > %v", r1.Temperature, r2.Temperature)
 	}
 }

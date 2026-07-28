@@ -1,3 +1,4 @@
+// Package gen contains world generation helpers and seeded simulation setup utilities.
 package gen
 
 import (
@@ -6,12 +7,12 @@ import (
 )
 
 type deityDef struct {
-	ID          string
-	Name        string
-	Pantheon    string
-	Domain      string
-	Attributes  entity.Attributes
-	Active      bool
+	ID         string
+	Name       string
+	Pantheon   string
+	Domain     string
+	Attributes entity.Attributes
+	Active     bool
 }
 
 var deityDefs = []deityDef{
@@ -84,8 +85,8 @@ func GenerateDeities(w *world.World) ([]*entity.Entity, []*world.Location) {
 	}
 
 	activeDeities := map[string]bool{
-		"zeus": true,
-		"odin": true,
+		"zeus":     true,
+		"odin":     true,
 		"yu_huang": true,
 	}
 
@@ -104,7 +105,7 @@ func GenerateDeities(w *world.World) ([]*entity.Entity, []*world.Location) {
 		if activeDeities[dd.ID] {
 			ent.AI = entity.EntityAI{
 				Type:         "scripted",
-				ScriptIDs:     []string{"deity"},
+				ScriptIDs:    []string{"deity"},
 				FactionID:    "deity",
 				HomeLocation: realmID,
 				SleepCycle:   "none",

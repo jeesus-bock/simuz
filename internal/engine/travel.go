@@ -1,3 +1,4 @@
+// Package engine contains the simulation engine, tick processing, and related systems.
 package engine
 
 import (

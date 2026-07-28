@@ -1,3 +1,4 @@
+// Package gen contains world generation helpers and seeded simulation setup utilities.
 package gen
 
 import "simuz/internal/quest"

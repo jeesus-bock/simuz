@@ -1,3 +1,4 @@
+// Package api provides the HTTP API router and handlers for world, entity, and quest data.
 package api
 
 import (
