@@ -203,7 +203,7 @@ var SpeciesRegistry = map[string]Species{
 		DefaultSleepCycle:   "diurnal",
 		AutoFeed:            true,
 		StarvationThreshold: 345600, // 4 days
-		MaleNames:           []string{
+		MaleNames: []string{
 			"Leoleht",
 			"Urmasvalg",
 			"Sinitäht",
