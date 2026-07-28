@@ -1,3 +1,4 @@
+// Package entity defines the simulation entities, their attributes, and related behaviors.
 package entity
 
 import (
@@ -52,29 +53,29 @@ const (
 
 // Faction constants define the various factions in the world.
 const (
-	FactionCivilian  = "civilian"
-	FactionMerchant  = "merchant"
-	FactionBandit    = "bandit"
-	FactionBeast     = "beast"
-	FactionVermin    = "vermin"
-	FactionGoblin    = "goblin"
-	FactionKobold    = "kobold"
-	FactionOrc       = "orc"
-	FactionDeity     = "deity"
-	FactionCult      = "cult"
-	FactionMilitia   = "militia"
-	FactionGang      = "gang"
-	FactionNoble     = "noble"
-	FactionScholar   = "scholar"
-	FactionCrafter   = "crafter"
-	FactionHunter    = "hunter"
-	FactionHerbalist = "herbalist"
-	FactionPriest    = "priest"
-	FactionBard      = "bard"
-	FactionCourier   = "courier"
-	FactionInnkeeper = "innkeeper"
+	FactionCivilian   = "civilian"
+	FactionMerchant   = "merchant"
+	FactionBandit     = "bandit"
+	FactionBeast      = "beast"
+	FactionVermin     = "vermin"
+	FactionGoblin     = "goblin"
+	FactionKobold     = "kobold"
+	FactionOrc        = "orc"
+	FactionDeity      = "deity"
+	FactionCult       = "cult"
+	FactionMilitia    = "militia"
+	FactionGang       = "gang"
+	FactionNoble      = "noble"
+	FactionScholar    = "scholar"
+	FactionCrafter    = "crafter"
+	FactionHunter     = "hunter"
+	FactionHerbalist  = "herbalist"
+	FactionPriest     = "priest"
+	FactionBard       = "bard"
+	FactionCourier    = "courier"
+	FactionInnkeeper  = "innkeeper"
 	FactionBlacksmith = "blacksmith"
-	FactionFarmer    = "farmer"
+	FactionFarmer     = "farmer"
 )
 
 type EntityActivity struct {
@@ -96,42 +97,42 @@ type Equipment struct {
 }
 
 type Entity struct {
-	ID         string            `json:"id"`
-	Name       string            `json:"name"`
-	Species    string            `json:"species"`
-	Gender     string            `json:"gender"`
-	Level      int               `json:"level"`
-	Age        int               `json:"age"`
-	MaxAge     int               `json:"max_age"`
-	LastMealTick int             `json:"last_meal"`
-	Alive      bool              `json:"alive"`
-	Immortal   bool              `json:"immortal"`
-	Attributes Attributes         `json:"attributes"`
-	Skills     map[string]int    `json:"skills"`
-	MaxHP      int               `json:"max_hp"`
-	HP         int               `json:"hp"`
-	MaxFP      int               `json:"max_fp"`
-	FP         int               `json:"fp"`
-	XP         int               `json:"xp"`
-	LocationID string            `json:"location_id"`
-	Position   Position           `json:"position"`
-	Equipment  Equipment          `json:"equipment"`
-	Inventory  []items.ItemInstance `json:"inventory"`
-	AI         EntityAI           `json:"ai"`
-	Activity   EntityActivity     `json:"activity"`
-	Faction    string             `json:"faction"`
-	Conscious   bool               `json:"conscious"`
-	Effects    []ActiveEffect     `json:"effects,omitempty"`
-	Flags      map[string]any    `json:"flags,omitempty"`
-	Mood       string            `json:"mood,omitempty"`
-	MoodModifiers []MoodModifier `json:"mood_modifiers,omitempty"`
-	LeashedBy     string         `json:"leashed_by,omitempty"`
-	RescueState   string         `json:"rescue_state,omitempty"`
-	Pregnant    bool             `json:"pregnant,omitempty"`
-	PregnantSinceTick uint64 `json:"pregnant_since_tick,omitempty"`
-	FatherID          string `json:"father_id,omitempty"`
-	Relationships     map[string]EntityRelationship `json:"relationships,omitempty"`
-	LastReproductionTick uint64 `json:"last_reproduction_tick,omitempty"`
+	ID                   string                        `json:"id"`
+	Name                 string                        `json:"name"`
+	Species              string                        `json:"species"`
+	Gender               string                        `json:"gender"`
+	Level                int                           `json:"level"`
+	Age                  int                           `json:"age"`
+	MaxAge               int                           `json:"max_age"`
+	LastMealTick         int                           `json:"last_meal"`
+	Alive                bool                          `json:"alive"`
+	Immortal             bool                          `json:"immortal"`
+	Attributes           Attributes                    `json:"attributes"`
+	Skills               map[string]int                `json:"skills"`
+	MaxHP                int                           `json:"max_hp"`
+	HP                   int                           `json:"hp"`
+	MaxFP                int                           `json:"max_fp"`
+	FP                   int                           `json:"fp"`
+	XP                   int                           `json:"xp"`
+	LocationID           string                        `json:"location_id"`
+	Position             Position                      `json:"position"`
+	Equipment            Equipment                     `json:"equipment"`
+	Inventory            []items.ItemInstance          `json:"inventory"`
+	AI                   EntityAI                      `json:"ai"`
+	Activity             EntityActivity                `json:"activity"`
+	Faction              string                        `json:"faction"`
+	Conscious            bool                          `json:"conscious"`
+	Effects              []ActiveEffect                `json:"effects,omitempty"`
+	Flags                map[string]any                `json:"flags,omitempty"`
+	Mood                 string                        `json:"mood,omitempty"`
+	MoodModifiers        []MoodModifier                `json:"mood_modifiers,omitempty"`
+	LeashedBy            string                        `json:"leashed_by,omitempty"`
+	RescueState          string                        `json:"rescue_state,omitempty"`
+	Pregnant             bool                          `json:"pregnant,omitempty"`
+	PregnantSinceTick    uint64                        `json:"pregnant_since_tick,omitempty"`
+	FatherID             string                        `json:"father_id,omitempty"`
+	Relationships        map[string]EntityRelationship `json:"relationships,omitempty"`
+	LastReproductionTick uint64                        `json:"last_reproduction_tick,omitempty"`
 }
 
 func NewEntity(id, name, species string, attrs Attributes, level int) *Entity {
@@ -144,25 +145,25 @@ func NewEntity(id, name, species string, attrs Attributes, level int) *Entity {
 		maxFP = 1
 	}
 	return &Entity{
-		ID:         id,
-		Name:       name,
-		Species:    species,
-		Gender:     randomGender(),
-		Level:      level,
-		Age:        0,
-		MaxAge:     SpeciesMaxAge(species),
-		LastMealTick: 0,
-		Alive:      true,
-		Conscious:  true,
-		Attributes: attrs,
-		Skills:     make(map[string]int),
-		MaxHP:      maxHP,
-		HP:         maxHP,
-		MaxFP:      maxFP,
-		FP:         maxFP,
-		Inventory:  make([]items.ItemInstance, 0),
-		Flags:      make(map[string]any),
-		Effects:    make([]ActiveEffect, 0),
+		ID:            id,
+		Name:          name,
+		Species:       species,
+		Gender:        randomGender(),
+		Level:         level,
+		Age:           0,
+		MaxAge:        SpeciesMaxAge(species),
+		LastMealTick:  0,
+		Alive:         true,
+		Conscious:     true,
+		Attributes:    attrs,
+		Skills:        make(map[string]int),
+		MaxHP:         maxHP,
+		HP:            maxHP,
+		MaxFP:         maxFP,
+		FP:            maxFP,
+		Inventory:     make([]items.ItemInstance, 0),
+		Flags:         make(map[string]any),
+		Effects:       make([]ActiveEffect, 0),
 		Relationships: make(map[string]EntityRelationship),
 		AI: EntityAI{
 			Type: "passive",
