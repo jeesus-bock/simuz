@@ -35,8 +35,43 @@ func (s *Simulation) RequestMove(ent *entity.Entity, destID string) bool {
 		return true
 	}
 
+	// Mortals cannot move TO divine realms, but can move FROM them (escape).
+	// This allows mortals who somehow end up in divine realms to leave.
+	toDivine := s.World.IsDivineRealm(destID)
+	if toDivine && ent.Species != "deity" && ent.Faction != "deity" {
+		return false
+	}
+
+	// If already in a divine realm, allow movement to any mortal location
+	fromDivine := s.World.IsDivineRealm(ent.LocationID)
+	if fromDivine && ent.Species != "deity" && ent.Faction != "deity" {
+		// Allow escape to mortal locations
+		if !toDivine {
+			ent.LocationID = destID
+			s.moveLeashedEntities(ent, destID)
+			if s.Quests != nil {
+				s.Quests.CheckVisitLocation(ent.ID, destID)
+			}
+			log.Printf("[travel] %s escaped from divine realm to %s", ent.Name, destID)
+			return true
+		}
+		// Still block movement to other divine realms
+		return false
+	}
+
 	route := s.World.Route(ent.LocationID, destID)
 	if len(route) >= 2 {
+		// Mortals cannot travel through divine realms at all.
+		// Block the request if any intermediate node in the route is a divine realm.
+		if ent.Species != "deity" && ent.Faction != "deity" {
+			for _, locID := range route {
+				if s.World.IsDivineRealm(locID) {
+					log.Printf("[travel] %s route %s → %s blocked: passes through divine realm %s", ent.Name, ent.LocationID, destID, locID)
+					return false
+				}
+			}
+		}
+
 		if len(route) == 2 && s.World.CanInstantMove(ent.LocationID, destID) {
 			ent.LocationID = destID
 			s.moveLeashedEntities(ent, destID)
@@ -148,6 +183,26 @@ func processTravel(s *Simulation) {
 		if len(ts.Route) > 1 && ts.RouteIndex < len(ts.Route)-1 {
 			nextIdx := ts.RouteIndex + 1
 			nextID := ts.Route[nextIdx]
+
+			// Mortals cannot enter divine realms mid-travel.
+			// If the next step is a divine realm, abort the travel and let them stay put.
+			if ent.Species != "deity" && ent.Faction != "deity" && s.World.IsDivineRealm(nextID) {
+				ts.Status = world.TravelArrived
+				ent.Activity = entity.EntityActivity{
+					Type:      entity.ActivityIdle,
+					SinceTick: s.Tick,
+				}
+				log.Printf("[travel] %s blocked from entering divine realm %s, travel aborted", ent.Name, nextID)
+				s.Emit(SimEvent{
+					Type:   EventTravelCompleted,
+					Tick:   s.Tick,
+					Source: ent.ID,
+					Data:   map[string]any{"from": ts.FromID, "to": ts.ToID, "blocked": true},
+				})
+				delete(s.Traveling, id)
+				continue
+			}
+
 			ent.LocationID = nextID
 			s.moveLeashedEntities(ent, nextID)
 			ts.RouteIndex = nextIdx

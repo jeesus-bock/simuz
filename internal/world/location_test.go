@@ -76,6 +76,24 @@ func TestRegionOfAndEffectiveWeather(t *testing.T) {
 	}
 }
 
+func TestIsDivineRealm(t *testing.T) {
+	w := NewWorld()
+	root := NewLocation("aetheria", "Aetheria", LocWorld, "", Position{})
+	w.AddLocation(root)
+	realm := NewLocation("celestial_court", "Celestial Court", LocRealm, "aetheria", Position{})
+	realm.Tags = []string{"divine_realm"}
+	w.AddLocation(realm)
+	chamber := NewLocation("court_chamber", "Court Chamber", LocRoom, "celestial_court", Position{})
+	w.AddLocation(chamber)
+
+	if w.IsDivineRealm("aetheria") {
+		t.Error("mortal world should not be a divine realm")
+	}
+	if !w.IsDivineRealm("celestial_court") || !w.IsDivineRealm("court_chamber") {
+		t.Error("divine realm and descendants should be protected")
+	}
+}
+
 func TestAddBidirectionalExit(t *testing.T) {
 	w := NewWorld()
 	r1 := NewLocation("r1", "R1", LocRegion, "aetheria", Position{X: 0, Y: 0})

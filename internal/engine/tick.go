@@ -39,6 +39,7 @@ const (
 	EventTravelCompleted
 	EventTick
 	EventTimePassed
+	EventEntityBorn
 )
 
 type SimEvent struct {
@@ -271,6 +272,10 @@ func (s *Simulation) TickOnce() {
 
 	processTimeLimitQuests(s)
 
+	// Natural reproduction: adult male/female pairs of the same species
+	// at the same location have a small chance to produce offspring each tick.
+	processReproduction(s)
+
 	if s.SpawnManager != nil {
 		s.SpawnManager.ProcessSpawns(s.World, s.Entities, int(s.Tick), s.RNG)
 	}
@@ -315,6 +320,114 @@ func offerQuestsAtSources(sim *Simulation) {
 				break
 			}
 		}
+	}
+}
+
+// processReproduction handles natural births: adult male/female pairs of
+// the same species at the same location have a small chance to produce
+// offspring, gated by cooldown and population caps.
+func processReproduction(s *Simulation) {
+	// Global entity cap to prevent runaway growth
+	const maxEntities = 5000
+	if len(s.Entities.All()) >= maxEntities {
+		return
+	}
+
+	type groupKey struct {
+		locID   string
+		species string
+	}
+	groups := make(map[groupKey][]*entity.Entity)
+
+	for _, ent := range s.Entities.All() {
+		if !ent.Alive || !ent.Conscious {
+			continue
+		}
+		if !ent.IsAdult() {
+			continue
+		}
+		if !entity.CanReproduce(ent.Species) {
+			continue
+		}
+		key := groupKey{locID: ent.LocationID, species: ent.Species}
+		groups[key] = append(groups[key], ent)
+	}
+
+	for key, members := range groups {
+		if key.species == "" {
+			continue
+		}
+
+		// Per-location per-species population cap
+		if len(members) > 20 {
+			continue
+		}
+
+		var males, females []*entity.Entity
+		for _, ent := range members {
+			if ent.Gender == "male" {
+				males = append(males, ent)
+			} else if ent.Gender == "female" {
+				females = append(females, ent)
+			}
+		}
+		if len(males) == 0 || len(females) == 0 {
+			continue
+		}
+
+		// 0.1% chance per tick for this group to reproduce.
+		if s.RNG.Intn(1000) >= 1 {
+			continue
+		}
+
+		// Find a pair that hasn't reproduced recently
+		var mother, father *entity.Entity
+		for i := 0; i < 10; i++ {
+			candidateMother := females[s.RNG.Intn(len(females))]
+			candidateFather := males[s.RNG.Intn(len(males))]
+			cooldown := uint64(1000)
+			if s.Tick-candidateMother.LastReproductionTick >= cooldown &&
+				s.Tick-candidateFather.LastReproductionTick >= cooldown {
+				mother = candidateMother
+				father = candidateFather
+				break
+			}
+		}
+		if mother == nil || father == nil {
+			continue
+		}
+
+		childAttrs := averageAttrs(mother.Attributes, father.Attributes, s.RNG)
+		childName := generateName(mother.Species, s.RNG)
+		childID := fmt.Sprintf("%s_child_%s_%d", mother.Species, mother.ID, s.Tick)
+
+		child := entity.NewEntity(childID, childName, mother.Species, childAttrs, 1)
+		if s.RNG.Intn(2) == 0 {
+			child.Gender = "male"
+		} else {
+			child.Gender = "female"
+		}
+		child.LocationID = key.locID
+		child.Faction = mother.Faction
+		if child.Faction == "" {
+			child.Faction = father.Faction
+		}
+		child.AI = entity.EntityAI{
+			Type:         "passive",
+			SleepCycle:   defaultSleepCycle(mother.Species),
+			HomeLocation: key.locID,
+		}
+
+		s.Entities.Add(child)
+		mother.LastReproductionTick = s.Tick
+		father.LastReproductionTick = s.Tick
+		log.Printf("[birth] %s born to %s and %s at %s", child.Name, mother.Name, father.Name, key.locID)
+		s.Emit(SimEvent{
+			Type:   EventEntityBorn,
+			Tick:   s.Tick,
+			Source: child.ID,
+			Data:   map[string]any{"mother": mother.ID, "father": father.ID, "species": mother.Species, "location": key.locID},
+		})
 	}
 }
 
@@ -708,9 +821,6 @@ func choosePassiveCombatDestination(sim *Simulation, ent *entity.Entity, sites [
 		} else if loc.ControllingFaction != "" {
 			score -= 10
 		}
-		if current != nil && loc.ParentID == current.ID {
-			score += 2
-		}
 		if home := ent.AI.HomeLocation; home != "" && loc.ID == home {
 			score += 15
 		}
@@ -741,9 +851,6 @@ func shouldAssistNearbyCombat(sim *Simulation, ent *entity.Entity, site nearbyCo
 	chance := 8 + site.Allies*8
 	if ent.AI.Brave {
 		chance += 18
-	}
-	if site.ControllingFaction == ent.Faction {
-		chance += 12
 	}
 	if site.Allies >= site.Hostiles {
 		chance += 10

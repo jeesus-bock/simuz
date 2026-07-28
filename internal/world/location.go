@@ -316,6 +316,25 @@ func (w *World) IsInside(id string) bool {
 	return !loc.IsOutside
 }
 
+// IsDivineRealm reports whether a location belongs to a protected divine plane.
+// Only locations explicitly tagged with "divine_realm" are considered divine.
+func (w *World) IsDivineRealm(id string) bool {
+	loc := w.locations[id]
+	if loc == nil {
+		return false
+	}
+	// Check if this location or any ancestor has the divine_realm tag
+	for cur := loc; cur != nil; cur = w.locations[cur.ParentID] {
+		if cur.HasTag("divine_realm") {
+			return true
+		}
+		if cur.ParentID == "" {
+			break
+		}
+	}
+	return false
+}
+
 func (w *World) AncestorOfType(id string, t LocationType) *Location {
 	cur := w.locations[id]
 	for cur != nil {
