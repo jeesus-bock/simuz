@@ -4,20 +4,20 @@ package entity
 // Species defines the base data for a creature species in the simulation.
 // It is the single source of truth for all species-related information.
 type Species struct {
-	ID                 string
-	Name               string
-	MaxAge             int
-	CanLevelUp         bool
-	CanReproduce       bool
-	IsCaveman          bool
-	IsImmortal         bool
-	GestationTicks     int
-	DefaultScripts     []string
-	DefaultSleepCycle  string // "diurnal", "nocturnal", "none"
-	AutoFeed           bool
-	StarvationThreshold int  // ticks before starvation damage begins; 0 means immune
-	Names              []string
-	BaseAttrs          Attributes
+	ID                  string
+	Name                string
+	MaxAge              int
+	CanLevelUp          bool
+	CanReproduce        bool
+	IsCaveman           bool
+	IsImmortal          bool
+	GestationTicks      int
+	DefaultScripts      []string
+	DefaultSleepCycle   string // "diurnal", "nocturnal", "none"
+	AutoFeed            bool
+	StarvationThreshold int // ticks before starvation damage begins; 0 means immune
+	Names               []string
+	BaseAttrs           Attributes
 }
 
 // SpeciesRegistry is the one source of truth for all species data in simuz.
@@ -338,4 +338,12 @@ func GetSpecies(id string) Species {
 // StarvationDamageInterval returns the tick interval at which starvation damage is applied.
 func StarvationDamageInterval() int {
 	return 10
+}
+
+func StarvationDamageMin() int {
+	return 1
+}
+
+func StarvationDamageMax() int {
+	return 5
 }

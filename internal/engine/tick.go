@@ -61,25 +61,6 @@ func (s *Simulation) Unlock()  { s.mu.Unlock() }
 
 func NewSimulation(w *world.World) *Simulation {
 	qm := quest.NewManager()
-	qm.OnQuestComplete = func(sim *Simulation, entityID, questID string, rewards *quest.Rewards) {
-		if rewards == nil {
-			return
-		}
-		ent := globalEntityManagerGet(entityID)
-		if ent == nil || !ent.Alive {
-			return
-		}
-		if rewards.Experience > 0 && entity.GetSpecies(ent.Species).CanLevelUp {
-			ent.AddXP(rewards.Experience)
-			log.Printf("[quest] %s earned %d XP from quest '%s'", ent.Name, rewards.Experience, questID)
-		}
-		if rewards.Gold > 0 {
-			for i := 0; i < rewards.Gold; i++ {
-				ent.AddItem(items.NewItemInstance("gold_"+questID+fmt.Sprint(i), "gp", items.GetDef("gp"), 1))
-			}
-		}
-
-	}
 	sim := &Simulation{
 		Tick:         0,
 		Scheduler:    NewScheduler(),
@@ -95,6 +76,35 @@ func NewSimulation(w *world.World) *Simulation {
 		SpawnManager: NewSpawnManager(),
 		Traveling:    make(map[string]*world.TravelState),
 	}
+	qm.OnQuestComplete = func(entityID, questID string, rewards *quest.Rewards) {
+		if rewards == nil {
+			return
+		}
+		ent := globalEntityManagerGet(entityID)
+		if ent == nil || !ent.Alive {
+			return
+		}
+		if rewards.Experience > 0 && entity.GetSpecies(ent.Species).CanLevelUp {
+			sim.Emit(events.SimEvent{
+				Type:   events.EventTypeQuestComplete,
+				Source: ent.ID,
+				Data: map[string]interface{}{
+					"quest_id":   questID,
+					"experience": rewards.Experience,
+					"gold":       rewards.Gold,
+				},
+			})
+			ent.AddXP(rewards.Experience)
+			log.Printf("[quest] %s earned %d XP from quest '%s'", ent.Name, rewards.Experience, questID)
+		}
+		if rewards.Gold > 0 {
+			for i := 0; i < rewards.Gold; i++ {
+				ent.AddItem(items.NewItemInstance("gold_"+questID+fmt.Sprint(i), "gp", items.GetDef("gp"), 1))
+			}
+		}
+
+	}
+
 	globalEntityManager = sim.Entities
 	ai.MoveRequest = sim.RequestMove
 	ai.IsEntityTraveling = sim.IsTraveling
@@ -337,7 +347,7 @@ func processReproduction(s *Simulation) {
 		if !ent.IsAdult() {
 			continue
 		}
-		if !entity.CanReproduce(ent.Species) {
+		if !entity.GetSpecies(ent.Species).CanReproduce {
 			continue
 		}
 		key := groupKey{locID: ent.LocationID, species: ent.Species}
@@ -367,10 +377,8 @@ func processReproduction(s *Simulation) {
 			continue
 		}
 
-		// Caveman species reproduce more freely without courtship.
-		isCaveman := entity.IsCavemanSpecies(key.species)
 		reproChance := 1 // 0.1% base chance per tick
-		if isCaveman {
+		if entity.GetSpecies(key.species).IsCaveman {
 			reproChance = 3 // 0.3% per tick for caveman species
 		}
 		if s.RNG.Intn(1000) >= reproChance {
@@ -431,7 +439,7 @@ func processReproduction(s *Simulation) {
 		child.AddRelationship(father.ID, entity.RelationshipParent, s.Tick)
 
 		// Caveman species do not form mate bonds or partner up.
-		if !isCaveman {
+		if !entity.GetSpecies(mother.Species).IsCaveman {
 			mother.AddRelationship(father.ID, entity.RelationshipMate, s.Tick)
 			father.AddRelationship(mother.ID, entity.RelationshipMate, s.Tick)
 		}
