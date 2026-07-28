@@ -327,6 +327,10 @@ func offerQuestsAtSources(sim *Simulation) {
 // processReproduction handles natural births: adult male/female pairs of
 // the same species at the same location have a small chance to produce
 // offspring, gated by cooldown and population caps.
+//
+// Caveman species (orcs, ogres, giants, etc.) reproduce more freely:
+// they do not form mate bonds and have a higher reproduction chance
+// since no courtship is required.
 func processReproduction(s *Simulation) {
 	// Global entity cap to prevent runaway growth
 	const maxEntities = 5000
@@ -377,8 +381,13 @@ func processReproduction(s *Simulation) {
 			continue
 		}
 
-		// 0.1% chance per tick for this group to reproduce.
-		if s.RNG.Intn(1000) >= 1 {
+		// Caveman species reproduce more freely without courtship.
+		isCaveman := entity.IsCavemanSpecies(key.species)
+		reproChance := 1 // 0.1% base chance per tick
+		if isCaveman {
+			reproChance = 3 // 0.3% per tick for caveman species
+		}
+		if s.RNG.Intn(1000) >= reproChance {
 			continue
 		}
 
@@ -425,13 +434,17 @@ func processReproduction(s *Simulation) {
 
 		s.Entities.Add(child)
 
-		// Establish family relationships: parent↔child and mate↔mate.
+		// Establish parent↔child relationships (always, for all species).
 		mother.AddRelationship(child.ID, entity.RelationshipParent, s.Tick)
 		father.AddRelationship(child.ID, entity.RelationshipParent, s.Tick)
 		child.AddRelationship(mother.ID, entity.RelationshipChild, s.Tick)
 		child.AddRelationship(father.ID, entity.RelationshipChild, s.Tick)
-		mother.AddRelationship(father.ID, entity.RelationshipMate, s.Tick)
-		father.AddRelationship(mother.ID, entity.RelationshipMate, s.Tick)
+
+		// Caveman species do not form mate bonds or partner up.
+		if !isCaveman {
+			mother.AddRelationship(father.ID, entity.RelationshipMate, s.Tick)
+			father.AddRelationship(mother.ID, entity.RelationshipMate, s.Tick)
+		}
 
 		// Sibling relationships with existing children of the mother.
 		for _, rel := range mother.Relationships {
