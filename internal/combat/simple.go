@@ -94,6 +94,17 @@ const (
 	Friendly
 )
 
+func (r FactionRelation) String() string {
+	switch r {
+	case Friendly:
+		return "friendly"
+	case Hostile:
+		return "hostile"
+	default:
+		return "neutral"
+	}
+}
+
 var factionRelations map[string]map[string]FactionRelation
 
 func initFactionRelations() {

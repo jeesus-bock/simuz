@@ -1275,12 +1275,12 @@ func annotateMapTravelers(nodes []mapNode, travelers []travelerView) {
 			}
 			countsByLoc[step.ID]++
 			notesByLoc[step.ID] = append(notesByLoc[step.ID], fmt.Sprintf("%s: %s (%d/%d, %dt)",
-					tv.Name,
-					routeText,
-					currentIdx+1,
-					len(tv.Route),
-					tv.Eta,
-				))
+				tv.Name,
+				routeText,
+				currentIdx+1,
+				len(tv.Route),
+				tv.Eta,
+			))
 		}
 	}
 	var walk func([]mapNode)
@@ -1666,18 +1666,30 @@ func buildPregnantEntities(sim *engine.Simulation) []pregnantEntityView {
 
 func buildRecentBirths(sim *engine.Simulation) []recentBirthView {
 	var out []recentBirthView
-	events := combat.LocationEvents("", 500)
-	for _, evt := range events {
-		if evt.Action != "birth" {
+	for _, evt := range sim.EventsCopy() {
+		if evt.Type != engine.EventEntityBorn {
 			continue
 		}
-		parent := sim.Entities.Get(evt.AttackerID)
-		parentName := evt.AttackerID
+		data := evt.Data
+		var parentID string
+		var offspringID string
+		if mother, ok := data["mother"].(string); ok {
+			parentID = mother
+		} else if father, ok := data["father"].(string); ok {
+			parentID = father
+		}
+		if sourceID, ok := data["child"].(string); ok {
+			offspringID = sourceID
+		} else {
+			offspringID = evt.Source
+		}
+		parent := sim.Entities.Get(parentID)
+		parentName := parentID
 		if parent != nil {
 			parentName = parent.Name
 		}
-		offspring := sim.Entities.Get(evt.DefenderID)
-		offspringName := evt.DefenderName
+		offspring := sim.Entities.Get(offspringID)
+		offspringName := offspringID
 		species := ""
 		gender := ""
 		if offspring != nil {
@@ -1686,11 +1698,11 @@ func buildRecentBirths(sim *engine.Simulation) []recentBirthView {
 			gender = offspring.Gender
 		}
 		out = append(out, recentBirthView{
-			OffspringID:   evt.DefenderID,
+			OffspringID:   offspringID,
 			OffspringName: offspringName,
 			Species:       species,
 			Gender:        gender,
-			ParentID:      evt.AttackerID,
+			ParentID:      parentID,
 			ParentName:    parentName,
 			Tick:          evt.Tick,
 		})

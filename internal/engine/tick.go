@@ -149,6 +149,14 @@ func (s *Simulation) DrainEvents() []SimEvent {
 	return events
 }
 
+func (s *Simulation) EventsCopy() []SimEvent {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := make([]SimEvent, len(s.events))
+	copy(out, s.events)
+	return out
+}
+
 func (s *Simulation) Start() {
 	s.running = true
 	ticker := time.NewTicker(1 * time.Second)
