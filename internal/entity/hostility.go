@@ -360,3 +360,21 @@ var MerchantHostilities = Hostilities{
 	ProfessionRelation: ProfessionRelation{},
 	EntityRelation:     EntityRelation{},
 }
+var VerminHostilities = Hostilities{
+	SpeciesRelation:    SpeciesRelation{"human": -50, "elf": -30, "orc": -80, "goblin": -60, "kobold": -70, "fey": -40, "dragon": -100, "hag": -90},
+	FactionRelation:    FactionRelation{"vermin_slayers": -100, "military": -50, "guard": -50},
+	ProfessionRelation: ProfessionRelation{"hunter": -50, "guard": -50},
+	EntityRelation:     EntityRelation{},
+}
+var CivilianHostilities = Hostilities{
+	SpeciesRelation:    SpeciesRelation{},
+	FactionRelation:    FactionRelation{"civilian": 100, "guard": 20},
+	ProfessionRelation: ProfessionRelation{},
+	EntityRelation:     EntityRelation{},
+}
+var VampireHostilities = Hostilities{
+	SpeciesRelation:    SpeciesRelation{"human": -50, "elf": -30, "orc": -80, "goblin": -60, "kobold": -70, "fey": -40, "dragon": -100, "hag": -90},
+	FactionRelation:    FactionRelation{"vampire_hunters": -100, "military": -50, "guard": -50},
+	ProfessionRelation: ProfessionRelation{"hunter": -50, "guard": -50, "vampire_slayer": -100},
+	EntityRelation:     EntityRelation{},
+}
