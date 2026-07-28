@@ -131,7 +131,7 @@ func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manag
 // decodeSimEvents converts a Lua table of event tables into []*events.SimEvent.
 // Each entry in the Lua table should have keys: type (int), tick (uint64), source (string), data (table).
 func decodeSimEvents(L *lua.LState, tbl *lua.LTable, defaultTick uint64) []*events.SimEvent {
-	var events []*events.SimEvent
+	var luaEvents []*events.SimEvent
 	tbl.ForEach(func(k, v lua.LValue) {
 		eventTbl, ok := v.(*lua.LTable)
 		if !ok {
@@ -163,9 +163,9 @@ func decodeSimEvents(L *lua.LState, tbl *lua.LTable, defaultTick uint64) []*even
 			}
 		}
 
-		events = append(events, ev)
+		luaEvents = append(luaEvents, ev)
 	})
-	return events
+	return luaEvents
 }
 
 // luaTableToMap converts a Lua table with string keys to a Go map[string]any.
