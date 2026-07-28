@@ -70,19 +70,19 @@ var IsEntityTraveling func(entityID string) bool
 // LuaSimEvent describing the event the script generated.
 //
 // The Lua script is expected to return up to four values:
-//   1. boolean — didAct (true if the script performed an action)
-//   2. table of strings — log messages
-//   3. integer — EventType
-//   4. table (optional) — event data as key-value pairs
+//  1. boolean — didAct (true if the script performed an action)
+//  2. table of strings — log messages
+//  3. integer — EventType
+//  4. table (optional) — event data as key-value pairs
 //
 // If the script returns fewer values, missing values are zero-filled
 // (false, nil, EventTick, nil data).
-func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manager, tm *world.GameTime, rng *rand.Rand, qm *quest.Manager) (bool, []string, *LuaSimEvent, error) {
+func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manager, tm *world.GameTime, rng *rand.Rand, qm *quest.Manager) ([]*LuaSimEvent, error) {
 	globalScripts.mu.RLock()
 	proto, ok := globalScripts.scripts[name]
 	globalScripts.mu.RUnlock()
 	if !ok {
-		return false, nil, nil, fmt.Errorf("script not found: %s", name)
+		return nil, fmt.Errorf("script not found: %s", name)
 	}
 
 	L := lua.NewState()
@@ -99,18 +99,13 @@ func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manag
 		Protect: true,
 	})
 	if err != nil {
-		return false, nil, nil, fmt.Errorf("run script %s: %w", name, err)
+		return nil, fmt.Errorf("run script %s: %w", name, err)
 	}
 
 	// Read return values from the stack using 1-based indexing from the bottom.
-	didAct := false
-	if L.GetTop() >= 1 {
-		didAct = L.ToBool(1)
-	}
 
-	var messages []string
-	if L.GetTop() >= 2 {
-		topVal := L.Get(2)
+	if L.GetTop() == 1 {
+		topVal := L.Get(1)
 		if tbl, ok := topVal.(*lua.LTable); ok {
 			messages = make([]string, 0, tbl.Len())
 			tbl.ForEach(func(k, v lua.LValue) {
