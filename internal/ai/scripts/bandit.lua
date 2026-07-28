@@ -119,7 +119,7 @@ local function do_tick()
 
                 if itemToSteal then
                     local success = world.steal(target, itemToSteal)
-                    if success then
+                    if success.done then
                         -- Track the victim via a relationship
                         if not self.has_relationship(target) then
                             self.add_relationship(target, "rival", world.tick)

@@ -33,7 +33,7 @@ local function do_tick()
                 -- Other merchants and civilians = customers
                 if theirFaction == "merchant" or theirFaction == "civilian" or theirProf == "merchant" then
                     table.insert(customers, id)
-                -- Hostile entities = threats
+                    -- Hostile entities = threats
                 elseif world.is_hostile(myFaction, theirFaction) then
                     table.insert(threats, id)
                 end
@@ -63,13 +63,16 @@ local function do_tick()
             end
         end
 
-        -- Try to buy from the customer (they might have goods to sell)
-        local buySuccess = world.try_buy(target, "herb")
-        if not buySuccess then
-            -- Try to sell to the customer
-            local sellSuccess = world.try_sell(target, "herb")
-            if sellSuccess then
+        -- Try to buy from the customer first; otherwise offer to sell herbs.
+        local boughtHerbs = world.try_buy(target, "herb")
+        if boughtHerbs.done then
+            util.log(self.name .. " bought herbs from " .. world.entity_name(target))
+        else
+            local soldHerbs = world.try_sell(target, "herb")
+            if soldHerbs.done then
                 util.log(self.name .. " sold herbs to " .. world.entity_name(target))
+            else
+                util.log(self.name .. " could not trade herbs with " .. world.entity_name(target))
             end
         end
 
