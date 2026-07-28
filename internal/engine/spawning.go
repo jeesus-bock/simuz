@@ -666,7 +666,7 @@ func createSeededEntity(species, gender string, level int, locID string, rng *ra
 	name := generateName(species, rng)
 	id := fmt.Sprintf("%s_seed_%s_%s_%d", species, gender, name, rng.Intn(100000))
 
-	ent := entity.NewEntity(id, name, species, attrs, level, entity.EmptyHosti)
+	ent := entity.NewEntity(id, name, species, attrs, level, entity.EmptyHostilities)
 	ent.Gender = gender
 	ent.LocationID = locID
 	ent.Faction = "civilian"

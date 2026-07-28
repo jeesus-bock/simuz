@@ -451,7 +451,7 @@ func (g *Generator) generateTravelingSalesmen() []*entity.Entity {
 	}
 	var entities []*entity.Entity
 	for _, s := range salesmen {
-		ent := entity.NewEntity(s.id, s.name, "human", entity.RandomAttributes(g.RNG.Intn), 3)
+		ent := entity.NewEntity(s.id, s.name, "human", entity.RandomAttributes(g.RNG.Intn), 3, entity.MerchantHostilities)
 		ent.LocationID = s.locID
 		ent.AI = entity.EntityAI{
 			Type:         "scripted",
