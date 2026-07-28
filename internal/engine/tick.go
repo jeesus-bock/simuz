@@ -1,3 +1,4 @@
+// Package engine contains the simulation engine, tick processing, and related systems.
 package engine
 
 import (
@@ -365,9 +366,10 @@ func processReproduction(s *Simulation) {
 
 		var males, females []*entity.Entity
 		for _, ent := range members {
-			if ent.Gender == "male" {
+			switch ent.Gender {
+			case "male":
 				males = append(males, ent)
-			} else if ent.Gender == "female" {
+			case "female":
 				females = append(females, ent)
 			}
 		}
@@ -504,7 +506,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 		}
 		if target != nil {
 			hit := simpleAttackAt(sim, ent, target)
-			applyCombatMoods(ent, target, hit, sim.Tick)
+			applyCombatMoods(ent, target, hit)
 			if !target.Alive {
 				combat.LootCorpse(ent, target)
 				sim.Emit(SimEvent{
@@ -540,7 +542,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 		}
 		if target != nil {
 			hit := simpleAttackAt(sim, ent, target)
-			applyCombatMoods(ent, target, hit, sim.Tick)
+			applyCombatMoods(ent, target, hit)
 			if !target.Alive {
 				combat.LootCorpse(ent, target)
 				sim.Emit(SimEvent{
@@ -575,7 +577,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 		}
 		if target != nil {
 			hit := simpleAttackAt(sim, ent, target)
-			applyCombatMoods(ent, target, hit, sim.Tick)
+			applyCombatMoods(ent, target, hit)
 			if !target.Alive {
 				combat.LootCorpse(ent, target)
 				sim.Emit(SimEvent{
@@ -720,7 +722,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 		}
 		if target != nil {
 			hit := simpleAttackAt(sim, ent, target)
-			applyCombatMoods(ent, target, hit, sim.Tick)
+			applyCombatMoods(ent, target, hit)
 			if !target.Alive {
 				combat.LootCorpse(ent, target)
 				sim.Emit(SimEvent{
@@ -1015,7 +1017,7 @@ func fleeFromCombat(sim *Simulation, ent *entity.Entity, hostiles []*entity.Enti
 		}
 		hit := combat.SimpleAttack(attacker, ent, sim.RNG)
 		combat.ResetWeatherVisibility()
-		applyCombatMoods(attacker, ent, hit, sim.Tick)
+		applyCombatMoods(attacker, ent, hit)
 		if !ent.Alive {
 			combat.LootCorpse(attacker, ent)
 			rewardXP(attacker, ent)
@@ -1071,7 +1073,7 @@ func retreatOpportunityAttack(sim *Simulation, attacker, defender *entity.Entity
 	}
 	hit := combat.SimpleAttack(attacker, defender, sim.RNG)
 	combat.ResetWeatherVisibility()
-	applyCombatMoods(attacker, defender, hit, sim.Tick)
+	applyCombatMoods(attacker, defender, hit)
 	if !defender.Alive {
 		combat.LootCorpse(attacker, defender)
 		rewardXP(attacker, defender)
@@ -1133,7 +1135,7 @@ func defendPassiveSelf(ent *entity.Entity, sim *Simulation) bool {
 	braveCombatBonus(ent, hostiles)
 	target := hostiles[0]
 	hit := simpleAttackAt(sim, ent, target)
-	applyCombatMoods(ent, target, hit, sim.Tick)
+	applyCombatMoods(ent, target, hit)
 	if !target.Alive {
 		combat.LootCorpse(ent, target)
 		sim.Emit(SimEvent{
@@ -1374,7 +1376,7 @@ func rewardXP(killer, target *entity.Entity) {
 	}
 }
 
-func applyCombatMoods(attacker, defender *entity.Entity, hit bool, tick uint64) {
+func applyCombatMoods(attacker, defender *entity.Entity, hit bool) {
 	if hit {
 		attacker.AddMoodModifier("combat_hit", "angry", 10)
 		defender.AddMoodModifier("combat_take_damage", "fearful", 10)

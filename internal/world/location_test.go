@@ -32,10 +32,7 @@ func TestCanInstantMove(t *testing.T) {
 	if !w.CanInstantMove("frosthold_inn_common", "frosthold_inn_common") {
 		t.Error("same should be instant")
 	}
-	// siblings under city
-	if !w.CanInstantMove("frosthold_inn", "frosthold_market") {
-		// market may not exist in this test world, create one
-	}
+
 	market := NewLocation("frosthold_market", "Market", LocBuilding, "frosthold", Position{})
 	market.IsOutside = false
 	w.AddLocation(market)

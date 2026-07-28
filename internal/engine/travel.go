@@ -166,7 +166,7 @@ func (s *Simulation) moveLeashedEntities(dragger *entity.Entity, destID string) 
 }
 
 func processTravel(s *Simulation) {
-	if s.Traveling == nil || len(s.Traveling) == 0 {
+	if len(s.Traveling) == 0 {
 		return
 	}
 	for id, ts := range s.Traveling {
