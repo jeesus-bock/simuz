@@ -420,6 +420,9 @@ func processReproduction(s *Simulation) {
 			HomeLocation: key.locID,
 		}
 
+		// Give the child a random amount of XP appropriate for its level.
+		child.XP = randomXPForLevel(1, s.RNG.Intn)
+
 		s.Entities.Add(child)
 
 		// Establish family relationships: parent↔child and mate↔mate.
