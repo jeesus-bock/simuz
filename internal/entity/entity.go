@@ -366,13 +366,13 @@ func (e *Entity) GetRelationship(otherID string) (EntityRelationship, bool) {
 }
 
 // GetRelationshipTo returns who the given relationship is to entity, returns only first entityID.
-func (e *Entity) GetRelationshipTo(ers EntityRelationship) (string, bool) {
-	for key, val := range e.Relationships {
-		if val.Type == ers.Type {
-			return key, true
+func (e *Entity) GetRelationshipTo(rst RelationshipType) (EntityRelationship, bool) {
+	for _, val := range e.Relationships {
+		if val.Type == rst {
+			return val, true
 		}
 	}
-	return "", false
+	return EntityRelationship{}, false
 }
 
 // GetChildren returns all parent-child relationships from this entity's perspective.
