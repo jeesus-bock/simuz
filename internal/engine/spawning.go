@@ -200,6 +200,15 @@ func equipSpawn(ent *entity.Entity, rule *SpawnRule, rng *rand.Rand) {
 	}
 }
 
+func randomXPForLevel(level int, rng func(int) int) int {
+	if level <= 0 {
+		return 0
+	}
+	base := 50 + (level-1)*40
+	variance := rng(21) - 10
+	return base + variance
+}
+
 func baseSpeciesAttrs(species string, rng *rand.Rand) entity.Attributes {
 	switch species {
 	case "orc":
@@ -295,6 +304,7 @@ func clampInt(v, min, max int) int {
 	}
 	return v
 }
+
 // CanMate checks whether two entities are compatible for reproduction.
 func CanMate(a, b *entity.Entity) bool {
 	if a == nil || b == nil {
