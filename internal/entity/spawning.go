@@ -18,8 +18,8 @@ func CanMate(a, b *Entity) bool {
 	if a.Pregnant || b.Pregnant {
 		return false
 	}
-	// Immortal or undead species do not reproduce.
-	if a.Species == "deity" || a.Species == "vampire" {
+
+	if a.Species == "vampire" {
 		return false
 	}
 	return true
@@ -39,6 +39,7 @@ func SpawnBaby(parent1, parent2 *Entity, id, babyName string, rng func(int) int)
 		parent1.Species,
 		attrs,
 		1,
+		Hostilities{},
 	)
 
 	// Inherit gender randomly from one of the parents

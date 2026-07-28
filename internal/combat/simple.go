@@ -2,7 +2,6 @@
 package combat
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
@@ -85,73 +84,6 @@ func recordEvent(locID string, e Event) {
 	if len(locationEvents[locID]) > 500 {
 		locationEvents[locID] = locationEvents[locID][len(locationEvents[locID])-250:]
 	}
-}
-
-func SetRelation(a, b string, rel FactionRelation) {
-	initFactionRelations()
-	if a == b {
-		return
-	}
-	if _, ok := factionRelations[a]; !ok {
-		factionRelations[a] = make(map[string]FactionRelation)
-	}
-	factionRelations[a][b] = rel
-	if _, ok := factionRelations[b]; !ok {
-		factionRelations[b] = make(map[string]FactionRelation)
-	}
-	factionRelations[b][a] = rel
-}
-
-func RelationsJSON() string {
-	initFactionRelations()
-	b, err := json.Marshal(factionRelations)
-	if err != nil {
-		return "{}"
-	}
-	return string(b)
-}
-
-func LoadRelationsJSON(jsonStr string) {
-	factionRelations = make(map[string]map[string]FactionRelation)
-	if jsonStr == "" || jsonStr == "{}" {
-		initFactionRelations()
-		return
-	}
-	var raw map[string]map[string]float64
-	if err := json.Unmarshal([]byte(jsonStr), &raw); err != nil {
-		initFactionRelations()
-		return
-	}
-	factionRelations = make(map[string]map[string]FactionRelation)
-	for a, m := range raw {
-		factionRelations[a] = make(map[string]FactionRelation)
-		for b, v := range m {
-			factionRelations[a][b] = FactionRelation(v)
-		}
-	}
-}
-
-func ShiftRelation(a, b string, delta int) {
-	initFactionRelations()
-	cur := Relation(a, b)
-	newRel := Neutral
-	switch cur {
-	case Friendly:
-		if delta < 0 {
-			newRel = Hostile
-		}
-	case Hostile:
-		if delta > 0 {
-			newRel = Neutral
-		}
-	case Neutral:
-		if delta > 0 {
-			newRel = Friendly
-		} else if delta < 0 {
-			newRel = Hostile
-		}
-	}
-	SetRelation(a, b, newRel)
 }
 
 func LootCorpse(winner, loser *entity.Entity) {

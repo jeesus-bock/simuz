@@ -113,12 +113,12 @@ type Entity struct {
 	RescueState          string                        `json:"rescue_state,omitempty"`
 	Pregnant             bool                          `json:"pregnant,omitempty"`
 	PregnantSinceTick    uint64                        `json:"pregnant_since_tick,omitempty"`
-	FatherID             string                        `json:"father_id,omitempty"`
 	Relationships        map[string]EntityRelationship `json:"relationships,omitempty"`
 	LastReproductionTick uint64                        `json:"last_reproduction_tick,omitempty"`
+	Hostilities
 }
 
-func NewEntity(id, name, species string, attrs Attributes, level int) *Entity {
+func NewEntity(id, name, species string, attrs Attributes, level int, hostilities Hostilities) *Entity {
 	maxHP := attrs.CON*2 + level*2
 	maxFP := attrs.CON + attrs.STR/2
 	if maxHP < 1 {
@@ -152,19 +152,18 @@ func NewEntity(id, name, species string, attrs Attributes, level int) *Entity {
 		AI: EntityAI{
 			Type: "passive",
 		},
+		Hostilities: hostilities,
 	}
 }
 
 // IsAdult returns true if the entity is old enough to reproduce.
 func (e *Entity) IsAdult() bool {
-	return e.Level >= 3
+	return e.Level >= 3 || e.Age >= GetSpecies(e.Species).AdultAge
 }
 
 func randomGender() string {
-	if rand.Intn(2) == 0 {
-		return GenderMale
-	}
-	return GenderFemale
+	choices := []string{GenderMale, GenderFemale, GenderOther}
+	return choices[rand.Intn(len(choices))]
 }
 
 func (e *Entity) TakeDamage(amount int) {
