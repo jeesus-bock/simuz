@@ -59,14 +59,13 @@ var IsEntityTraveling func(entityID string) bool
 
 // RunScript executes a loaded Lua AI script and returns the events it generated.
 //
-// The Lua script is expected to return up to four values:
+// The Lua script is expected to return up to three values:
 //  1. boolean — didAct (true if the script performed an action)
 //  2. table of strings — log messages
-//  3. integer — EventType
-//  4. table (optional) — event data as key-value pairs
+//  3. table of event tables — each entry has keys: type (int), tick (uint64), source (string), data (table)
 //
 // If the script returns fewer values, missing values are zero-filled
-// (false, nil, EventTick, nil data).
+// (false, nil, empty slice).
 func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manager, tm *world.GameTime, rng *rand.Rand, qm *quest.Manager) ([]*events.SimEvent, error) {
 	globalScripts.mu.RLock()
 	proto, ok := globalScripts.scripts[name]
@@ -85,7 +84,7 @@ func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manag
 	closure := L.NewFunctionFromProto(proto)
 	err := L.CallByParam(lua.P{
 		Fn:      closure,
-		NRet:    4,
+		NRet:    3,
 		Protect: true,
 	})
 	if err != nil {
@@ -113,40 +112,73 @@ func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manag
 		}
 	}
 
-	eventType := events.EventTick
+	var simEvents []*events.SimEvent
 	if top >= 3 {
-		eventType = events.EventType(L.ToInt(3))
-	}
-
-	var data map[string]any
-	if top >= 4 {
-		val := L.Get(4)
-		if val != lua.LNil {
-			goVal := luaValueToGo(L, val)
-			if m, ok := goVal.(map[string]any); ok {
-				data = m
-			} else if arr, ok := goVal.([]any); ok {
-				data = make(map[string]any, len(arr))
-				for i, v := range arr {
-					data[strconv.Itoa(i)] = v
-				}
-			}
+		val := L.Get(3)
+		if tbl, ok := val.(*lua.LTable); ok {
+			simEvents = decodeSimEvents(L, tbl, tm.Tick)
 		}
 	}
 
 	L.Pop(top)
 
-	event := &events.SimEvent{
-		Type:   eventType,
-		Tick:   tm.Tick,
-		Source: ent.ID,
-		Data:   data,
-	}
-
 	_ = didAct
 	_ = messages
 
-	return []*events.SimEvent{event}, nil
+	return simEvents, nil
+}
+
+// decodeSimEvents converts a Lua table of event tables into []*events.SimEvent.
+// Each entry in the Lua table should have keys: type (int), tick (uint64), source (string), data (table).
+func decodeSimEvents(L *lua.LState, tbl *lua.LTable, defaultTick uint64) []*events.SimEvent {
+	var events []*events.SimEvent
+	tbl.ForEach(func(k, v lua.LValue) {
+		eventTbl, ok := v.(*lua.LTable)
+		if !ok {
+			return
+		}
+		ev := &events.SimEvent{
+			Tick: defaultTick,
+		}
+
+		// type (EventType int)
+		if typeVal := eventTbl.RawGetString("type"); typeVal != lua.LNil {
+			ev.Type = events.EventType(L.ToIntX(typeVal, 0))
+		}
+
+		// tick (uint64)
+		if tickVal := eventTbl.RawGetString("tick"); tickVal != lua.LNil {
+			ev.Tick = uint64(L.ToIntX(tickVal, 0))
+		}
+
+		// source (string)
+		if srcVal := eventTbl.RawGetString("source"); srcVal != lua.LNil {
+			ev.Source = L.ToStringX(srcVal, "")
+		}
+
+		// data (table -> map[string]any)
+		if dataVal := eventTbl.RawGetString("data"); dataVal != lua.LNil {
+			if dataTbl, ok := dataVal.(*lua.LTable); ok {
+				ev.Data = luaTableToMap(L, dataTbl)
+			}
+		}
+
+		events = append(events, ev)
+	})
+	return events
+}
+
+// luaTableToMap converts a Lua table with string keys to a Go map[string]any.
+func luaTableToMap(L *lua.LState, tbl *lua.LTable) map[string]any {
+	m := make(map[string]any)
+	tbl.ForEach(func(k, v lua.LValue) {
+		key, ok := k.(lua.LString)
+		if !ok {
+			return
+		}
+		m[string(key)] = luaValueToGo(L, v)
+	})
+	return m
 }
 
 func bindEntity(L *lua.LState, e *entity.Entity, tick uint64) {
