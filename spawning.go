@@ -116,6 +116,7 @@ func spawnEntity(rule *SpawnRule, em *entity.Manager, tick, idx int, rng *rand.R
 		HomeLocation: rule.LocationID,
 	}
 	equipSpawn(ent, rule, rng)
+	ent.XP = randomXPForLevel(level, rng.Intn)
 	em.Add(ent)
 	return ent
 }
@@ -296,6 +297,16 @@ func clampInt(v, min, max int) int {
 	return v
 }
 
+// randomXPForLevel returns a random XP value for a given level.
+// The XP is randomized from 0 up to (but not including) the level-up threshold,
+// so the entity stays at its intended level.
+func randomXPForLevel(level int, rng func(int) int) int {
+	if level <= 0 {
+		return 0
+	}
+	return rng(level * 100)
+}
+
 // CanMate checks whether two entities are compatible for reproduction.
 func CanMate(a, b *entity.Entity) bool {
 	if a == nil || b == nil {
@@ -363,6 +374,9 @@ func SpawnBaby(parent1, parent2 *entity.Entity, id, babyName string, tick uint64
 	parent2.AddRelationship(baby.ID, entity.RelationshipParent, tick)
 	baby.AddRelationship(parent1.ID, entity.RelationshipChild, tick)
 	baby.AddRelationship(parent2.ID, entity.RelationshipChild, tick)
+
+	// Give the baby a random amount of XP appropriate for its level.
+	baby.XP = randomXPForLevel(1, rng)
 
 	return baby
 }
@@ -620,5 +634,7 @@ func createSeededEntity(species, gender string, level int, locID string, rng *ra
 		SleepCycle:   defaultSleepCycle(species),
 		HomeLocation: locID,
 	}
+	// Seeded entities start with a random amount of XP appropriate for their level.
+	ent.XP = randomXPForLevel(level, rng.Intn)
 	return ent
 }
