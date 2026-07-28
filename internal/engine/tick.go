@@ -61,7 +61,7 @@ func (s *Simulation) Unlock()  { s.mu.Unlock() }
 
 func NewSimulation(w *world.World) *Simulation {
 	qm := quest.NewManager()
-	qm.OnQuestComplete = func(entityID, questID string, rewards *quest.Rewards) {
+	qm.OnQuestComplete = func(sim *Simulation, entityID, questID string, rewards *quest.Rewards) {
 		if rewards == nil {
 			return
 		}
@@ -69,7 +69,7 @@ func NewSimulation(w *world.World) *Simulation {
 		if ent == nil || !ent.Alive {
 			return
 		}
-		if rewards.Experience > 0 && entity.CanLevelUp(ent.Species) {
+		if rewards.Experience > 0 && entity.GetSpecies(ent.Species).CanLevelUp {
 			ent.AddXP(rewards.Experience)
 			log.Printf("[quest] %s earned %d XP from quest '%s'", ent.Name, rewards.Experience, questID)
 		}
@@ -78,6 +78,7 @@ func NewSimulation(w *world.World) *Simulation {
 				ent.AddItem(items.NewItemInstance("gold_"+questID+fmt.Sprint(i), "gp", items.GetDef("gp"), 1))
 			}
 		}
+
 	}
 	sim := &Simulation{
 		Tick:         0,
@@ -548,7 +549,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 					Source: ent.ID,
 					Data:   map[string]any{"target": target.ID, "attacker": ent.ID},
 				})
-				rewardXP(ent, target)
+				rewardXP(sim, ent, target)
 				questKilled(sim, target)
 			}
 			return
@@ -584,7 +585,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 					Source: ent.ID,
 					Data:   map[string]any{"target": target.ID, "attacker": ent.ID},
 				})
-				rewardXP(ent, target)
+				rewardXP(sim, ent, target)
 				questKilled(sim, target)
 			}
 			return
@@ -619,7 +620,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 					Source: ent.ID,
 					Data:   map[string]any{"target": target.ID, "attacker": ent.ID},
 				})
-				rewardXP(ent, target)
+				rewardXP(sim, ent, target)
 				questKilled(sim, target)
 			}
 			return
@@ -764,7 +765,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 					Source: ent.ID,
 					Data:   map[string]any{"target": target.ID, "attacker": ent.ID},
 				})
-				rewardXP(ent, target)
+				rewardXP(sim, ent, target)
 				questKilled(sim, target)
 			}
 		}
@@ -1055,7 +1056,7 @@ func fleeFromCombat(sim *Simulation, ent *entity.Entity, hostiles []*entity.Enti
 		applyCombatMoods(attacker, ent, hit)
 		if !ent.Alive {
 			combat.LootCorpse(attacker, ent)
-			rewardXP(attacker, ent)
+			rewardXP(sim, attacker, ent)
 			questKilled(sim, ent)
 			sim.Emit(events.SimEvent{
 				Type:   events.EventEntityKilled,
@@ -1111,7 +1112,7 @@ func retreatOpportunityAttack(sim *Simulation, attacker, defender *entity.Entity
 	applyCombatMoods(attacker, defender, hit)
 	if !defender.Alive {
 		combat.LootCorpse(attacker, defender)
-		rewardXP(attacker, defender)
+		rewardXP(sim, attacker, defender)
 		questKilled(sim, defender)
 		sim.Emit(events.SimEvent{
 			Type:   events.EventEntityKilled,
@@ -1179,7 +1180,7 @@ func defendPassiveSelf(ent *entity.Entity, sim *Simulation) bool {
 			Source: ent.ID,
 			Data:   map[string]any{"target": target.ID, "attacker": ent.ID},
 		})
-		rewardXP(ent, target)
+		rewardXP(sim, ent, target)
 		questKilled(sim, target)
 	}
 	return true
@@ -1395,8 +1396,8 @@ func simpleAttackAt(sim *Simulation, attacker, defender *entity.Entity) bool {
 	return hit
 }
 
-func rewardXP(killer, target *entity.Entity) {
-	if !entity.CanLevelUp(killer.Species) {
+func rewardXP(sim *Simulation, killer, target *entity.Entity) {
+	if !entity.GetSpecies(killer.Species).CanLevelUp {
 		return
 	}
 	xp := 5 + target.Level*3 + target.MaxHP/10
@@ -1406,6 +1407,11 @@ func rewardXP(killer, target *entity.Entity) {
 	log.Printf("[xp] %s gained %d XP for killing %s", killer.Name, xp, target.Name)
 	killer.AddXP(xp)
 	killer.AddMoodModifier("combat_kill", "happy", 30)
+	sim.Emit(events.SimEvent{
+		Type: events.EventXPGained,
+		Tick: sim.Tick,
+		Data: map[string]interface{}{"EntityID": killer.ID, "XP": xp},
+	})
 	if killer.Faction != target.Faction {
 		combat.ShiftRelation(killer.Faction, target.Faction, -1)
 	}

@@ -27,7 +27,7 @@ type QuestActivity struct {
 	Message string `json:"message"`
 }
 
-type CompleteFn func(entityID, questID string, rewards *Rewards)
+type CompleteFn func(string, string, *Rewards)
 
 type Manager struct {
 	mu              sync.RWMutex
@@ -352,73 +352,6 @@ func (m *Manager) CheckDeliverItem(entityID, npcID, itemID string) {
 	}
 }
 
-func (m *Manager) checkStageCompletionLocked(entityID, questID string) {
-	def := m.defs[questID]
-	if def == nil {
-		return
-	}
-
-	state := m.states[entityID][questID]
-	if state == nil {
-		return
-	}
-
-	stageID := state.CurrentStage
-	var stage *StageDef
-	for i := range def.Stages {
-		if def.Stages[i].ID == stageID {
-			stage = &def.Stages[i]
-			break
-		}
-	}
-	if stage == nil {
-		return
-	}
-
-	for _, req := range stage.Requirements {
-		found := false
-		for _, cs := range state.CompletedStages {
-			if cs == req {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return
-		}
-	}
-
-	for _, obj := range stage.Objectives {
-		progress := state.Objectives[obj.ID]
-		if progress < obj.Count {
-			return
-		}
-	}
-
-	state.CompletedStages = append(state.CompletedStages, stageID)
-
-	nextIdx := -1
-	for i, s := range def.Stages {
-		if s.ID == stageID {
-			nextIdx = i + 1
-			break
-		}
-	}
-
-	if nextIdx >= 0 && nextIdx < len(def.Stages) {
-		state.CurrentStage = def.Stages[nextIdx].ID
-		m.addActivityLocked(state, "Completed stage '"+stageID+"'; moved to '"+state.CurrentStage+"'")
-	} else {
-		state.State = StateCompleted
-		m.addActivityLocked(state, "Quest completed")
-		if m.OnQuestComplete != nil {
-			m.OnQuestComplete(entityID, questID, def.Rewards)
-		}
-	}
-
-	m.triggerUnlocks(def, entityID)
-}
-
 func (m *Manager) triggerUnlocks(def *QuestDef, entityID string) {
 	if def.Rewards == nil || def.Rewards.Unlocks == nil {
 		return
@@ -537,6 +470,7 @@ func (m *Manager) checkStageCompletion(entityID, questID string) {
 		if m.OnQuestComplete != nil {
 			m.OnQuestComplete(entityID, questID, def.Rewards)
 		}
+		sim
 	}
 	m.triggerUnlocks(def, entityID)
 }
