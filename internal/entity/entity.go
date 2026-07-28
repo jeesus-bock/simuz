@@ -51,31 +51,13 @@ const (
 	GenderOther  = "other"
 )
 
-// Faction constants define the various factions in the world.
+// Faction constants define true voluntary group memberships — cults, religions,
+// political movements, and similar organized groups. Species and professions are
+// tracked separately on the Entity (Species, Profession fields).
 const (
-	FactionCivilian   = "civilian"
-	FactionMerchant   = "merchant"
-	FactionBandit     = "bandit"
-	FactionBeast      = "beast"
-	FactionVermin     = "vermin"
-	FactionGoblin     = "goblin"
-	FactionKobold     = "kobold"
-	FactionOrc        = "orc"
-	FactionDeity      = "deity"
-	FactionCult       = "cult"
-	FactionMilitia    = "militia"
-	FactionGang       = "gang"
-	FactionNoble      = "noble"
-	FactionScholar    = "scholar"
-	FactionCrafter    = "crafter"
-	FactionHunter     = "hunter"
-	FactionHerbalist  = "herbalist"
-	FactionPriest     = "priest"
-	FactionBard       = "bard"
-	FactionCourier    = "courier"
-	FactionInnkeeper  = "innkeeper"
-	FactionBlacksmith = "blacksmith"
-	FactionFarmer     = "farmer"
+	FactionCivilian = "civilian"
+	FactionCult     = "cult"
+	FactionDeity    = "deity"
 )
 
 type EntityActivity struct {
@@ -101,6 +83,7 @@ type Entity struct {
 	Name                 string                        `json:"name"`
 	Species              string                        `json:"species"`
 	Gender               string                        `json:"gender"`
+	Profession           string                        `json:"profession"`
 	Level                int                           `json:"level"`
 	Age                  int                           `json:"age"`
 	MaxAge               int                           `json:"max_age"`
@@ -149,6 +132,7 @@ func NewEntity(id, name, species string, attrs Attributes, level int) *Entity {
 		Name:          name,
 		Species:       species,
 		Gender:        randomGender(),
+		Profession:    "",
 		Level:         level,
 		Age:           0,
 		MaxAge:        SpeciesMaxAge(species),
