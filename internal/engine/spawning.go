@@ -115,12 +115,8 @@ func spawnEntity(rule *SpawnRule, em *entity.Manager, tick, idx int, rng *rand.R
 	ent.LocationID = rule.LocationID
 	ent.Faction = rule.Faction
 	ent.Profession = rule.Profession
-	if entity.GetSpecies(rule.Species).CanReproduce {
-		if rng.Intn(2) == 0 {
-			ent.Gender = "male"
-		} else {
-			ent.Gender = "female"
-		}
+	if species, exists := entity.GetSpeciesByID(rule.Species); exists && species.CanReproduce {
+		ent.Gender = entity.GetRndGender()
 	}
 	ent.AI = entity.EntityAI{
 		Type:         "scripted",
@@ -663,7 +659,7 @@ func createSeededEntity(species, gender string, level int, locID string, rng *ra
 	name := generateName(species, rng)
 	id := fmt.Sprintf("%s_seed_%s_%s_%d", species, gender, name, rng.Intn(100000))
 
-	ent := entity.NewEntity(id, name, species, attrs, level)
+	ent := entity.NewEntity(id, name, species, attrs, level, entity.Hostillities{}: make(map[string]entity.HostilityLevel))
 	ent.Gender = gender
 	ent.LocationID = locID
 	ent.Faction = "civilian"

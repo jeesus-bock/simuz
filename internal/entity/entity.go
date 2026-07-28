@@ -127,15 +127,19 @@ func NewEntity(id, name, species string, attrs Attributes, level int, hostilitie
 	if maxFP < 1 {
 		maxFP = 1
 	}
+	maxAge := 0
+	if species, exists := GetSpeciesByID(species); exists {
+		maxAge = species.MaxAge
+	}
 	return &Entity{
 		ID:            id,
 		Name:          name,
 		Species:       species,
-		Gender:        randomGender(),
+		Gender:        GetRndGender(),
 		Profession:    "",
 		Level:         level,
 		Age:           0,
-		MaxAge:        GetSpecies(species).MaxAge,
+		MaxAge:        maxAge,
 		LastMealTick:  0,
 		Alive:         true,
 		Conscious:     true,
@@ -155,17 +159,18 @@ func NewEntity(id, name, species string, attrs Attributes, level int, hostilitie
 		Hostilities: hostilities,
 	}
 }
-
-// IsAdult returns true if the entity is old enough to reproduce.
-func (e *Entity) IsAdult() bool {
-	return e.Level >= 3 || e.Age >= GetSpecies(e.Species).AdultAge
-}
-
-func randomGender() string {
+func GetRndGender() string {
 	choices := []string{GenderMale, GenderFemale, GenderOther}
 	return choices[rand.Intn(len(choices))]
 }
 
+// IsAdult returns true if the entity is old enough to reproduce.
+func (e *Entity) IsAdult() bool {
+	if species, exists := GetSpeciesByID(e.Species); exists {
+		return e.Age >= species.AdultAge || e.Level >= 3
+	}
+	return false
+}
 func (e *Entity) TakeDamage(amount int) {
 	if amount < 0 {
 		return

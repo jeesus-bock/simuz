@@ -1,152 +1,5 @@
 package entity
 
-var RaceGenderNames = map[string]map[string][]string{
-	"elves": {
-		"male": {
-			"Leoleht",
-			"Urmasvalg",
-			"Sinitäht",
-			"Kuuvarjund",
-			"Tuulepesa",
-			"Kuldvibu",
-			"Hõbejuus",
-			"Aasalaul",
-			"Vihmatants",
-			"Valguse",
-			"Kastepiisk",
-			"Smaragdi",
-			"Tähesära",
-			"Pilvepiir",
-			"Ojahein",
-		},
-		"female": {
-			"Ilmatar",
-			"Kastepärl",
-			"Päikesekiir",
-			"Uduloor",
-			"Ööbiku",
-			"Sireli",
-			"Lilleleht",
-			"Helendus",
-			"Kuldjuus",
-			"Hingelind",
-			"Metsapiiga",
-			"Allikavesi",
-			"Pilvetee",
-			"Õiesilm",
-			"Härmatis",
-		},
-	},
-	"orcs": {
-		"male": {
-			"Mürsk",
-			"Kolge",
-			"Raudrusikas",
-			"Põmm",
-			"Kivirind",
-			"Porinägu",
-			"Räme",
-			"Kolv",
-			"Mudaauk",
-			"Kirvespea",
-			"Murru",
-			"Rusk",
-			"Känd",
-			"Tont",
-			"Päts",
-		},
-		"female": {
-			"Mürina",
-			"Raudmeel",
-			"Kiviraev",
-			"Rabakoll",
-			"Poritallaja",
-			"Raskesaabas",
-			"Kandiline",
-			"Tormi",
-			"Teravnuga",
-			"Karuema",
-			"Kandamil",
-			"Sõjatrumm",
-			"Tahmasilm",
-			"Raudnõges",
-			"Põlendik",
-		},
-	},
-	"fays": {
-		"male": {
-			"Sirts",
-			"Päkapikk",
-			"Kihulane",
-			"Säde",
-			"Putukas",
-			"Okas",
-			"Tirtsu",
-			"Kärbseseen",
-			"Virvendus",
-			"Pilveke",
-			"Tuulispask",
-			"Leheke",
-			"Puruvana",
-			"Kollake",
-			"Välek",
-		},
-		"female": {
-			"Marjake",
-			"Liblikas",
-			"Mesilane",
-			"Lepatriinu",
-			"Kastepiiga",
-			"Õietolm",
-			"Nõgese",
-			"Kullake",
-			"Pärlake",
-			"Haldjatants",
-			"Käopoeg",
-			"Lilleke",
-			"Sinitihane",
-			"Kirgas",
-			"Tuuleiil",
-		},
-	},
-	"dwarves": {
-		"male": {
-			"Mägra",
-			"Kullakang",
-			"Sepapoiss",
-			"Kirka",
-			"Suurkivi",
-			"Õllevaat",
-			"Habeme",
-			"Kaevur",
-			"Raudsaabas",
-			"Söetolm",
-			"Graniit",
-			"Tõrvik",
-			"Kamm",
-			"Vaskne",
-			"Paas",
-		},
-		"female": {
-			"Malm",
-			"Kalliskivi",
-			"Ahjusoe",
-			"Raudvara",
-			"Kullasoon",
-			"Keldri",
-			"Pliit",
-			"Kõvakivi",
-			"Sepapiiga",
-			"Alasi",
-			"Pätsike",
-			"Hõbevalge",
-			"Mõõdulint",
-			"Kirkasilm",
-			"Väävel",
-		},
-	},
-}
-
 // Species defines the base data for a creature species in the simulation.
 // It is the single source of truth for all species-related information.
 type Species struct {
@@ -166,6 +19,12 @@ type Species struct {
 	MaleNames           []string
 	FemaleNames         []string
 	BaseAttrs           Attributes
+	Hostilities         Hostilities
+}
+
+func GetSpeciesByID(id string) (Species, bool) {
+	species, exists := SpeciesRegistry[id]
+	return species, exists
 }
 
 // SpeciesRegistry is the one source of truth for all species data in simuz.
@@ -188,6 +47,7 @@ var SpeciesRegistry = map[string]Species{
 		MaleNames:           []string{"Aldric", "Brenna", "Cedric", "Delara", "Eamon", "Fiona", "Gareth", "Hilda", "Ivan", "Jenna", "Kol", "Lyssa", "Maren", "Nolan", "Opal", "Petra", "Quinn", "Rhea", "Soren", "Tessa"},
 		FemaleNames:         []string{"Aldrica", "Brenna", "Cedrica", "Delara", "Eamon", "Fiona", "Gareth", "Hilda", "Ivan", "Jenna", "Kol", "Lyssa", "Maren", "Nolan", "Opal", "Petra", "Quinn", "Rhea", "Soren", "Tessa"},
 		BaseAttrs:           Attributes{STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10},
+		Hostilities:         Hostilities{speciesRelations: HostilittyRelations{Hostile: []string{"orc", "goblin", "kobold"}, Friendly: []string{"elf", "fey"}}},
 	},
 	"elf": {
 		ID:                  "elf",
