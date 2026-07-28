@@ -113,7 +113,7 @@ func spawnEntity(rule *SpawnRule, em *entity.Manager, tick, idx int, rng *rand.R
 	ent.LocationID = rule.LocationID
 	ent.Faction = rule.Faction
 	ent.Profession = rule.Profession
-	if entity.CanReproduce(rule.Species) {
+	if entity.GetSpecies(rule.Species).CanReproduce {
 		if rng.Intn(2) == 0 {
 			ent.Gender = "male"
 		} else {

@@ -470,7 +470,6 @@ func (m *Manager) checkStageCompletion(entityID, questID string) {
 		if m.OnQuestComplete != nil {
 			m.OnQuestComplete(entityID, questID, def.Rewards)
 		}
-		sim
 	}
 	m.triggerUnlocks(def, entityID)
 }
