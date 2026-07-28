@@ -35,6 +35,14 @@ Notable runtime capabilities:
 - Items and economy: `world.add_item`, `world.use_item`, `world.try_buy`, `world.try_sell`, `world.craft`
 - Utility: `util.log`, `util.mem_set`, `util.mem_get`, `util.json_encode`, `util.json_decode`, `util.set_mood`
 
+Relationship accessors (on `self` and `world`):
+- `self.get_relationship(other_id)`, `self.get_relationships()`, `self.get_children()`, `self.get_parents()`, `self.get_partner()`
+- `self.get_relationship_type(other_id)`, `self.get_relationship_since(other_id)`, `self.has_relationship(other_id)`, `self.has_relationship_type(other_id, type)`, `self.is_related(other_id)`
+- `self.add_relationship(other_id, type, tick)`, `self.remove_relationship(other_id)`, `self.num_relationships()`
+- `world.get_relationship(entity_id, other_id)`, `world.get_children(entity_id)`, `world.get_parents(entity_id)`, `world.get_partner(entity_id)`
+- `world.get_relationship_type(entity_id, other_id)`, `world.get_relationship_since(entity_id, other_id)`, `world.has_relationship(entity_id, other_id)`, `world.has_relationship_type(entity_id, other_id, type)`, `world.is_related(entity_id, other_id)`
+- `world.add_relationship(entity_id, other_id, type, tick)`, `world.remove_relationship(entity_id, other_id)`, `world.num_relationships(entity_id)`
+
 If you need exact signatures or enum values, check the code instead of expanding this file.
 
 ## Systems Worth Preserving
@@ -52,9 +60,13 @@ If you need exact signatures or enum values, check the code instead of expanding
 - `NewEntity` assigns a random default gender (`male` or `female`) so spawned entities can mate.
 - `Entity` has a `LastReproductionTick` field for per-entity reproduction cooldown.
 - `IsAdult` returns true when entity level >= 3 (reproductive age).
-- `CanReproduce` returns true for species that can breed naturally (human, orc, elf, goblin, fey, rat_king, kobold, vampire, hag).
+- `CanReproduce` returns true for species that can breed naturally (human, orc, elf, goblin, fey, rat_king, kobold, vampire, hag, ogre, giant).
+- `IsCavemanSpecies` returns true for species that reproduce without forming mate bonds (orc, ogre, giant, troll, cyclops).
+- `Profession` is a string field on `Entity` for occupational identity (e.g., "bandit", "merchant", "farmer", "ranger", "bard", "fisherman"). It can be empty for entities with no specific profession.
+- `Faction` on `Entity` is narrow: it represents voluntary group membership only (cults, religions, political movements). Use `FactionCivilian`, `FactionCult`, `FactionDeity` constants. Species-based identities and occupational roles are stored in `Profession` or `FactionID` on the AI struct instead.
 - Reproduction logic (`processReproduction`) lives in `internal/engine/tick.go`.
 - Natural reproduction: adult male/female pairs of the same species at the same location have a 0.1% chance per tick to produce offspring.
+- Caveman species (orc, ogre, giant, etc.) have a 0.3% chance per tick and do not form mate bonds.
 - Reproduction is gated by:
   - Global entity cap of 5000
   - Per-location per-species population cap of 20
@@ -63,6 +75,8 @@ If you need exact signatures or enum values, check the code instead of expanding
 - `ProcessPregnancy` in `internal/engine/spawning.go` handles gestation completion.
 - Pregnancy gestation periods are per-species via `SpeciesGestationTicks`; falls back to 200 ticks.
 - Immortal/undead species (deity, vampire) cannot reproduce.
+- All spawned entities (seeded, natural birth, respawn) receive randomized XP appropriate for their level via `randomXPForLevel`.
+- Profession is inherited from parents during natural reproduction and can be set on spawn rules for scripted entities.
 
 ## Divine Realms
 

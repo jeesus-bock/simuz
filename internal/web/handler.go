@@ -153,7 +153,7 @@ func sortEntitiesForDisplay(entities []*entity.Entity) {
 		}
 		ni := strings.ToLower(entities[i].Name)
 		nj := strings.ToLower(entities[j].Name)
-		if ni != nj {
+		if !strings.EqualFold(entities[i].Name, entities[j].Name) {
 			return ni < nj
 		}
 		return entities[i].ID < entities[j].ID
@@ -170,7 +170,7 @@ func sortLocationsForDisplay(locs []*world.Location) {
 		}
 		ni := strings.ToLower(locs[i].Name)
 		nj := strings.ToLower(locs[j].Name)
-		if ni != nj {
+		if !strings.EqualFold(locs[i].Name, locs[j].Name) {
 			return ni < nj
 		}
 		return locs[i].ID < locs[j].ID
@@ -187,7 +187,7 @@ func sortInventoryForDisplay(items []items.ItemInstance) {
 		if items[j].Def != nil {
 			nj = strings.ToLower(items[j].Def.Name)
 		}
-		if ni != nj {
+		if !strings.EqualFold(ni, nj) {
 			return ni < nj
 		}
 		di := items[i].DefID
@@ -201,7 +201,7 @@ func sortInventoryForDisplay(items []items.ItemInstance) {
 
 func sortEffectsForDisplay(effects []entity.ActiveEffect) {
 	sort.SliceStable(effects, func(i, j int) bool {
-		if effects[i].Name != effects[j].Name {
+		if !strings.EqualFold(effects[i].Name, effects[j].Name) {
 			return strings.ToLower(effects[i].Name) < strings.ToLower(effects[j].Name)
 		}
 		if effects[i].StartTick != effects[j].StartTick {
@@ -215,7 +215,7 @@ func sortCombatZonesForDisplay(zones []combatZone) {
 	sort.SliceStable(zones, func(i, j int) bool {
 		ni := strings.ToLower(zones[i].LocationName)
 		nj := strings.ToLower(zones[j].LocationName)
-		if ni != nj {
+		if !strings.EqualFold(zones[i].LocationName, zones[j].LocationName) {
 			return ni < nj
 		}
 		return zones[i].LocationID < zones[j].LocationID
@@ -231,7 +231,7 @@ func hostileFactionMixExists(factions map[string]int) bool {
 		keys = append(keys, faction)
 	}
 	sortStringsByFoldAndRaw(keys)
-	for i := 0; i < len(keys); i++ {
+	for i := range keys {
 		for j := i + 1; j < len(keys); j++ {
 			if combat.Relation(keys[i], keys[j]) == combat.Hostile {
 				return true
@@ -257,7 +257,7 @@ func buildFactionRelationNotes(factions []string) []string {
 		return nil
 	}
 	notes := make([]string, 0, len(factions))
-	for i := 0; i < len(factions); i++ {
+	for i := range factions {
 		for j := i + 1; j < len(factions); j++ {
 			rel := combat.Relation(factions[i], factions[j])
 			if rel == combat.Hostile {
@@ -274,7 +274,7 @@ func sortExitsForDisplay(exits []exitView) {
 	sort.SliceStable(exits, func(i, j int) bool {
 		ni := strings.ToLower(exits[i].TargetName)
 		nj := strings.ToLower(exits[j].TargetName)
-		if ni != nj {
+		if !strings.EqualFold(exits[i].TargetName, exits[j].TargetName) {
 			return ni < nj
 		}
 		if exits[i].Direction != exits[j].Direction {
@@ -288,7 +288,7 @@ func sortStringsByFoldAndRaw(values []string) {
 	sort.SliceStable(values, func(i, j int) bool {
 		li := strings.ToLower(values[i])
 		lj := strings.ToLower(values[j])
-		if li != lj {
+		if !strings.EqualFold(values[i], values[j]) {
 			return li < lj
 		}
 		return values[i] < values[j]
@@ -299,7 +299,7 @@ func sortTravelersForDisplay(travelers []travelerView) {
 	sort.SliceStable(travelers, func(i, j int) bool {
 		ni := strings.ToLower(travelers[i].Name)
 		nj := strings.ToLower(travelers[j].Name)
-		if ni != nj {
+		if !strings.EqualFold(travelers[i].Name, travelers[j].Name) {
 			return ni < nj
 		}
 		return travelers[i].EntityID < travelers[j].EntityID
@@ -392,7 +392,7 @@ func buildCombatGroups(entities []*entity.Entity) (active []combatGroup, downed 
 			if vs[i].StateRank != vs[j].StateRank {
 				return vs[i].StateRank < vs[j].StateRank
 			}
-			if strings.ToLower(vs[i].Name) != strings.ToLower(vs[j].Name) {
+			if !strings.EqualFold(vs[i].Name, vs[j].Name) {
 				return strings.ToLower(vs[i].Name) < strings.ToLower(vs[j].Name)
 			}
 			return vs[i].ID < vs[j].ID
@@ -906,10 +906,7 @@ func buildTravelRouteView(sim *engine.Simulation, ent *entity.Entity) *travelRou
 	if len(route) == 0 {
 		return nil
 	}
-	currentIdx := ts.RouteIndex
-	if currentIdx < 0 {
-		currentIdx = 0
-	}
+	currentIdx := max(ts.RouteIndex, 0)
 	if currentIdx >= len(route) {
 		currentIdx = len(route) - 1
 	}
@@ -974,10 +971,7 @@ func buildTravelerViews(sim *engine.Simulation, locID string) []travelerView {
 		if len(route) == 0 {
 			route = []string{ts.FromID, ts.ToID}
 		}
-		currentIdx := ts.RouteIndex
-		if currentIdx < 0 {
-			currentIdx = 0
-		}
+		currentIdx := max(ts.RouteIndex, 0)
 		if len(route) > 0 && currentIdx >= len(route) {
 			currentIdx = len(route) - 1
 		}
@@ -1275,12 +1269,12 @@ func annotateMapTravelers(nodes []mapNode, travelers []travelerView) {
 			}
 			countsByLoc[step.ID]++
 			notesByLoc[step.ID] = append(notesByLoc[step.ID], fmt.Sprintf("%s: %s (%d/%d, %dt)",
-					tv.Name,
-					routeText,
-					currentIdx+1,
-					len(tv.Route),
-					tv.Eta,
-				))
+				tv.Name,
+				routeText,
+				currentIdx+1,
+				len(tv.Route),
+				tv.Eta,
+			))
 		}
 	}
 	var walk func([]mapNode)
@@ -1666,18 +1660,30 @@ func buildPregnantEntities(sim *engine.Simulation) []pregnantEntityView {
 
 func buildRecentBirths(sim *engine.Simulation) []recentBirthView {
 	var out []recentBirthView
-	events := combat.LocationEvents("", 500)
-	for _, evt := range events {
-		if evt.Action != "birth" {
+	for _, evt := range sim.EventsCopy() {
+		if evt.Type != engine.EventEntityBorn {
 			continue
 		}
-		parent := sim.Entities.Get(evt.AttackerID)
-		parentName := evt.AttackerID
+		data := evt.Data
+		var parentID string
+		var offspringID string
+		if mother, ok := data["mother"].(string); ok {
+			parentID = mother
+		} else if father, ok := data["father"].(string); ok {
+			parentID = father
+		}
+		if sourceID, ok := data["child"].(string); ok {
+			offspringID = sourceID
+		} else {
+			offspringID = evt.Source
+		}
+		parent := sim.Entities.Get(parentID)
+		parentName := parentID
 		if parent != nil {
 			parentName = parent.Name
 		}
-		offspring := sim.Entities.Get(evt.DefenderID)
-		offspringName := evt.DefenderName
+		offspring := sim.Entities.Get(offspringID)
+		offspringName := offspringID
 		species := ""
 		gender := ""
 		if offspring != nil {
@@ -1686,11 +1692,11 @@ func buildRecentBirths(sim *engine.Simulation) []recentBirthView {
 			gender = offspring.Gender
 		}
 		out = append(out, recentBirthView{
-			OffspringID:   evt.DefenderID,
+			OffspringID:   offspringID,
 			OffspringName: offspringName,
 			Species:       species,
 			Gender:        gender,
-			ParentID:      evt.AttackerID,
+			ParentID:      parentID,
 			ParentName:    parentName,
 			Tick:          evt.Tick,
 		})
