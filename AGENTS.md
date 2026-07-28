@@ -62,8 +62,8 @@ If you need exact signatures or enum values, check the code instead of expanding
 - `IsAdult` returns true when entity level >= 3 (reproductive age).
 - `CanReproduce` returns true for species that can breed naturally (human, orc, elf, goblin, fey, rat_king, kobold, vampire, hag, ogre, giant).
 - `IsCavemanSpecies` returns true for species that reproduce without forming mate bonds (orc, ogre, giant, troll, cyclops).
-- `Profession` is a string field on `Entity` for occupational identity (e.g., "bandit", "merchant", "farmer").
-- `Faction` on `Entity` is now narrow: it represents voluntary group membership only (cults, religions, political movements). Use `FactionCivilian`, `FactionCult`, `FactionDeity` constants. Species-based factions (orc, bandit, etc.) are stored in `Profession` or `FactionID` on the AI struct instead.
+- `Profession` is a string field on `Entity` for occupational identity (e.g., "bandit", "merchant", "farmer", "ranger", "bard", "fisherman"). It can be empty for entities with no specific profession.
+- `Faction` on `Entity` is narrow: it represents voluntary group membership only (cults, religions, political movements). Use `FactionCivilian`, `FactionCult`, `FactionDeity` constants. Species-based identities and occupational roles are stored in `Profession` or `FactionID` on the AI struct instead.
 - Reproduction logic (`processReproduction`) lives in `internal/engine/tick.go`.
 - Natural reproduction: adult male/female pairs of the same species at the same location have a 0.1% chance per tick to produce offspring.
 - Caveman species (orc, ogre, giant, etc.) have a 0.3% chance per tick and do not form mate bonds.
@@ -76,6 +76,7 @@ If you need exact signatures or enum values, check the code instead of expanding
 - Pregnancy gestation periods are per-species via `SpeciesGestationTicks`; falls back to 200 ticks.
 - Immortal/undead species (deity, vampire) cannot reproduce.
 - All spawned entities (seeded, natural birth, respawn) receive randomized XP appropriate for their level via `randomXPForLevel`.
+- Profession is inherited from parents during natural reproduction and can be set on spawn rules for scripted entities.
 
 ## Divine Realms
 

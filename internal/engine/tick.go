@@ -423,6 +423,10 @@ func processReproduction(s *Simulation) {
 		if child.Faction == "" {
 			child.Faction = father.Faction
 		}
+		child.Profession = mother.Profession
+		if child.Profession == "" {
+			child.Profession = father.Profession
+		}
 		child.AI = entity.EntityAI{
 			Type:         "passive",
 			SleepCycle:   defaultSleepCycle(mother.Species),
@@ -780,8 +784,10 @@ func shouldDefendPassive(ent *entity.Entity) bool {
 	if strings.HasPrefix(strings.ToLower(ent.Name), "child ") {
 		return false
 	}
-	switch ent.Faction {
-	case "civilian", "merchant", "bard", "courier", "innkeeper", "blacksmith", "priest", "herbalist", "miner", "farmer":
+	// Profession-based check: civilian professions defend their area.
+	// Bandits and other aggressive professions do not.
+	switch ent.Profession {
+	case "civilian", "merchant", "bard", "courier", "innkeeper", "blacksmith", "priest", "herbalist", "miner", "farmer", "fisherman", "gatherer", "craftsman", "scholar":
 		return true
 	default:
 		return false
