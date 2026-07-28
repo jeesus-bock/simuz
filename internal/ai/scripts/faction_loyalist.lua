@@ -92,7 +92,7 @@ local function do_tick()
     if #factionMembers > 0 then
         for _, id in ipairs(factionMembers) do
             local info = world.entity_info(id)
-            if info and info.hp < info.maxHP * 0.5 then
+            if info and info.hp < info.max_hp * 0.5 then
                 world.heal(id, 3)
                 util.log(self.name .. " healed faction member " .. world.entity_name(id))
                 return
