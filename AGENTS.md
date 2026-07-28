@@ -23,27 +23,16 @@ Simuz is a Go-based world simulation game with:
 - The locations page keeps its tree/map view selection in browser storage so SSE swaps do not reset it.
 - Use markers, badges, or explicit labels for active-state UI instead of letting ordering imply state.
 
-## Lua / World API
+## Lua Scripting
 
-The runtime exposes `self`, `world`, and `util` tables.
+Full API reference for Lua scripting is in `docs/lua-scripting.md`.
 
-Notable runtime capabilities:
-- Movement and travel: `world.move_to`, `world.is_traveling`, `world.travel_exits`, `world.parent_location`
-- Entities and combat: `world.entity_info`, `world.entities_at`, `world.nearby_entities`, `world.attack`, `world.heal`
-- Social/quest hooks: `world.talk_to`, `world.give_quest`, `world.quest_progress`, `world.quest_set`
-- Rescue/travel leash support: `world.drag_entity`, `world.undrag_entity`, `world.is_leashed`, `world.start_rescue`, `world.complete_rescue`
-- Items and economy: `world.add_item`, `world.use_item`, `world.try_buy`, `world.try_sell`, `world.craft`
-- Utility: `util.log`, `util.mem_set`, `util.mem_get`, `util.json_encode`, `util.json_decode`, `util.set_mood`
-
-Relationship accessors (on `self` and `world`):
-- `self.get_relationship(other_id)`, `self.get_relationships()`, `self.get_children()`, `self.get_parents()`, `self.get_partner()`
-- `self.get_relationship_type(other_id)`, `self.get_relationship_since(other_id)`, `self.has_relationship(other_id)`, `self.has_relationship_type(other_id, type)`, `self.is_related(other_id)`
-- `self.add_relationship(other_id, type, tick)`, `self.remove_relationship(other_id)`, `self.num_relationships()`
-- `world.get_relationship(entity_id, other_id)`, `world.get_children(entity_id)`, `world.get_parents(entity_id)`, `world.get_partner(entity_id)`
-- `world.get_relationship_type(entity_id, other_id)`, `world.get_relationship_since(entity_id, other_id)`, `world.has_relationship(entity_id, other_id)`, `world.has_relationship_type(entity_id, other_id, type)`, `world.is_related(entity_id, other_id)`
-- `world.add_relationship(entity_id, other_id, type, tick)`, `world.remove_relationship(entity_id, other_id)`, `world.num_relationships(entity_id)`
-
-If you need exact signatures or enum values, check the code instead of expanding this file.
+Key points:
+- Scripts are loaded from `internal/ai/scripts/` and execute once per tick.
+- Each script defines a `do_tick()` function as the main entry point.
+- Scripts have access to `self` (the entity), `world` (game state & actions), and `util` (helpers).
+- Scripts can return up to three values: `didAct`, log messages, and event tables.
+- The `events` package (`internal/events/engine.go`) defines `SimEvent` for scripted AI actions.
 
 ## Systems Worth Preserving
 
@@ -65,13 +54,8 @@ If you need exact signatures or enum values, check the code instead of expanding
 - `Profession` is a string field on `Entity` for occupational identity (e.g., "bandit", "merchant", "farmer", "ranger", "bard", "fisherman"). It can be empty for entities with no specific profession.
 - `Faction` on `Entity` is narrow: it represents voluntary group membership only (cults, religions, political movements). Use `FactionCivilian`, `FactionCult`, `FactionDeity` constants. Species-based identities and occupational roles are stored in `Profession` or `FactionID` on the AI struct instead.
 - Reproduction logic (`processReproduction`) lives in `internal/engine/tick.go`.
-- Natural reproduction: adult male/female pairs of the same species at the same location have a 0.1% chance per tick to produce offspring.
-- Caveman species (orc, ogre, giant, etc.) have a 0.3% chance per tick and do not form mate bonds.
-- Reproduction is gated by:
-  - Global entity cap of 5000
-  - Per-location per-species population cap of 20
-  - Per-entity cooldown of 1000 ticks (~16 minutes)
-- `averageAttrs` computes child attributes as parent average with small random variance.
+- Natural reproduction: adult male/female pairs of the same species at the same location have a small chance to produce offspring, gated by cooldown and population caps.
+- Caveman species (orc, ogre, giant, etc.) have a higher reproduction chance and do not form mate bonds.
 - `ProcessPregnancy` in `internal/engine/spawning.go` handles gestation completion.
 - Pregnancy gestation periods are per-species via `SpeciesGestationTicks`; falls back to 200 ticks.
 - Immortal/undead species (deity, vampire) cannot reproduce.

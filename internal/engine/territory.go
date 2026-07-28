@@ -1,3 +1,4 @@
+// Package engine contains the simulation engine, tick processing, and related systems.
 package engine
 
 import (
@@ -16,10 +17,6 @@ func processTerritory(s *Simulation) {
 		return
 	}
 	// Count force per location by faction (level-weighted)
-	type force struct {
-		faction string
-		power   int
-	}
 	locPower := make(map[string]map[string]int)
 	for _, e := range s.Entities.All() {
 		if !e.Alive || e.Faction == "" || e.Faction == "deity" {

@@ -1,3 +1,4 @@
+// Package storage defines the persistence interfaces and SQLite-backed implementation used by the simulation.
 package storage
 
 import (
@@ -131,7 +132,9 @@ func (s *SQLiteStore) migrate() error {
 		"ALTER TABLE locations ADD COLUMN exits_json TEXT DEFAULT '[]'",
 	}
 	for _, q := range alterQueries {
-		s.db.Exec(q)
+		if _, err := s.db.Exec(q); err != nil {
+			return fmt.Errorf("alter %q: %w", q[:40], err)
+		}
 	}
 	log.Printf("Database migrated at %s", s.path)
 	return nil
@@ -150,7 +153,9 @@ func (s *SQLiteStore) Save(sim *engine.Simulation) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	_, err = tx.Exec(`INSERT OR REPLACE INTO world_state (id, tick, day, hour, minute, speed) VALUES (1, ?, ?, ?, ?, ?)`,
 		sim.Tick, sim.Time.Day, sim.Time.Hour, sim.Time.Minute, sim.Time.Speed, combat.RelationsJSON())
@@ -309,6 +314,9 @@ func (s *SQLiteStore) Load() (*engine.Simulation, error) {
 
 		w.AddLocation(loc)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read locations: %w", err)
+	}
 
 	sim := engine.NewSimulation(w)
 	sim.Tick = tick
@@ -335,7 +343,9 @@ func (s *SQLiteStore) Load() (*engine.Simulation, error) {
 		}
 
 		var attrs entity.Attributes
-		json.Unmarshal([]byte(attrsJSON), &attrs)
+		if err := json.Unmarshal([]byte(attrsJSON), &attrs); err != nil {
+			return nil, fmt.Errorf("unmarshal attrs for %s: %w", id, err)
+		}
 
 		ent := entity.NewEntity(id, name, species, attrs, level)
 		ent.Alive = alive == 1
@@ -353,26 +363,36 @@ func (s *SQLiteStore) Load() (*engine.Simulation, error) {
 		ent.Position = entity.Position{X: posX, Y: posY}
 
 		var ai entity.EntityAI
-		json.Unmarshal([]byte(aiJSON), &ai)
+		if err := json.Unmarshal([]byte(aiJSON), &ai); err != nil {
+			return nil, fmt.Errorf("unmarshal ai for %s: %w", id, err)
+		}
 		ent.AI = ai
 
 		ent.Faction = faction
 		ent.Skills = make(map[string]int)
-		json.Unmarshal([]byte(skillsJSON), &ent.Skills)
+		if err := json.Unmarshal([]byte(skillsJSON), &ent.Skills); err != nil {
+			return nil, fmt.Errorf("unmarshal skills for %s: %w", id, err)
+		}
 
 		ent.Flags = make(map[string]any)
 		if flagsJSON != "null" {
-			json.Unmarshal([]byte(flagsJSON), &ent.Flags)
+			if err := json.Unmarshal([]byte(flagsJSON), &ent.Flags); err != nil {
+				return nil, fmt.Errorf("unmarshal flags for %s: %w", id, err)
+			}
 		}
 
 		ent.Inventory = make([]items.ItemInstance, 0)
 		if inventoryJSON != "null" {
-			json.Unmarshal([]byte(inventoryJSON), &ent.Inventory)
+			if err := json.Unmarshal([]byte(inventoryJSON), &ent.Inventory); err != nil {
+				return nil, fmt.Errorf("unmarshal inventory for %s: %w", id, err)
+			}
 		}
 
 		if equipmentJSON != "null" {
 			var eq entity.Equipment
-			json.Unmarshal([]byte(equipmentJSON), &eq)
+			if err := json.Unmarshal([]byte(equipmentJSON), &eq); err != nil {
+				return nil, fmt.Errorf("unmarshal equipment for %s: %w", id, err)
+			}
 			ent.Equipment = eq
 		}
 
@@ -384,6 +404,9 @@ func (s *SQLiteStore) Load() (*engine.Simulation, error) {
 		}
 
 		sim.Entities.Add(ent)
+	}
+	if err := entRows.Err(); err != nil {
+		return nil, fmt.Errorf("read entities: %w", err)
 	}
 
 	questRows, err := s.db.Query(`SELECT entity_id, quest_id, state, current_stage, completed_stages_json, objectives_json, variables_json, activity_json, accepted_tick FROM entity_quests`)
@@ -403,28 +426,39 @@ func (s *SQLiteStore) Load() (*engine.Simulation, error) {
 
 			var completedStages []string
 			if completedStagesJSON.Valid && completedStagesJSON.String != "" {
-				json.Unmarshal([]byte(completedStagesJSON.String), &completedStages)
+				if err := json.Unmarshal([]byte(completedStagesJSON.String), &completedStages); err != nil {
+					log.Printf("Warning: could not unmarshal completed stages for %s/%s: %v", entityID, questID, err)
+				}
 			}
 
 			objectives := make(map[string]int)
 			if objectivesJSON.Valid && objectivesJSON.String != "" {
-				json.Unmarshal([]byte(objectivesJSON.String), &objectives)
+				if err := json.Unmarshal([]byte(objectivesJSON.String), &objectives); err != nil {
+					log.Printf("Warning: could not unmarshal objectives for %s/%s: %v", entityID, questID, err)
+				}
 			}
 
 			variables := make(map[string]any)
 			if variablesJSON.Valid && variablesJSON.String != "" {
-				json.Unmarshal([]byte(variablesJSON.String), &variables)
+				if err := json.Unmarshal([]byte(variablesJSON.String), &variables); err != nil {
+					log.Printf("Warning: could not unmarshal variables for %s/%s: %v", entityID, questID, err)
+				}
 			}
 
 			var activity []quest.QuestActivity
 			if activityJSON.Valid && activityJSON.String != "" {
-				json.Unmarshal([]byte(activityJSON.String), &activity)
+				if err := json.Unmarshal([]byte(activityJSON.String), &activity); err != nil {
+					log.Printf("Warning: could not unmarshal activity for %s/%s: %v", entityID, questID, err)
+				}
 			}
 
 			sim.Quests.LoadState(entityID, questID, quest.State(stateStr), currentStage, completedStages, objectives, variables, acceptedTick)
 			if state := sim.Quests.GetState(entityID, questID); state != nil {
 				state.Activity = activity
 			}
+		}
+		if err := questRows.Err(); err != nil {
+			return nil, fmt.Errorf("read quest states: %w", err)
 		}
 	}
 

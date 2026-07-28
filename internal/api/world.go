@@ -1,3 +1,4 @@
+// Package api provides the HTTP API router and handlers for world, entity, and quest data.
 package api
 
 import (
@@ -117,7 +118,7 @@ func (h *Handler) GetLocation(c *gin.Context) {
 		}
 		di, _ := exits[i]["direction"].(string)
 		dj, _ := exits[j]["direction"].(string)
-		if strings.ToLower(di) != strings.ToLower(dj) {
+		if !strings.EqualFold(di, dj) {
 			return strings.ToLower(di) < strings.ToLower(dj)
 		}
 		ti, _ := exits[i]["target_id"].(string)

@@ -1,3 +1,4 @@
+// Package world defines the simulation world model, locations, travel rules, and weather systems.
 package world
 
 import "math/rand"

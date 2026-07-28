@@ -1,3 +1,4 @@
+// Package items defines item definitions, instances, and registry support for the simulation.
 package items
 
 type SubstanceEffect struct {

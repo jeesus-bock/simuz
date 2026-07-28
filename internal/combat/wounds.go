@@ -1,3 +1,4 @@
+// Package combat contains the core combat rules, relation handling, and attack resolution helpers.
 package combat
 
 import (
@@ -6,12 +7,12 @@ import (
 )
 
 type Wound struct {
-	Location    items.HitLocation `json:"location"`
-	Damage      int               `json:"damage"`
-	DamageType  items.DamageType  `json:"damage_type"`
-	Crippled    bool              `json:"crippled"`
-	BleedingRate int              `json:"bleeding_rate"`
-	TickApplied uint64            `json:"tick_applied"`
+	Location     items.HitLocation `json:"location"`
+	Damage       int               `json:"damage"`
+	DamageType   items.DamageType  `json:"damage_type"`
+	Crippled     bool              `json:"crippled"`
+	BleedingRate int               `json:"bleeding_rate"`
+	TickApplied  uint64            `json:"tick_applied"`
 }
 
 type CrippleThreshold int

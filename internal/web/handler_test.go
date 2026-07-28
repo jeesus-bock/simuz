@@ -5,6 +5,7 @@ import (
 
 	"simuz/internal/engine"
 	"simuz/internal/entity"
+	"simuz/internal/events"
 )
 
 func TestBuildRecentBirthsUsesSimulationEventHistory(t *testing.T) {
@@ -20,8 +21,8 @@ func TestBuildRecentBirthsUsesSimulationEventHistory(t *testing.T) {
 	offspring.Faction = "civilian"
 	sim.Entities.Add(offspring)
 
-	sim.Emit(engine.SimEvent{
-		Type:   engine.EventEntityBorn,
+	sim.Emit(events.SimEvent{
+		Type:   events.EventEntityBorn,
 		Tick:   42,
 		Source: offspring.ID,
 		Data: map[string]any{

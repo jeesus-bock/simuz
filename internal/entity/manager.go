@@ -1,3 +1,4 @@
+// Package entity defines the simulation entities, their attributes, and related behaviors.
 package entity
 
 import "sync"
