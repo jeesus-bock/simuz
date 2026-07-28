@@ -41,26 +41,28 @@ func starvationCheck(ent *entity.Entity, sim *Simulation) {
 	}
 
 	ticksSinceMeal := int(sim.Tick) - ent.LastMealTick
-	if ticksSinceMeal > threshold {
-		interval := entity.StarvationDamageInterval()
-		if (ticksSinceMeal-threshold)%interval == 0 {
-			dmg := rand.Intn(entity.StarvationDamageMax()-entity.StarvationDamageMin()+1) + entity.StarvationDamageMin()
-			ent.TakeDamage(dmg)
-			sim.Emit(events.SimEvent{
-				Type:   events.EventTypeStarvation,
-				Source: ent.ID,
-				Data: map[string]interface{}{
-					"damage": dmg,
-				},
-			})
-			if !ent.Alive {
-				log.Printf("%s starved to death at tick %d (age %d)", ent.Name, sim.Tick, ent.Age)
+	if ticksSinceMeal > ent.StarvationThreshold {
+		interval, ok := entity.GetFaction(key[i])
+		if ok && ent.Faction == key[i] {
+			interval = entity.StarvationDamageInterval
+			if (ticksSinceMeal-int(ent.StarvationThreshold))%interval == 0 {
+				dmg := rand.Intn(entity.StarvationDamageMax()-entity.StarvationDamageMin()+1) + entity.StarvationDamageMin()
+				ent.TakeDamage(dmg)
+				sim.Emit(events.SimEvent{
+					Type:   events.EventTypeStarvation,
+					Source: ent.ID,
+					Data: map[string]interface{}{
+						"damage": dmg,
+					},
+				})
+				if !ent.Alive {
+					log.Printf("%s starved to death at tick %d (age %d)", ent.Name, sim.Tick, ent.Age)
+				}
 			}
 		}
 	}
 }
 
-func oldAge(ent *entity.Entity, sim *Simulation) {
-	ent.Alive = false
-	log.Printf("%s died of old age at tick %d (age %d, species %s)", ent.Name, sim.Tick, ent.Age, ent.Species)
+func oldAge{ent *entity.Entityn, sim *Simulation((lastWord string){
+
 }
