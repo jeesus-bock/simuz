@@ -503,7 +503,7 @@ func (g *Generator) generateBards() []*entity.Entity {
 			attrs.CHA = 16 + g.RNG.Intn(5)
 		}
 
-		ent := entity.NewEntity(b.id, b.name, "human", attrs, 1)
+		ent := entity.NewEntity(b.id, b.name, "human", attrs, 1, entity.CivilianHostilities)
 		ent.LocationID = b.startLoc
 		ent.AI = entity.EntityAI{
 			Type:         "scripted",
@@ -550,14 +550,14 @@ func (g *Generator) generateRatKingLair() []*entity.Entity {
 
 	var all []*entity.Entity
 	for i := 0; i < 2; i++ {
-		rat := entity.NewEntity("rat_scram"+fmt.Sprint(i), "Scram", "rat", ratAttrs1, 1)
+		rat := entity.NewEntity("rat_scram"+fmt.Sprint(i), "Scram", "rat", ratAttrs1, 1, entity.VerminHostilities)
 		rat.LocationID = "rat_king_lair_entrance"
 		rat.Faction = "vermin"
 		rat.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"defensive"}, FactionID: "vermin", SleepCycle: "none", HomeLocation: "rat_king_lair_entrance"}
 		all = append(all, rat)
 	}
 	for i := 0; i < 2; i++ {
-		rat := entity.NewEntity("rat_gleam"+fmt.Sprint(i), "Gleam", "rat", ratAttrs2, 2)
+		rat := entity.NewEntity("rat_gleam"+fmt.Sprint(i), "Gleam", "rat", ratAttrs2, 2, entity.VerminHostilities)
 		rat.LocationID = "rat_king_lair_corridor"
 		rat.Faction = "vermin"
 		rat.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"defensive"}, FactionID: "vermin", SleepCycle: "none", HomeLocation: "rat_king_lair_corridor"}
@@ -565,14 +565,14 @@ func (g *Generator) generateRatKingLair() []*entity.Entity {
 	}
 	// Rat scouts patrol around lair entrance
 	for i := 0; i < 2; i++ {
-		scout := entity.NewEntity("rat_scout"+fmt.Sprint(i), "Rat_Scout", "rat", ratAttrs1, 1)
+		scout := entity.NewEntity("rat_scout"+fmt.Sprint(i), "Rat_Scout", "rat", ratAttrs1, 1, entity.VerminHostilities)
 		scout.LocationID = "rat_king_lair_entrance"
 		scout.Faction = "vermin"
 		scout.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"scouting"}, FactionID: "vermin", SleepCycle: "none", HomeLocation: "rat_king_lair_entrance"}
 		all = append(all, scout)
 	}
 
-	ratKing := entity.NewEntity("rat_king", "Skreet the Unseen", "rat_king", entity.Attributes{STR: 18, DEX: 10, CON: 20, INT: 8, WIS: 12, CHA: 6}, 8)
+	ratKing := entity.NewEntity("rat_king", "Skreet the Unseen", "rat_king", entity.Attributes{STR: 18, DEX: 10, CON: 20, INT: 8, WIS: 12, CHA: 6}, 8, entity.VerminHostilities)
 	ratKing.LocationID = "rat_king_lair_throne"
 	ratKing.Faction = "vermin"
 	ratKing.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"rat_king"}, FactionID: "vermin", SleepCycle: "none"}
@@ -589,7 +589,7 @@ func (g *Generator) generateFisherman() []*entity.Entity {
 	pond.IsOutside = true
 	g.World.AddLocation(pond)
 
-	fisher := entity.NewEntity("stillwater_fisher", "Oswin", "human", entity.RandomAttributes(g.RNG.Intn), 2)
+	fisher := entity.NewEntity("stillwater_fisher", "Oswin", "human", entity.RandomAttributes(g.RNG.Intn), 2, entity.CivilianHostilities)
 	fisher.LocationID = "stillwater_pond"
 	fisher.Faction = "civilian"
 	fisher.AI = entity.EntityAI{
@@ -617,7 +617,7 @@ func (g *Generator) generateNewArchetypes() []*entity.Entity {
 	// Goblin gatherers — collect resources, avoid combat, but still armed
 	goblinAttrs := entity.Attributes{STR: 10, DEX: 14, CON: 10, INT: 6, WIS: 8, CHA: 4}
 	for i := 0; i < 2; i++ {
-		goblin := entity.NewEntity("goblin_gather_"+fmt.Sprint(i), "Goblin"+fmt.Sprint(i), "goblin", goblinAttrs, 1)
+		goblin := entity.NewEntity("goblin_gather_"+fmt.Sprint(i), "Goblin"+fmt.Sprint(i), "goblin", goblinAttrs, 1, entity.GoblinHostilities)
 		goblin.LocationID = "goblin_hollow"
 		goblin.Faction = "goblin"
 		goblin.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"gathering"}, FactionID: "goblin", SleepCycle: "diurnal", HomeLocation: "goblin_hollow"}
@@ -633,7 +633,7 @@ func (g *Generator) generateNewArchetypes() []*entity.Entity {
 
 	// Nature healer — a fey creature that heals injured entities
 	healerAttrs := entity.Attributes{STR: 6, DEX: 10, CON: 12, INT: 14, WIS: 18, CHA: 16}
-	healer := entity.NewEntity("fey_healer", "Willow", "fey", healerAttrs, 3)
+	healer := entity.NewEntity("fey_healer", "Willow", "fey", healerAttrs, 3, entity.CivilianHostilities)
 	healer.LocationID = "fey_glade"
 	healer.Faction = "fey"
 	healer.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"healing"}, FactionID: "fey", SleepCycle: "diurnal", HomeLocation: "fey_glade"}
@@ -643,7 +643,7 @@ func (g *Generator) generateNewArchetypes() []*entity.Entity {
 
 	// Defensive badger — stays in its territory, attacks only when cornered
 	badgerAttrs := entity.Attributes{STR: 12, DEX: 10, CON: 16, INT: 4, WIS: 10, CHA: 4}
-	badger := entity.NewEntity("badger_defensive", "Brutus", "badger", badgerAttrs, 2)
+	badger := entity.NewEntity("badger_defensive", "Brutus", "badger", badgerAttrs, 2, entity.BeastHostilities)
 	badger.LocationID = "bear_den"
 	badger.Faction = "beast"
 	badger.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"defensive"}, FactionID: "beast", SleepCycle: "diurnal", HomeLocation: "bear_den"}
@@ -671,7 +671,7 @@ func (g *Generator) generateNewCreatures() []*entity.Entity {
 
 	// Count Valerius - Vampire
 	vampireAttrs := entity.Attributes{STR: 18, DEX: 14, CON: 16, INT: 14, WIS: 12, CHA: 16}
-	vampire := entity.NewEntity("vampire_valerius", "Count Valerius", "vampire", vampireAttrs, 5)
+	vampire := entity.NewEntity("vampire_valerius", "Count Valerius", "vampire", vampireAttrs, ), entity.VampireHostilities)
 	vampire.LocationID = "coffin_chamber"
 	vampire.Faction = "undead"
 	vampire.MaxHP = 100

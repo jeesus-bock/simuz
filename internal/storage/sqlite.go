@@ -249,10 +249,6 @@ func (s *SQLiteStore) Load() (*engine.Simulation, error) {
 		return nil, fmt.Errorf("read world_state: %w", err)
 	}
 
-	if factionRelationsJSON.Valid {
-		combat.LoadRelationsJSON(factionRelationsJSON.String)
-	}
-
 	w := world.NewWorld()
 	gt := world.NewGameTime(speed)
 	gt.Tick = tick
@@ -347,7 +343,7 @@ func (s *SQLiteStore) Load() (*engine.Simulation, error) {
 			return nil, fmt.Errorf("unmarshal attrs for %s: %w", id, err)
 		}
 
-		ent := entity.NewEntity(id, name, species, attrs, level)
+		ent := entity.NewEntity(id, name, species, attrs, level, entity.EmptyHostilities)
 		ent.Alive = alive == 1
 		ent.Age = age
 		ent.MaxAge = maxAge

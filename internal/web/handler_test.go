@@ -11,12 +11,12 @@ import (
 func TestBuildRecentBirthsUsesSimulationEventHistory(t *testing.T) {
 	sim := engine.NewSimulation(nil)
 
-	parent := entity.NewEntity("parent", "Parent", "human", entity.Attributes{}, 3)
+	parent := entity.NewEntity("parent", "Parent", "human", entity.Attributes{}, 3, entity.CivilianHostilities)
 	parent.Gender = entity.GenderFemale
 	parent.Faction = "civilian"
 	sim.Entities.Add(parent)
 
-	offspring := entity.NewEntity("child", "Child", "human", entity.Attributes{}, 1)
+	offspring := entity.NewEntity("child", "Child", "human", entity.Attributes{}, 1, entity.CivilianHostilities)
 	offspring.Gender = entity.GenderFemale
 	offspring.Faction = "civilian"
 	sim.Entities.Add(offspring)
