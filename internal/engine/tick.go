@@ -27,29 +27,6 @@ type Storage interface {
 	Enabled() bool
 }
 
-type EventType int
-
-const (
-	EventEntityKilled EventType = iota
-	EventEntityTalked
-	EventLocationEntered
-	EventItemCollected
-	EventItemDelivered
-	EventItemUsed
-	EventCraftCompleted
-	EventTravelCompleted
-	EventTick
-	EventTimePassed
-	EventEntityBorn
-)
-
-type SimEvent struct {
-	Type   EventType
-	Tick   uint64
-	Source string
-	Data   map[string]any
-}
-
 type Simulation struct {
 	mu           sync.RWMutex
 	Tick         uint64
@@ -62,8 +39,8 @@ type Simulation struct {
 	Storage      Storage
 	RNG          *rand.Rand
 	running      bool
-	events       []SimEvent
-	listeners    []func(SimEvent)
+	events       []events.SimEvent
+	listeners    []func(events.SimEvent)
 	SpawnManager *SpawnManager
 	Traveling    map[string]*world.TravelState
 }
@@ -112,8 +89,8 @@ func NewSimulation(w *world.World) *Simulation {
 		Time:         world.NewGameTime(24),
 		RNG:          rand.New(rand.NewSource(time.Now().UnixNano())),
 		running:      false,
-		events:       make([]SimEvent, 0),
-		listeners:    make([]func(SimEvent), 0),
+		events:       make([]events.SimEvent, 0),
+		listeners:    make([]func(events.SimEvent), 0),
 		SpawnManager: NewSpawnManager(),
 		Traveling:    make(map[string]*world.TravelState),
 	}
@@ -132,27 +109,27 @@ func globalEntityManagerGet(id string) *entity.Entity {
 	return globalEntityManager.Get(id)
 }
 
-func (s *Simulation) OnEvent(fn func(SimEvent)) {
+func (s *Simulation) OnEvent(fn func(events.SimEvent)) {
 	s.listeners = append(s.listeners, fn)
 }
 
-func (s *Simulation) Emit(event SimEvent) {
+func (s *Simulation) Emit(event events.SimEvent) {
 	s.events = append(s.events, event)
 	for _, fn := range s.listeners {
 		fn(event)
 	}
 }
 
-func (s *Simulation) DrainEvents() []SimEvent {
+func (s *Simulation) DrainEvents() []events.SimEvent {
 	events := s.events
 	s.events = nil
 	return events
 }
 
-func (s *Simulation) EventsCopy() []SimEvent {
+func (s *Simulation) EventsCopy() []events.SimEvent {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	out := make([]SimEvent, len(s.events))
+	out := make([]events.SimEvent, len(s.events))
 	copy(out, s.events)
 	return out
 }
@@ -293,8 +270,8 @@ func (s *Simulation) TickOnce() {
 		s.Events.ProcessTick(s.Tick, s.World, s.RNG, s.Entities.All())
 	}
 
-	s.Emit(SimEvent{
-		Type: EventTick,
+	s.Emit(events.SimEvent{
+		Type: events.EventTick,
 		Tick: s.Tick,
 	})
 
@@ -471,8 +448,8 @@ func processReproduction(s *Simulation) {
 		mother.LastReproductionTick = s.Tick
 		father.LastReproductionTick = s.Tick
 		log.Printf("[birth] %s born to %s and %s at %s", child.Name, mother.Name, father.Name, key.locID)
-		s.Emit(SimEvent{
-			Type:   EventEntityBorn,
+		s.Emit(events.SimEvent{
+			Type:   events.EventEntityBorn,
 			Tick:   s.Tick,
 			Source: child.ID,
 			Data:   map[string]any{"mother": mother.ID, "father": father.ID, "species": mother.Species, "location": key.locID},
@@ -492,9 +469,18 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 				if sid == "" {
 					continue
 				}
-				if err := ai.RunScript(sid, ent, sim.World, sim.Entities, &sim.Time, sim.RNG, sim.Quests); err != nil {
-					log.Printf("AI script error for %s (%s): %v", ent.Name, sid, err)
+				scriptEvents, err := ai.RunScript(sid, ent, sim.World, sim.Entities, &sim.Time, sim.RNG, sim.Quests)
+				if err != nil {
+					log.Printf("AI  script error for %s (%s): %v", ent.Name, sid, err)
+					continue
 				}
+				if scriptEvents == nil {
+					continue
+				}
+				for _, event := range scriptEvents {
+					sim.Emit(*event)
+				}
+				break // Only run the first valid script per tick
 			}
 		}
 		return
@@ -556,8 +542,8 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			applyCombatMoods(ent, target, hit)
 			if !target.Alive {
 				combat.LootCorpse(ent, target)
-				sim.Emit(SimEvent{
-					Type:   EventEntityKilled,
+				sim.Emit(events.SimEvent{
+					Type:   events.EventEntityKilled,
 					Tick:   sim.Tick,
 					Source: ent.ID,
 					Data:   map[string]any{"target": target.ID, "attacker": ent.ID},
@@ -592,8 +578,8 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			applyCombatMoods(ent, target, hit)
 			if !target.Alive {
 				combat.LootCorpse(ent, target)
-				sim.Emit(SimEvent{
-					Type:   EventEntityKilled,
+				sim.Emit(events.SimEvent{
+					Type:   events.EventEntityKilled,
 					Tick:   sim.Tick,
 					Source: ent.ID,
 					Data:   map[string]any{"target": target.ID, "attacker": ent.ID},
@@ -627,8 +613,8 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			applyCombatMoods(ent, target, hit)
 			if !target.Alive {
 				combat.LootCorpse(ent, target)
-				sim.Emit(SimEvent{
-					Type:   EventEntityKilled,
+				sim.Emit(events.SimEvent{
+					Type:   events.EventEntityKilled,
 					Tick:   sim.Tick,
 					Source: ent.ID,
 					Data:   map[string]any{"target": target.ID, "attacker": ent.ID},
@@ -772,8 +758,8 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			applyCombatMoods(ent, target, hit)
 			if !target.Alive {
 				combat.LootCorpse(ent, target)
-				sim.Emit(SimEvent{
-					Type:   EventEntityKilled,
+				sim.Emit(events.SimEvent{
+					Type:   events.EventEntityKilled,
 					Tick:   sim.Tick,
 					Source: ent.ID,
 					Data:   map[string]any{"target": target.ID, "attacker": ent.ID},
@@ -1071,8 +1057,8 @@ func fleeFromCombat(sim *Simulation, ent *entity.Entity, hostiles []*entity.Enti
 			combat.LootCorpse(attacker, ent)
 			rewardXP(attacker, ent)
 			questKilled(sim, ent)
-			sim.Emit(SimEvent{
-				Type:   EventEntityKilled,
+			sim.Emit(events.SimEvent{
+				Type:   events.EventEntityKilled,
 				Tick:   sim.Tick,
 				Source: attacker.ID,
 				Data:   map[string]any{"target": ent.ID, "attacker": attacker.ID},
@@ -1127,8 +1113,8 @@ func retreatOpportunityAttack(sim *Simulation, attacker, defender *entity.Entity
 		combat.LootCorpse(attacker, defender)
 		rewardXP(attacker, defender)
 		questKilled(sim, defender)
-		sim.Emit(SimEvent{
-			Type:   EventEntityKilled,
+		sim.Emit(events.SimEvent{
+			Type:   events.EventEntityKilled,
 			Tick:   sim.Tick,
 			Source: attacker.ID,
 			Data:   map[string]any{"target": defender.ID, "attacker": attacker.ID},
@@ -1187,8 +1173,8 @@ func defendPassiveSelf(ent *entity.Entity, sim *Simulation) bool {
 	applyCombatMoods(ent, target, hit)
 	if !target.Alive {
 		combat.LootCorpse(ent, target)
-		sim.Emit(SimEvent{
-			Type:   EventEntityKilled,
+		sim.Emit(events.SimEvent{
+			Type:   events.EventEntityKilled,
 			Tick:   sim.Tick,
 			Source: ent.ID,
 			Data:   map[string]any{"target": target.ID, "attacker": ent.ID},

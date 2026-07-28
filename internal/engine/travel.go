@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"simuz/internal/entity"
+	"simuz/internal/events"
 	"simuz/internal/world"
 )
 
@@ -194,8 +195,8 @@ func processTravel(s *Simulation) {
 					SinceTick: s.Tick,
 				}
 				log.Printf("[travel] %s blocked from entering divine realm %s, travel aborted", ent.Name, nextID)
-				s.Emit(SimEvent{
-					Type:   EventTravelCompleted,
+				s.Emit(events.SimEvent{
+					Type:   events.EventTravelCompleted,
 					Tick:   s.Tick,
 					Source: ent.ID,
 					Data:   map[string]any{"from": ts.FromID, "to": ts.ToID, "blocked": true},
@@ -221,8 +222,8 @@ func processTravel(s *Simulation) {
 				s.Quests.CheckVisitLocation(ent.ID, ts.ToID)
 			}
 			log.Printf("[travel] %s arrived at %s", ent.Name, ts.ToID)
-			s.Emit(SimEvent{
-				Type:   EventTravelCompleted,
+			s.Emit(events.SimEvent{
+				Type:   events.EventTravelCompleted,
 				Tick:   s.Tick,
 				Source: ent.ID,
 				Data:   map[string]any{"from": ts.FromID, "to": ts.ToID, "route": ts.Route},
@@ -239,8 +240,8 @@ func processTravel(s *Simulation) {
 				s.Quests.CheckVisitLocation(ent.ID, ts.ToID)
 			}
 			log.Printf("[travel] %s arrived at %s", ent.Name, ts.ToID)
-			s.Emit(SimEvent{
-				Type:   EventTravelCompleted,
+			s.Emit(events.SimEvent{
+				Type:   events.EventTravelCompleted,
 				Tick:   s.Tick,
 				Source: ent.ID,
 				Data:   map[string]any{"from": ts.FromID, "to": ts.ToID},
