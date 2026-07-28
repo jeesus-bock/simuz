@@ -27,6 +27,7 @@ const (
 	EventEntityBorn
 	EventTypeQuestComplete
 	EventXPGained
+	EventTypeStarvation
 )
 
 type SimEvent struct {

@@ -1091,7 +1091,7 @@ func (h *Handler) EntityDetailPage(c *gin.Context) {
 	xpForNext := ent.Level * 100
 	xpPercent := 0
 	canLevelUp := false
-	if xpForNext > 0 && entity.CanLevelUp(ent.Species) {
+	if xpForNext > 0 && entity.GetSpecies(ent.Species).CanLevelUp {
 		xpPercent = ent.XP * 100 / xpForNext
 		if ent.XP >= xpForNext {
 			canLevelUp = true
@@ -1177,7 +1177,7 @@ func (h *Handler) EntityDetailFragment(c *gin.Context) {
 	xpForNext := ent.Level * 100
 	xpPercent := 0
 	canLevelUp := false
-	if xpForNext > 0 && entity.CanLevelUp(ent.Species) {
+	if xpForNext > 0 && entity.GetSpecies(ent.Species).CanLevelUp {
 		xpPercent = ent.XP * 100 / xpForNext
 		if ent.XP >= xpForNext {
 			canLevelUp = true

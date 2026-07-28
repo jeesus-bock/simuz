@@ -261,7 +261,7 @@ func (m *Manager) CheckCollectItem(entityID, itemID string) {
 				if obj.Type == "collect_items" && obj.ItemTemplate == itemID {
 					state.Objectives[obj.ID]++
 					m.addActivityLocked(state, "Collected '"+itemID+"' for objective '"+obj.ID+"'")
-					m.checkStageCompletionLocked(entityID, state.QuestID)
+					m.checkStageCompletion(entityID, state.QuestID)
 				}
 			}
 		}
