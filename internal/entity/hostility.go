@@ -2,6 +2,9 @@ package entity
 
 type HostilityRelation int
 
+func (r HostilityRelation) Int() int {
+	return int(r)
+}
 func (r HostilityRelation) String() string {
 	if r > 5 {
 		return "friendly"
@@ -24,11 +27,15 @@ type SpeciesRelation map[string]HostilityRelation
 type ProfessionRelation map[string]HostilityRelation
 type EntityRelation map[string]HostilityRelation
 
-func (f *Hostilities) GetEntityRelation(ent Entity) HostilityRelation {
+func (f *Hostilities) Relation(ent Entity) HostilityRelation {
 	combined := 0
 	if f.entityRelation == nil {
-		f.entityRelation[ent.ID]
-	return HostilityRelation(0) // Default to neutral if no specific relation is defined
+		f.entityRelation = make(EntityRelation)
+	}
+	if relation, exists := f.entityRelation[ent.ID]; exists {
+		combined += relation.Int()
+	}
+	return HostilityRelation(combined)
 }
 
 func (f *Hostilities) SetSpeciesRelation(species string, relation HostilityRelation) {
