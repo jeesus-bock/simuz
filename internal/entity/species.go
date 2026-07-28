@@ -7,6 +7,7 @@ type Species struct {
 	ID                  string
 	Name                string
 	MaxAge              int
+	AdultAge            int
 	CanLevelUp          bool
 	CanReproduce        bool
 	IsCaveman           bool
@@ -16,7 +17,8 @@ type Species struct {
 	DefaultSleepCycle   string // "diurnal", "nocturnal", "none"
 	AutoFeed            bool
 	StarvationThreshold int // ticks before starvation damage begins; 0 means immune
-	Names               []string
+	MaleNames           []string
+	FemaleNames         []string
 	BaseAttrs           Attributes
 }
 
@@ -27,6 +29,7 @@ var SpeciesRegistry = map[string]Species{
 		ID:                  "human",
 		Name:                "Human",
 		MaxAge:              30000,
+		AdultAge:            18,
 		CanLevelUp:          true,
 		CanReproduce:        true,
 		IsCaveman:           false,
@@ -36,7 +39,8 @@ var SpeciesRegistry = map[string]Species{
 		DefaultSleepCycle:   "diurnal",
 		AutoFeed:            true,
 		StarvationThreshold: 259200, // 3 days
-		Names:               []string{"Aldric", "Brenna", "Cedric", "Delara", "Eamon", "Fiona", "Gareth", "Hilda", "Ivan", "Jenna", "Kol", "Lyssa", "Maren", "Nolan", "Opal", "Petra", "Quinn", "Rhea", "Soren", "Tessa"},
+		MaleNames:           []string{"Aldric", "Brenna", "Cedric", "Delara", "Eamon", "Fiona", "Gareth", "Hilda", "Ivan", "Jenna", "Kol", "Lyssa", "Maren", "Nolan", "Opal", "Petra", "Quinn", "Rhea", "Soren", "Tessa"},
+		FemaleNames:         []string{"Aldrica", "Brenna", "Cedrica", "Delara", "Eamon", "Fiona", "Gareth", "Hilda", "Ivan", "Jenna", "Kol", "Lyssa", "Maren", "Nolan", "Opal", "Petra", "Quinn", "Rhea", "Soren", "Tessa"},
 		BaseAttrs:           Attributes{STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10},
 	},
 	"elf": {
@@ -52,29 +56,33 @@ var SpeciesRegistry = map[string]Species{
 		DefaultSleepCycle:   "diurnal",
 		AutoFeed:            true,
 		StarvationThreshold: 345600, // 4 days
-		Names:               []string{"Aldric", "Brenna", "Cedric", "Delara", "Eamon", "Fiona", "Gareth", "Hilda", "Ivan", "Jenna", "Kol", "Lyssa", "Maren", "Nolan", "Opal", "Petra", "Quinn", "Rhea", "Soren", "Tessa"},
+		MaleNames:           []string{"Aldric", "Brenna", "Cedric", "Delara", "Eamon", "Fiona", "Gareth", "Hilda", "Ivan", "Jenna", "Kol", "Lyssa", "Maren", "Nolan", "Opal", "Petra", "Quinn", "Rhea", "Soren", "Tessa"},
+		FemaleNames:         []string{"Aldrica", "Brenna", "Cedrica", "Delara", "Eamon", "Fiona", "Gareth", "Hilda", "Ivan", "Jenna", "Kol", "Lyssa", "Maren", "Nolan", "Opal", "Petra", "Quinn", "Rhea", "Soren", "Tessa"},
 		BaseAttrs:           Attributes{STR: 10, DEX: 12, CON: 10, INT: 12, WIS: 12, CHA: 10},
 	},
 	"orc": {
 		ID:                  "orc",
 		Name:                "Orc",
 		MaxAge:              22000,
+		AdultAge:            12,
 		CanLevelUp:          true,
 		CanReproduce:        true,
 		IsCaveman:           true,
 		IsImmortal:          false,
 		GestationTicks:      200,
-		DefaultScripts:      []string{"aggressive"},
+		DefaultScripts:      []string{"aggressive", "raiding"},
 		DefaultSleepCycle:   "diurnal",
 		AutoFeed:            true,
 		StarvationThreshold: 172800, // 2 days
-		Names:               []string{"Mog", "Zog", "Thrak", "Gruul", "Drok", "Krag", "Snag", "Ruk"},
+		MaleNames:           []string{"Mog", "Zog", "Thrak", "Gruul", "Drok", "Krag", "Snag", "Ruk"},
+		FemaleNames:         []string{"Mog", "Zog", "Thrak", "Gruul", "Drok", "Krag", "Snag", "Ruk"},
 		BaseAttrs:           Attributes{STR: 14, DEX: 10, CON: 13, INT: 6, WIS: 6, CHA: 5},
 	},
 	"goblin": {
 		ID:                  "goblin",
 		Name:                "Goblin",
 		MaxAge:              15000,
+		AdultAge:            10,
 		CanLevelUp:          true,
 		CanReproduce:        true,
 		IsCaveman:           false,
@@ -84,7 +92,8 @@ var SpeciesRegistry = map[string]Species{
 		DefaultSleepCycle:   "diurnal",
 		AutoFeed:            true,
 		StarvationThreshold: 129600, // 1.5 days
-		Names:               []string{"Snag", "Grib", "Nog", "Blink", "Mug"},
+		MaleNames:           []string{"Göz", "Snag", "Grib", "Nog", "Blink", "Mug"},
+		FemaleNames:         []string{"Snag", "Grib", "Nog", "Blink", "Mug"},
 		BaseAttrs:           Attributes{STR: 8, DEX: 12, CON: 10, INT: 8, WIS: 6, CHA: 6},
 	},
 	"kobold": {
@@ -100,7 +109,8 @@ var SpeciesRegistry = map[string]Species{
 		DefaultSleepCycle:   "diurnal",
 		AutoFeed:            true,
 		StarvationThreshold: 129600, // 1.5 days
-		Names:               []string{"Skrit", "Yip", "Klik", "Drak", "Snik"},
+		MaleNames:           []string{"Andres", "Margus", "Toomas", "Kristjan", "Martin", "Priit", "Sander", "Indrek", "Jaan", "Markus", "Rasmus", "Tanel", "Kaurits", "Kalle"},
+		FemaleNames:         []string{"Mari", "Katriin", "Triin", "Pille", "Kadri", "Tiina", "Laura", "Eveli", "Sirje", "Kristel", "Anu", "Katrin"},
 		BaseAttrs:           Attributes{STR: 8, DEX: 14, CON: 9, INT: 8, WIS: 7, CHA: 6},
 	},
 	"fey": {
@@ -116,8 +126,8 @@ var SpeciesRegistry = map[string]Species{
 		DefaultSleepCycle:   "diurnal",
 		AutoFeed:            true,
 		StarvationThreshold: 86400, // 1 day
-		Names:               []string{"Aldric", "Brenna", "Cedric", "Delara", "Eamon", "Fiona", "Gareth", "Hilda", "Ivan", "Jenna", "Kol", "Lyssa", "Maren", "Nolan", "Opal", "Petra", "Quinn", "Rhea", "Soren", "Tessa"},
-		BaseAttrs:           Attributes{STR: 10, DEX: 11, CON: 10, INT: 11, WIS: 11, CHA: 12},
+		MaleNames:           []string{"Aldric", "Brenna", "Cedric", "Delara", "Eamon", "Fiona", "Gareth", "Hilda", "Ivan", "Jenna", "Kol", "Lyssa", "Maren", "Nolan", "Opal", "Petra", "Quinn", "Rhea", "Soren", "Tessa"},
+		FemaleNames:         []string{"Aldrica", "Brenna", "Cedrica", "Delara", "Eamon", "Fiona", "Gareth", "Hilda", "Ivan", "Jenna", "Kol", "Lyssa", "Maren", "Nolan", "Opal", "Petra", "Quinn", "Rhea", "Soren", "Tessa"},
 	},
 	"rat_king": {
 		ID:                  "rat_king",
@@ -132,7 +142,8 @@ var SpeciesRegistry = map[string]Species{
 		DefaultSleepCycle:   "nocturnal",
 		AutoFeed:            true,
 		StarvationThreshold: 172800, // 2 days
-		Names:               []string{"Squeak", "Nibble", "Skitter", "Dart", "Pip"},
+		MaleNames:           []string{"Squeak", "Nibble", "Skitter", "Dart", "Pip"},
+		FemaleNames:         []string{"Squeak", "Nibble", "Skitter", "Dart", "Pip"},
 		BaseAttrs:           Attributes{STR: 6, DEX: 12, CON: 8, INT: 2, WIS: 5, CHA: 2},
 	},
 	"vampire": {
@@ -148,7 +159,8 @@ var SpeciesRegistry = map[string]Species{
 		DefaultSleepCycle:   "nocturnal",
 		AutoFeed:            true,
 		StarvationThreshold: 432000, // 5 days
-		Names:               []string{"Aldric", "Brenna", "Cedric", "Delara", "Eamon", "Fiona", "Gareth", "Hilda", "Ivan", "Jenna", "Kol", "Lyssa", "Maren", "Nolan", "Opal", "Petra", "Quinn", "Rhea", "Soren", "Tessa"},
+		MaleNames:           []string{"Aldric", "Brenna", "Cedric", "Delara", "Eamon", "Fiona", "Gareth", "Hilda", "Ivan", "Jenna", "Kol", "Lyssa", "Maren", "Nolan", "Opal", "Petra", "Quinn", "Rhea", "Soren", "Tessa"},
+		FemaleNames:         []string{"Aldrica", "Brenna", "Cedrica", "Delara", "Eamon", "Fiona", "Gareth", "Hilda", "Ivan", "Jenna", "Kol", "Lyssa", "Maren", "Nolan", "Opal", "Petra", "Quinn", "Rhea", "Soren", "Tessa"},
 		BaseAttrs:           Attributes{STR: 12, DEX: 12, CON: 12, INT: 10, WIS: 10, CHA: 10},
 	},
 	"hag": {
@@ -164,7 +176,8 @@ var SpeciesRegistry = map[string]Species{
 		DefaultSleepCycle:   "diurnal",
 		AutoFeed:            true,
 		StarvationThreshold: 172800, // 2 days
-		Names:               []string{"Aldric", "Brenna", "Cedric", "Delara", "Eamon", "Fiona", "Gareth", "Hilda", "Ivan", "Jenna", "Kol", "Lyssa", "Maren", "Nolan", "Opal", "Petra", "Quinn", "Rhea", "Soren", "Tessa"},
+		MaleNames:           []string{"Aldric", "Brenna", "Cedric", "Delara", "Eamon", "Fiona", "Gareth", "Hilda", "Ivan", "Jenna", "Kol", "Lyssa", "Maren", "Nolan", "Opal", "Petra", "Quinn", "Rhea", "Soren", "Tessa"},
+		FemaleNames:         []string{"Aldrica", "Brenna", "Cedrica", "Delara", "Eamon", "Fiona", "Gareth", "Hilda", "Ivan", "Jenna", "Kol", "Lyssa", "Maren", "Nolan", "Opal", "Petra", "Quinn", "Rhea", "Soren", "Tessa"},
 		BaseAttrs:           Attributes{STR: 10, DEX: 10, CON: 12, INT: 8, WIS: 10, CHA: 8},
 	},
 	"deity": {
@@ -180,13 +193,15 @@ var SpeciesRegistry = map[string]Species{
 		DefaultSleepCycle:   "none",
 		AutoFeed:            true,
 		StarvationThreshold: 0, // immune
-		Names:               []string{"Zeus", "Odin", "Ra", "Vishnu", "Athena", "Loki", "Thor", "Isis", "Osiris", "Kali"},
+		MaleNames:           []string{"Zeus", "Odin", "Ra", "Vishnu", "Athena", "Loki", "Thor", "Isis", "Osiris", "Kali"},
+		FemaleNames:         []string{"Zeus", "Odin", "Ra", "Vishnu", "Athena", "Loki", "Thor", "Isis", "Osiris", "Kali"},
 		BaseAttrs:           Attributes{STR: 20, DEX: 20, CON: 20, INT: 20, WIS: 20, CHA: 20},
 	},
 	"ogre": {
 		ID:                  "ogre",
 		Name:                "Ogre",
 		MaxAge:              18000,
+		AdultAge:            15,
 		CanLevelUp:          true,
 		CanReproduce:        true,
 		IsCaveman:           true,
@@ -196,29 +211,33 @@ var SpeciesRegistry = map[string]Species{
 		DefaultSleepCycle:   "diurnal",
 		AutoFeed:            true,
 		StarvationThreshold: 259200, // 3 days
-		Names:               []string{"Mog", "Zog", "Thrak", "Gruul", "Drok", "Krag", "Snag", "Ruk"},
+		MaleNames:           []string{"Mog", "Zog", "Thrak", "Gruul", "Drok", "Krag", "Snag", "Ruk"},
+		FemaleNames:         []string{"Mog", "Zog", "Thrak", "Gruul", "Drok", "Krag", "Snag", "Ruk"},
 		BaseAttrs:           Attributes{STR: 18, DEX: 8, CON: 16, INT: 3, WIS: 5, CHA: 3},
 	},
 	"giant": {
 		ID:                  "giant",
 		Name:                "Giant",
 		MaxAge:              25000,
+		AdultAge:            80,
 		CanLevelUp:          true,
 		CanReproduce:        true,
 		IsCaveman:           true,
 		IsImmortal:          false,
 		GestationTicks:      260,
-		DefaultScripts:      []string{"aggressive"},
+		DefaultScripts:      []string{"loner"},
 		DefaultSleepCycle:   "diurnal",
 		AutoFeed:            true,
 		StarvationThreshold: 259200, // 3 days
-		Names:               []string{"Mog", "Zog", "Thrak", "Gruul", "Drok", "Krag", "Snag", "Ruk"},
+		MaleNames:           []string{"Mog", "Zog", "Thrak", "Gruul", "Drok", "Krag", "Snag", "Ruk"},
+		FemaleNames:         []string{"Mog", "Zog", "Thrak", "Gruul", "Drok", "Krag", "Snag", "Ruk"},
 		BaseAttrs:           Attributes{STR: 20, DEX: 6, CON: 18, INT: 2, WIS: 6, CHA: 2},
 	},
 	"troll": {
 		ID:                  "troll",
 		Name:                "Troll",
 		MaxAge:              15000,
+		AdultAge:            30,
 		CanLevelUp:          true,
 		CanReproduce:        true,
 		IsCaveman:           true,
@@ -228,13 +247,15 @@ var SpeciesRegistry = map[string]Species{
 		DefaultSleepCycle:   "diurnal",
 		AutoFeed:            true,
 		StarvationThreshold: 172800, // 2 days
-		Names:               []string{"Mog", "Zog", "Thrak", "Gruul", "Drok", "Krag", "Snag", "Ruk"},
+		MaleNames:           []string{"Mog", "Zog", "Thrak", "Gruul", "Drok", "Krag", "Snag", "Ruk"},
+		FemaleNames:         []string{"Mog", "Zog", "Thrak", "Gruul", "Drok", "Krag", "Snag", "Ruk"},
 		BaseAttrs:           Attributes{STR: 16, DEX: 6, CON: 14, INT: 2, WIS: 4, CHA: 2},
 	},
 	"cyclops": {
 		ID:                  "cyclops",
 		Name:                "Cyclops",
 		MaxAge:              12000,
+		AdultAge:            80,
 		CanLevelUp:          true,
 		CanReproduce:        true,
 		IsCaveman:           true,
@@ -244,13 +265,15 @@ var SpeciesRegistry = map[string]Species{
 		DefaultSleepCycle:   "diurnal",
 		AutoFeed:            true,
 		StarvationThreshold: 172800, // 2 days
-		Names:               []string{"Mog", "Zog", "Thrak", "Gruul", "Drok", "Krag", "Snag", "Ruk"},
+		MaleNames:           []string{"Mog", "Zog", "Thrak", "Gruul", "Drok", "Krag", "Snag", "Ruk"},
+		FemaleNames:         []string{"Mog", "Zog", "Thrak", "Gruul", "Drok", "Krag", "Snag", "Ruk"},
 		BaseAttrs:           Attributes{STR: 18, DEX: 5, CON: 16, INT: 2, WIS: 5, CHA: 1},
 	},
 	"wolf": {
 		ID:                  "wolf",
 		Name:                "Wolf",
 		MaxAge:              0,
+		AdultAge:            15,
 		CanLevelUp:          false,
 		CanReproduce:        false,
 		IsCaveman:           false,
@@ -260,7 +283,8 @@ var SpeciesRegistry = map[string]Species{
 		DefaultSleepCycle:   "nocturnal",
 		AutoFeed:            true,
 		StarvationThreshold: 172800, // 2 days
-		Names:               []string{"Howl", "Rip", "Claw", "Fang", "Snap", "Growl"},
+		MaleNames:           []string{"Howl", "Rip", "Claw", "Fang", "Snap", "Growl"},
+		FemaleNames:         []string{"Howl", "Rip", "Claw", "Fang", "Snap", "Growl"},
 		BaseAttrs:           Attributes{STR: 12, DEX: 14, CON: 11, INT: 3, WIS: 7, CHA: 3},
 	},
 	"bear": {
