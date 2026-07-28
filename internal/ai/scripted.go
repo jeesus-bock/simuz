@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 
 	"simuz/internal/combat"
@@ -45,6 +48,8 @@ func goValue(value lua.LValue) any {
 	}
 }
 
+// LoadScript loads a Lua script from source code and stores it under the given name.
+// The name may include subdirectory prefixes (e.g. "action/aggressive", "faction/fairy").
 func LoadScript(name, source string) error {
 	L := lua.NewState()
 	defer L.Close()
@@ -61,6 +66,36 @@ func LoadScript(name, source string) error {
 	globalScripts.scripts[name] = proto
 	log.Printf("Loaded AI script: %s", name)
 	return nil
+}
+
+// LoadScriptsFromDir walks the given root directory recursively and loads every
+// .lua file it finds.  The script name is the path relative to root with the
+// ".lua" extension stripped and path separators normalised to forward slashes
+// (e.g. "action/aggressive", "faction/fairy", "profession/miner").
+func LoadScriptsFromDir(root string) error {
+	return filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		if filepath.Ext(path) != ".lua" {
+			return nil
+		}
+		rel, err := filepath.Rel(root, path)
+		if err != nil {
+			return fmt.Errorf("rel path for %s: %w", path, err)
+		}
+		name := filepath.ToSlash(rel)
+		name = strings.TrimSuffix(name, ".lua")
+
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("read script %s: %w", name, err)
+		}
+		return LoadScript(name, string(data))
+	})
 }
 
 // MoveRequest is set by the engine to handle instant vs multi-tick travel.
