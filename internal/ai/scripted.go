@@ -65,9 +65,7 @@ var MoveRequest func(ent *entity.Entity, destID string) bool
 // IsEntityTraveling is set by the engine.
 var IsEntityTraveling func(entityID string) bool
 
-// RunScript executes a loaded Lua AI script and returns whether the script
-// performed an action (didAct), any log messages it produced, and a
-// LuaSimEvent describing the event the script generated.
+// RunScript executes a loaded Lua AI script and returns the events it generated.
 //
 // The Lua script is expected to return up to four values:
 //  1. boolean — didAct (true if the script performed an action)
@@ -102,11 +100,18 @@ func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manag
 		return nil, fmt.Errorf("run script %s: %w", name, err)
 	}
 
-	// Read return values from the stack using 1-based indexing from the bottom.
+	top := L.GetTop()
 
-	if L.GetTop() == 1 {
-		topVal := L.Get(1)
-		if tbl, ok := topVal.(*lua.LTable); ok {
+	// Read return values from the stack using 1-based indexing from the bottom.
+	didAct := false
+	if top >= 1 {
+		didAct = L.ToBool(1)
+	}
+
+	var messages []string
+	if top >= 2 {
+		val := L.Get(2)
+		if tbl, ok := val.(*lua.LTable); ok {
 			messages = make([]string, 0, tbl.Len())
 			tbl.ForEach(func(k, v lua.LValue) {
 				if str, ok := v.(lua.LString); ok {
@@ -117,12 +122,12 @@ func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manag
 	}
 
 	eventType := entity.EventTick
-	if L.GetTop() >= 3 {
+	if top >= 3 {
 		eventType = entity.EventType(L.ToInt(3))
 	}
 
 	var data map[string]any
-	if L.GetTop() >= 4 {
+	if top >= 4 {
 		val := L.Get(4)
 		if val != lua.LNil {
 			goVal := luaValueToGo(L, val)
@@ -137,7 +142,7 @@ func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manag
 		}
 	}
 
-	L.Pop(L.GetTop())
+	L.Pop(top)
 
 	event := &LuaSimEvent{
 		Type:   eventType,
@@ -146,7 +151,10 @@ func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manag
 		Data:   data,
 	}
 
-	return didAct, messages, event, nil
+	_ = didAct
+	_ = messages
+
+	return []*LuaSimEvent{event}, nil
 }
 
 func bindEntity(L *lua.LState, e *entity.Entity, tick uint64) {
