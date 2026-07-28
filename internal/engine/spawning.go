@@ -4,7 +4,9 @@ package engine
 import (
 	"fmt"
 	"log"
+	"maps"
 	"math/rand"
+	"slices"
 
 	"simuz/internal/entity"
 	"simuz/internal/items"
@@ -652,7 +654,7 @@ func seedFamilyAtLocation(em *entity.Manager, locID string, rng *rand.Rand) {
 }
 
 func pickFamilySpecies(rng *rand.Rand) string {
-	species := []string{"human", "elf", "orc", "goblin", "kobold", "hobit", "dwarf"}
+	species := slices.Collect(maps.Keys(entity.SpeciesRegistry))
 	return species[rng.Intn(len(species))]
 }
 
