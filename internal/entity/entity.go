@@ -50,6 +50,33 @@ const (
 	GenderOther  = "other"
 )
 
+// Faction constants define the various factions in the world.
+const (
+	FactionCivilian  = "civilian"
+	FactionMerchant  = "merchant"
+	FactionBandit    = "bandit"
+	FactionBeast     = "beast"
+	FactionVermin    = "vermin"
+	FactionGoblin    = "goblin"
+	FactionKobold    = "kobold"
+	FactionOrc       = "orc"
+	FactionDeity     = "deity"
+	FactionCult      = "cult"
+	FactionMilitia   = "militia"
+	FactionGang      = "gang"
+	FactionNoble     = "noble"
+	FactionScholar   = "scholar"
+	FactionCrafter   = "crafter"
+	FactionHunter    = "hunter"
+	FactionHerbalist = "herbalist"
+	FactionPriest    = "priest"
+	FactionBard      = "bard"
+	FactionCourier   = "courier"
+	FactionInnkeeper = "innkeeper"
+	FactionBlacksmith = "blacksmith"
+	FactionFarmer    = "farmer"
+)
+
 type EntityActivity struct {
 	Type      ActivityType `json:"type"`
 	SinceTick uint64       `json:"since_tick"`
