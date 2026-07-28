@@ -447,10 +447,10 @@ func processReproduction(s *Simulation) {
 		s.Entities.Add(child)
 
 		// Establish parent↔child relationships (always, for all species).
-		mother.AddRelationship(child.ID, entity.RelationshipParent, s.Tick)
-		father.AddRelationship(child.ID, entity.RelationshipParent, s.Tick)
-		child.AddRelationship(mother.ID, entity.RelationshipChild, s.Tick)
-		child.AddRelationship(father.ID, entity.RelationshipChild, s.Tick)
+		mother.AddRelationship(child.ID, entity.RelationshipChild, s.Tick)
+		father.AddRelationship(child.ID, entity.RelationshipChild, s.Tick)
+		child.AddRelationship(mother.ID, entity.RelationshipParent, s.Tick)
+		child.AddRelationship(father.ID, entity.RelationshipParent, s.Tick)
 
 		// Caveman species do not form mate bonds or partner up.
 		if !isCaveman {
