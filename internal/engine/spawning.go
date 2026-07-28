@@ -299,6 +299,14 @@ func clampInt(v, min, max int) int {
 	return v
 }
 
+// randomXPForLevel returns a random XP value for a given level.
+func randomXPForLevel(level int, rng func(int) int) int {
+	if level <= 0 {
+		return 0
+	}
+	return rng(level * 100)
+}
+
 // CanMate checks whether two entities are compatible for reproduction.
 func CanMate(a, b *entity.Entity) bool {
 	if a == nil || b == nil {
