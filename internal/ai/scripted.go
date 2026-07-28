@@ -95,7 +95,7 @@ func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manag
 	// Read the table return value (log messages).
 	var messages []string
 	if L.GetTop() >= 1 {
-		if L.IsTable(-1) {
+		if L.GetType(-1) == lua.LTTable {
 			tbl := L.ToTable(-1)
 			messages = make([]string, 0, tbl.Len())
 			tbl.ForEach(func(k, v lua.LValue) {
