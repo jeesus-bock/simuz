@@ -295,7 +295,7 @@ func sortStringsByFoldAndRaw(values []string) {
 	})
 }
 
-func sortTravelersForDisplay(travelers []gin.H) {
+func sortTravelersForDisplay(travelers []travelerView) {
 	sort.SliceStable(travelers, func(i, j int) bool {
 		ni, _ := travelers[i]["name"].(string)
 		nj, _ := travelers[j]["name"].(string)
@@ -1533,4 +1533,200 @@ func (h *Handler) SSEEvents(c *gin.Context) {
 		c.SSEvent("tick", fmt.Sprintf(`{"tick":%d}`, tick))
 		return true
 	})
+}
+
+// --- Pregnancies view ---
+
+type pregnantEntityView struct {
+	EntityID       string
+	EntityName     string
+	Species        string
+	Faction        string
+	Level          int
+	Progress       int
+	TicksRemaining int
+	LocationID     string
+	LocationName   string
+}
+
+type recentBirthView struct {
+	OffspringID   string
+	OffspringName string
+	Species       string
+	Gender        string
+	ParentID      string
+	ParentName    string
+	Tick          uint64
+}
+
+type relationshipView struct {
+	EntityAID   string
+	EntityAName string
+	EntityBID   string
+	EntityBName string
+	Type        string
+	SinceTick   uint64
+}
+
+func (h *Handler) PregnanciesPage(c *gin.Context) {
+	h.Sim.RLock()
+	defer h.Sim.RUnlock()
+
+	pregnantEntities := buildPregnantEntities(h.Sim)
+	recentBirths := buildRecentBirths(h.Sim)
+	relationships := buildRelationships(h.Sim)
+
+	h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
+		"title":             "Pregnancies & Births",
+		"page":              "pregnancies",
+		"tick":              h.Sim.Tick,
+		"time":              h.Sim.Time.String(),
+		"phase":             h.Sim.Time.Phase().String(),
+		"season":            h.Sim.Time.Season().String(),
+		"entities":          len(h.Sim.Entities.All()),
+		"locations":         len(h.Sim.World.AllLocations()),
+		"pregnant_entities": pregnantEntities,
+		"recent_births":     recentBirths,
+		"relationships":     relationships,
+	})
+}
+
+func (h *Handler) PregnanciesFragment(c *gin.Context) {
+	h.Sim.RLock()
+	defer h.Sim.RUnlock()
+
+	pregnantEntities := buildPregnantEntities(h.Sim)
+	recentBirths := buildRecentBirths(h.Sim)
+	relationships := buildRelationships(h.Sim)
+
+	h.Tmpls.ExecuteTemplate(c.Writer, "pregnancies_list", gin.H{
+		"tick":              h.Sim.Tick,
+		"pregnant_entities": pregnantEntities,
+		"recent_births":     recentBirths,
+		"relationships":     relationships,
+	})
+}
+
+func buildPregnantEntities(sim *engine.Simulation) []pregnantEntityView {
+	var out []pregnantEntityView
+	for _, e := range sim.Entities.All() {
+		if !e.Pregnant {
+			continue
+		}
+		gestation := SpeciesGestationTicks(e.Species)
+		if gestation <= 0 {
+			gestation = 200
+		}
+		elapsed := int(sim.Tick) - e.PregnancyTick
+		if elapsed < 0 {
+			elapsed = 0
+		}
+		progress := elapsed * 100 / gestation
+		if progress > 100 {
+			progress = 100
+		}
+		remaining := gestation - elapsed
+		if remaining < 0 {
+			remaining = 0
+		}
+
+		locName := e.LocationID
+		if loc := sim.World.Location(e.LocationID); loc != nil {
+			locName = loc.Name
+		}
+
+		out = append(out, pregnantEntityView{
+			EntityID:       e.ID,
+			EntityName:     e.Name,
+			Species:        e.Species,
+			Faction:        e.Faction,
+			Level:          e.Level,
+			Progress:       progress,
+			TicksRemaining: remaining,
+			LocationID:     e.LocationID,
+			LocationName:   locName,
+		})
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		if out[i].EntityName != out[j].EntityName {
+			return out[i].EntityName < out[j].EntityName
+		}
+		return out[i].EntityID < out[j].EntityID
+	})
+	return out
+}
+
+func buildRecentBirths(sim *engine.Simulation) []recentBirthView {
+	var out []recentBirthView
+	// Birth events are tracked in the combat event log; filter for birth actions.
+	events := combat.LocationEvents("", 500)
+	for _, evt := range events {
+		if evt.Action != "birth" {
+			continue
+		}
+		parent := sim.Entities.Get(evt.Source)
+		parentName := evt.Source
+		if parent != nil {
+			parentName = parent.Name
+		}
+		out = append(out, recentBirthView{
+			OffspringID:   evt.DefenderID,
+			OffspringName: evt.DefenderName,
+			Species:       evt.Species,
+			Gender:        evt.Gender,
+			ParentID:      evt.Source,
+			ParentName:    parentName,
+			Tick:          evt.Tick,
+		})
+	}
+	// Sort most recent first.
+	sort.SliceStable(out, func(i, j int) bool {
+		return out[i].Tick > out[j].Tick
+	})
+	// Keep only the last 50 births.
+	if len(out) > 50 {
+		out = out[:50]
+	}
+	return out
+}
+
+func buildRelationships(sim *engine.Simulation) []relationshipView {
+	var out []relationshipView
+	seen := make(map[string]bool)
+	for _, e := range sim.Entities.All() {
+		for _, rel := range e.Relationships {
+			// Deduplicate symmetric pairs (A,B) and (B,A).
+			key := rel.OtherID + ":" + e.ID
+			reverseKey := e.ID + ":" + rel.OtherID
+			if seen[key] || seen[reverseKey] {
+				continue
+			}
+			seen[key] = true
+			seen[reverseKey] = true
+
+			other := sim.Entities.Get(rel.OtherID)
+			otherName := rel.OtherID
+			if other != nil {
+				otherName = other.Name
+			}
+			out = append(out, relationshipView{
+				EntityAID:   e.ID,
+				EntityAName: e.Name,
+				EntityBID:   rel.OtherID,
+				EntityBName: otherName,
+				Type:        string(rel.Type),
+				SinceTick:   rel.SinceTick,
+			})
+		}
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		if out[i].EntityAName != out[j].EntityAName {
+			return out[i].EntityAName < out[j].EntityAName
+		}
+		if out[i].EntityBName != out[j].EntityBName {
+			return out[i].EntityBName < out[j].EntityBName
+		}
+		return out[i].SinceTick < out[j].SinceTick
+	})
+	return out
 }
