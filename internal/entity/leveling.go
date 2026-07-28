@@ -8,7 +8,7 @@ func (e *Entity) LevelUpThreshold() int {
 }
 
 func (e *Entity) CheckLevelUp() bool {
-	if !CanLevelUp(e.Species) || e.XP < e.LevelUpThreshold() {
+	if !GetSpecies(e.Species).CanLevelUp || e.XP < e.LevelUpThreshold() {
 		return false
 	}
 

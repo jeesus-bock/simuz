@@ -70,14 +70,6 @@ var MoveRequest func(ent *entity.Entity, destID string) bool
 var IsEntityTraveling func(entityID string) bool
 
 // RunScript executes a loaded Lua AI script and returns the events it generated.
-//
-// The Lua script is expected to return up to three values:
-//  1. boolean — didAct (true if the script performed an action)
-//  2. table of strings — log messages
-//  3. table of event tables — each entry has keys: type (int), tick (uint64), source (string), data (table)
-//
-// If the script returns fewer values, missing values are zero-filled
-// (false, nil, empty slice).
 func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manager, tm *world.GameTime, rng *rand.Rand, qm *quest.Manager) ([]*events.SimEvent, error) {
 	globalScripts.mu.RLock()
 	proto, ok := globalScripts.scripts[name]
@@ -418,8 +410,8 @@ func bindEntity(L *lua.LState, e *entity.Entity, tick uint64) {
 }
 
 func computeHunger(e *entity.Entity, tick uint64) float64 {
-	if !entity.ShouldAutoFeed(e.Species) && e.LastMealTick > 0 {
-		threshold := entity.SpeciesStarvationThreshold(e.Species)
+	if !entity.GetSpecies(e.Species).AutoFeed && e.LastMealTick > 0 {
+		threshold := entity.GetSpecies(e.Species).StarvationThreshold
 		if threshold > 0 {
 			ticksSince := int(tick) - e.LastMealTick
 			if ticksSince >= threshold {
@@ -720,7 +712,7 @@ func scriptCombatAttack(w *world.World, em *entity.Manager, qm *quest.Manager, r
 				}
 			}
 		}
-		if entity.CanLevelUp(attacker.Species) {
+		if entity.GetSpecies(attacker.Species).CanLevelUp {
 			xp := 5 + target.Level*3 + target.MaxHP/10
 			if xp < 1 {
 				xp = 1
@@ -1443,7 +1435,7 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 				if attacker.Faction != other.Faction {
 					combat.ShiftRelation(attacker.Faction, other.Faction, -1)
 				}
-				if entity.CanLevelUp(attacker.Species) {
+				if entity.GetSpecies(attacker.Species).CanLevelUp {
 					xp := 5 + other.Level*3 + other.MaxHP/10
 					if xp < 1 {
 						xp = 1
