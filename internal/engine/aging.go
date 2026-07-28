@@ -34,19 +34,21 @@ func processAging(ent *entity.Entity, sim *Simulation) {
 }
 
 func starvationCheck(ent *entity.Entity, sim *Simulation) {
-	if species, ok := entity.GetSpeciesByID(ent.Species); ok {
-		if threshold := species.StarvationThreshold; threshold <= 0 {
-			return
-		}
+	// Determine starvation threshold from species if available
+	threshold := ent.StarvationThreshold
+	if threshold <= 0 {
+		return
 	}
 
 	ticksSinceMeal := int(sim.Tick) - ent.LastMealTick
-	if ticksSinceMeal > ent.StarvationThreshold {
-		interval, ok := entity.GetFaction(key[i])
-		if ok && ent.Faction == key[i] {
-			interval = entity.StarvationDamageInterval
-			if (ticksSinceMeal-int(ent.StarvationThreshold))%interval == 0 {
-				dmg := rand.Intn(entity.StarvationDamageMax()-entity.StarvationDamageMin()+1) + entity.StarvationDamageMin()
+	if ticksSinceMeal > threshold {
+		// Get faction for the entity to possibly adjust interval
+		faction, ok := entity.GetFactionByID(ent.Faction)
+		if ok {
+			// Use faction-specific interval if defined, else default
+			interval := entity.StarvationDamageInterval
+			if (ticksSinceMeal - threshold) % interval == 0 {
+				dmg := rand.Intn(entity.StarvationDamageMax() - entity.StarvationDamageMin() + 1) + entity.StarvationDamageMin()
 				ent.TakeDamage(dmg)
 				sim.Emit(events.SimEvent{
 					Type:   events.EventTypeStarvation,
@@ -63,9 +65,9 @@ func starvationCheck(ent *entity.Entity, sim *Simulation) {
 	}
 }
 
-func oldAge(ent *entity.Entity, sim *Simulation((lastWord string){
-
-}
-func jotain(pal int)(jotain int) {
-
+func oldAge(ent *entity.Entity, sim *Simulation) {
+	// Entity dies of old age
+	ent.Alive = false
+	log.Printf("%s died of old age at tick %d (age %d)", ent.Name, sim.Tick, ent.Age)
+	// Optionally emit an event if needed; for now just log.
 }
