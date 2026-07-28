@@ -121,6 +121,175 @@ func bindEntity(L *lua.LState, e *entity.Entity, tick uint64) {
 		skillsTbl.RawSetString(sname, lua.LNumber(e.SkillLevel(sname)))
 	}
 	entTbl.RawSetString("skills", skillsTbl)
+
+	// Relationships
+	entTbl.RawSetString("get_relationship", L.NewFunction(func(L *lua.LState) int {
+		otherID := L.ToString(1)
+		if otherID == "" {
+			L.Push(lua.LNil)
+			return 1
+		}
+		rel, ok := e.GetRelationship(otherID)
+		if !ok {
+			L.Push(lua.LNil)
+			return 1
+		}
+		tbl := L.NewTable()
+		tbl.RawSetString("other_id", lua.LString(rel.OtherID))
+		tbl.RawSetString("type", lua.LString(string(rel.Type)))
+		tbl.RawSetString("since_tick", lua.LNumber(rel.SinceTick))
+		L.Push(tbl)
+		return 1
+	}))
+
+	entTbl.RawSetString("get_relationships", L.NewFunction(func(L *lua.LState) int {
+		tbl := L.NewTable()
+		for otherID, rel := range e.Relationships {
+			row := L.NewTable()
+			row.RawSetString("other_id", lua.LString(rel.OtherID))
+			row.RawSetString("type", lua.LString(string(rel.Type)))
+			row.RawSetString("since_tick", lua.LNumber(rel.SinceTick))
+			tbl.RawSetString(otherID, row)
+		}
+		L.Push(tbl)
+		return 1
+	}))
+
+	entTbl.RawSetString("get_children", L.NewFunction(func(L *lua.LState) int {
+		tbl := L.NewTable()
+		for _, rel := range e.GetChildren() {
+			tbl.Append(lua.LString(rel.OtherID))
+		}
+		L.Push(tbl)
+		return 1
+	}))
+
+	entTbl.RawSetString("get_parents", L.NewFunction(func(L *lua.LState) int {
+		tbl := L.NewTable()
+		for _, rel := range e.GetParents() {
+			tbl.Append(lua.LString(rel.OtherID))
+		}
+		L.Push(tbl)
+		return 1
+	}))
+
+	entTbl.RawSetString("get_partner", L.NewFunction(func(L *lua.LState) int {
+		rel, ok := e.GetPartner()
+		if !ok {
+			L.Push(lua.LNil)
+			return 1
+		}
+		L.Push(lua.LString(rel.OtherID))
+		return 1
+	}))
+
+	entTbl.RawSetString("get_relationship_type", L.NewFunction(func(L *lua.LState) int {
+		otherID := L.ToString(1)
+		if otherID == "" {
+			L.Push(lua.LNil)
+			return 1
+		}
+		rel, ok := e.GetRelationship(otherID)
+		if !ok {
+			L.Push(lua.LNil)
+			return 1
+		}
+		L.Push(lua.LString(string(rel.Type)))
+		return 1
+	}))
+
+	entTbl.RawSetString("get_relationship_since", L.NewFunction(func(L *lua.LState) int {
+		otherID := L.ToString(1)
+		if otherID == "" {
+			L.Push(lua.LNil)
+			return 1
+		}
+		rel, ok := e.GetRelationship(otherID)
+		if !ok {
+			L.Push(lua.LNil)
+			return 1
+		}
+		L.Push(lua.LNumber(rel.SinceTick))
+		return 1
+	}))
+
+	entTbl.RawSetString("has_relationship", L.NewFunction(func(L *lua.LState) int {
+		otherID := L.ToString(1)
+		if otherID == "" {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		_, ok := e.GetRelationship(otherID)
+		L.Push(lua.LBool(ok))
+		return 1
+	}))
+
+	entTbl.RawSetString("has_relationship_type", L.NewFunction(func(L *lua.LState) int {
+		otherID := L.ToString(1)
+		relType := entity.RelationshipType(L.ToString(2))
+		if otherID == "" || relType == "" {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		rel, ok := e.GetRelationship(otherID)
+		if !ok {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		L.Push(lua.LBool(rel.Type == relType))
+		return 1
+	}))
+
+	entTbl.RawSetString("add_relationship", L.NewFunction(func(L *lua.LState) int {
+		otherID := L.ToString(1)
+		relTypeStr := L.ToString(2)
+		sinceTick := uint64(L.ToInt(3))
+		if otherID == "" || relTypeStr == "" {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		relType := entity.RelationshipType(relTypeStr)
+		e.AddRelationship(otherID, relType, sinceTick)
+		L.Push(lua.LTrue)
+		return 1
+	}))
+
+	entTbl.RawSetString("remove_relationship", L.NewFunction(func(L *lua.LState) int {
+		otherID := L.ToString(1)
+		if otherID == "" {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		delete(e.Relationships, otherID)
+		L.Push(lua.LTrue)
+		return 1
+	}))
+
+	entTbl.RawSetString("num_relationships", L.NewFunction(func(L *lua.LState) int {
+		L.Push(lua.LNumber(len(e.Relationships)))
+		return 1
+	}))
+
+	entTbl.RawSetString("is_related", L.NewFunction(func(L *lua.LState) int {
+		otherID := L.ToString(1)
+		if otherID == "" {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		rel, ok := e.GetRelationship(otherID)
+		if !ok {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		// Check if the relationship is a family bond (parent, child, mate, sibling)
+		family := rel.Type == entity.RelationshipParent ||
+			rel.Type == entity.RelationshipChild ||
+			rel.Type == entity.RelationshipMate ||
+			rel.Type == entity.RelationshipSibling
+		L.Push(lua.LBool(family))
+		return 1
+	}))
+
 	L.SetGlobal("self", entTbl)
 }
 
@@ -1409,6 +1578,220 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 		target.LeashedBy = ""
 		log.Printf("[lua] %s completed rescue of %s", ent.Name, target.Name)
 		L.Push(lua.LTrue)
+		return 1
+	}))
+
+	// Relationship query functions on the world table
+	worldTbl.RawSetString("get_relationship", L.NewFunction(func(L *lua.LState) int {
+		entityID := L.ToString(1)
+		otherID := L.ToString(2)
+		e := em.Get(entityID)
+		if e == nil {
+			L.Push(lua.LNil)
+			return 1
+		}
+		if otherID == "" {
+			L.Push(lua.LNil)
+			return 1
+		}
+		rel, ok := e.GetRelationship(otherID)
+		if !ok {
+			L.Push(lua.LNil)
+			return 1
+		}
+		tbl := L.NewTable()
+		tbl.RawSetString("other_id", lua.LString(rel.OtherID))
+		tbl.RawSetString("type", lua.LString(string(rel.Type)))
+		tbl.RawSetString("since_tick", lua.LNumber(rel.SinceTick))
+		L.Push(tbl)
+		return 1
+	}))
+
+	worldTbl.RawSetString("get_children", L.NewFunction(func(L *lua.LState) int {
+		entityID := L.ToString(1)
+		e := em.Get(entityID)
+		if e == nil {
+			L.Push(lua.LNil)
+			return 1
+		}
+		tbl := L.NewTable()
+		for _, rel := range e.GetChildren() {
+			tbl.Append(lua.LString(rel.OtherID))
+		}
+		L.Push(tbl)
+		return 1
+	}))
+
+	worldTbl.RawSetString("get_parents", L.NewFunction(func(L *lua.LState) int {
+		entityID := L.ToString(1)
+		e := em.Get(entityID)
+		if e == nil {
+			L.Push(lua.LNil)
+			return 1
+		}
+		tbl := L.NewTable()
+		for _, rel := range e.GetParents() {
+			tbl.Append(lua.LString(rel.OtherID))
+		}
+		L.Push(tbl)
+		return 1
+	}))
+
+	worldTbl.RawSetString("get_partner", L.NewFunction(func(L *lua.LState) int {
+		entityID := L.ToString(1)
+		e := em.Get(entityID)
+		if e == nil {
+			L.Push(lua.LNil)
+			return 1
+		}
+		rel, ok := e.GetPartner()
+		if !ok {
+			L.Push(lua.LNil)
+			return 1
+		}
+		L.Push(lua.LString(rel.OtherID))
+		return 1
+	}))
+
+	worldTbl.RawSetString("get_relationship_type", L.NewFunction(func(L *lua.LState) int {
+		entityID := L.ToString(1)
+		otherID := L.ToString(2)
+		e := em.Get(entityID)
+		if e == nil {
+			L.Push(lua.LNil)
+			return 1
+		}
+		if otherID == "" {
+			L.Push(lua.LNil)
+			return 1
+		}
+		rel, ok := e.GetRelationship(otherID)
+		if !ok {
+			L.Push(lua.LNil)
+			return 1
+		}
+		L.Push(lua.LString(string(rel.Type)))
+		return 1
+	}))
+
+	worldTbl.RawSetString("get_relationship_since", L.NewFunction(func(L *lua.LState) int {
+		entityID := L.ToString(1)
+		otherID := L.ToString(2)
+		e := em.Get(entityID)
+		if e == nil {
+			L.Push(lua.LNil)
+			return 1
+		}
+		if otherID == "" {
+			L.Push(lua.LNil)
+			return 1
+		}
+		rel, ok := e.GetRelationship(otherID)
+		if !ok {
+			L.Push(lua.LNil)
+			return 1
+		}
+		L.Push(lua.LNumber(rel.SinceTick))
+		return 1
+	}))
+
+	worldTbl.RawSetString("has_relationship", L.NewFunction(func(L *lua.LState) int {
+		entityID := L.ToString(1)
+		otherID := L.ToString(2)
+		e := em.Get(entityID)
+		if e == nil {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		if otherID == "" {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		_, ok := e.GetRelationship(otherID)
+		L.Push(lua.LBool(ok))
+		return 1
+	}))
+
+	worldTbl.RawSetString("has_relationship_type", L.NewFunction(func(L *lua.LState) int {
+		entityID := L.ToString(1)
+		otherID := L.ToString(2)
+		relType := entity.RelationshipType(L.ToString(3))
+		e := em.Get(entityID)
+		if e == nil {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		if otherID == "" || relType == "" {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		rel, ok := e.GetRelationship(otherID)
+		if !ok {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		L.Push(lua.LBool(rel.Type == relType))
+		return 1
+	}))
+
+	worldTbl.RawSetString("add_relationship", L.NewFunction(func(L *lua.LState) int {
+		entityID := L.ToString(1)
+		otherID := L.ToString(2)
+		relTypeStr := L.ToString(3)
+		sinceTick := uint64(L.ToInt(4))
+		e := em.Get(entityID)
+		if e == nil || otherID == "" || relTypeStr == "" {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		relType := entity.RelationshipType(relTypeStr)
+		e.AddRelationship(otherID, relType, sinceTick)
+		L.Push(lua.LTrue)
+		return 1
+	}))
+
+	worldTbl.RawSetString("remove_relationship", L.NewFunction(func(L *lua.LState) int {
+		entityID := L.ToString(1)
+		otherID := L.ToString(2)
+		e := em.Get(entityID)
+		if e == nil || otherID == "" {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		delete(e.Relationships, otherID)
+		L.Push(lua.LTrue)
+		return 1
+	}))
+
+	worldTbl.RawSetString("num_relationships", L.NewFunction(func(L *lua.LState) int {
+		entityID := L.ToString(1)
+		e := em.Get(entityID)
+		if e == nil {
+			L.Push(lua.LNumber(0))
+			return 1
+		}
+		L.Push(lua.LNumber(len(e.Relationships)))
+		return 1
+	}))
+
+	worldTbl.RawSetString("is_related", L.NewFunction(func(L *lua.LState) int {
+		entityID := L.ToString(1)
+		otherID := L.ToString(2)
+		e := em.Get(entityID)
+		if e == nil || otherID == "" {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		rel, ok := e.GetRelationship(otherID)
+		if !ok {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		family := rel.Type == entity.RelationshipParent ||
+			rel.Type == entity.RelationshipChild ||
+			rel.Type == entity.RelationshipMate ||
+			rel.Type == entity.RelationshipSibling
+		L.Push(lua.LBool(family))
 		return 1
 	}))
 
