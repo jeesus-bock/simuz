@@ -27,7 +27,18 @@ Simuz is a Go-based world simulation game with:
 
 The runtime exposes `self`, `world`, and `util` tables.
 
-Notable runtime capabilities:
+### Script Return Values
+
+Lua AI scripts can return up to three values:
+1. **boolean** — `didAct` (true if the script performed an action)
+2. **table of strings** — log messages
+3. **table of event tables** — each entry has keys: `type` (int), `tick` (uint64), `source` (string), `data` (table). These are converted into `[]*events.SimEvent` by the engine.
+
+If the script returns fewer values, missing values are zero-filled (false, nil, empty slice).
+
+The `events` package (`internal/events/engine.go`) defines `SimEvent` with fields `Type` (EventType), `Tick` (uint64), `Source` (string), and `Data` (map[string]any). The engine emits these events during tick processing so scripted AI actions are observable in the UI and persisted.
+
+### Notable runtime capabilities:
 - Movement and travel: `world.move_to`, `world.is_traveling`, `world.travel_exits`, `world.parent_location`
 - Entities and combat: `world.entity_info`, `world.entities_at`, `world.nearby_entities`, `world.attack`, `world.heal`
 - Social/quest hooks: `world.talk_to`, `world.give_quest`, `world.quest_progress`, `world.quest_set`
@@ -65,13 +76,8 @@ If you need exact signatures or enum values, check the code instead of expanding
 - `Profession` is a string field on `Entity` for occupational identity (e.g., "bandit", "merchant", "farmer", "ranger", "bard", "fisherman"). It can be empty for entities with no specific profession.
 - `Faction` on `Entity` is narrow: it represents voluntary group membership only (cults, religions, political movements). Use `FactionCivilian`, `FactionCult`, `FactionDeity` constants. Species-based identities and occupational roles are stored in `Profession` or `FactionID` on the AI struct instead.
 - Reproduction logic (`processReproduction`) lives in `internal/engine/tick.go`.
-- Natural reproduction: adult male/female pairs of the same species at the same location have a 0.1% chance per tick to produce offspring.
-- Caveman species (orc, ogre, giant, etc.) have a 0.3% chance per tick and do not form mate bonds.
-- Reproduction is gated by:
-  - Global entity cap of 5000
-  - Per-location per-species population cap of 20
-  - Per-entity cooldown of 1000 ticks (~16 minutes)
-- `averageAttrs` computes child attributes as parent average with small random variance.
+- Natural reproduction: adult male/female pairs of the same species at the same location have a small chance to produce offspring, gated by cooldown and population caps.
+- Caveman species (orc, ogre, giant, etc.) have a higher reproduction chance and do not form mate bonds.
 - `ProcessPregnancy` in `internal/engine/spawning.go` handles gestation completion.
 - Pregnancy gestation periods are per-species via `SpeciesGestationTicks`; falls back to 200 ticks.
 - Immortal/undead species (deity, vampire) cannot reproduce.
