@@ -671,12 +671,13 @@ func (g *Generator) generateNewCreatures() []*entity.Entity {
 
 	// Count Valerius - Vampire
 	vampireAttrs := entity.Attributes{STR: 18, DEX: 14, CON: 16, INT: 14, WIS: 12, CHA: 16}
-	vampire := entity.NewEntity("vampire_valerius", "Count Valerius", "vampire", vampireAttrs, ), entity.VampireHostilities)
+	vampire := entity.NewEntity("vampire_valerius", "Count Valerius", "vampire", vampireAttrs, ent. EmptyHostilities), 
 	vampire.LocationID = "coffin_chamber"
 	vampire.Faction = "undead"
 	vampire.MaxHP = 100
 	vampire.HP = 100
 	vampire.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"vampire"}, FactionID: "undead", SleepCycle: "nocturnal", HomeLocation: "coffin_chamber"}
+	
 	equipItem(vampire, lookup("dark_robe"))
 	equipItem(vampire, lookup("vampire_fang"))
 	all = append(all, vampire)

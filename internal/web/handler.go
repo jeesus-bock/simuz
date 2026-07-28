@@ -238,7 +238,7 @@ func hostileFactionMixExists(factions map[string]int) bool {
 	sortStringsByFoldAndRaw(keys)
 	for i := range keys {
 		for j := i + 1; j < len(keys); j++ {
-			if entity.CompareHostilities(keys[i], keys[j]) == combat.Hostile {
+			if keys[i] == combat.Hostile {
 				return true
 			}
 		}
