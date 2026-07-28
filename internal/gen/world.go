@@ -861,7 +861,7 @@ func (g *Generator) generateTownExtras() []*entity.Entity {
 		patron := entity.NewEntity(townID+"_patron", patronNames[i], "human", entity.RandomAttributes(g.RNG.Intn), 1)
 		patron.LocationID = townID + "_inn_common"
 		patron.Faction = "civilian"
-		patron.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"bard_patron"}, FactionID: townID, HomeLocation: townID + "_inn_common", SleepCycle: "diurnal"}
+		patron.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"bar_patron"}, FactionID: townID, HomeLocation: townID + "_inn_common", SleepCycle: "diurnal"}
 		equipItem(patron, lookup("common_clothes"))
 		giveCurrency(patron, 5+g.RNG.Intn(10), 2, 0)
 		all = append(all, patron)

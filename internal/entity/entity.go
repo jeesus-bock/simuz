@@ -365,6 +365,16 @@ func (e *Entity) GetRelationship(otherID string) (EntityRelationship, bool) {
 	return rel, ok
 }
 
+// GetRelationshipTo returns who the given relationship is to entity, returns only first entityID.
+func (e *Entity) GetRelationshipTo(ers EntityRelationship) (string, bool) {
+	for key, val := range e.Relationships {
+		if val.Type == ers.Type {
+			return key, true
+		}
+	}
+	return "", false
+}
+
 // GetChildren returns all parent-child relationships from this entity's perspective.
 func (e *Entity) GetChildren() []EntityRelationship {
 	var result []EntityRelationship
