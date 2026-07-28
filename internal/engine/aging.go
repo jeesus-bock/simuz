@@ -45,7 +45,7 @@ func starvationCheck(ent *entity.Entity, sim *Simulation) {
 		if (ticksSinceMeal-threshold)%interval == 0 {
 			dmg := rand.Intn(entity.StarvationDamageMax()-entity.StarvationDamageMin()+1) + entity.StarvationDamageMin()
 			ent.TakeDamage(dmg)
-			sim.Emit(&events.SimEvent{
+			sim.Emit(events.SimEvent{
 				Type:   events.EventTypeStarvation,
 				Source: ent.ID,
 				Data: map[string]interface{}{
