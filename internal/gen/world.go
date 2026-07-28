@@ -150,7 +150,7 @@ func (g *Generator) generateHostiles() []*entity.Entity {
 	}
 
 	for _, o := range orcDefs {
-		ent := entity.NewEntity(o.id, o.name, "orc", entity.RandomAttributes(g.RNG.Intn), 3+g.RNG.Intn(3))
+		ent := entity.NewEntity(o.id, o.name, "orc", entity.RandomAttributes(g.RNG.Intn), 3+g.RNG.Intn(3), entity.OrcHostilities)
 		ent.LocationID = o.locID
 		ent.Faction = "orc"
 		ent.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"aggressive"}, FactionID: "orc", SleepCycle: "diurnal", HomeLocation: o.locID}
@@ -178,7 +178,7 @@ func (g *Generator) generateHostiles() []*entity.Entity {
 	}
 
 	for _, e := range elfDefs {
-		ent := entity.NewEntity(e.id, e.name, "elf", entity.RandomAttributes(g.RNG.Intn), 3+g.RNG.Intn(3))
+		ent := entity.NewEntity(e.id, e.name, "elf", entity.RandomAttributes(g.RNG.Intn), 3+g.RNG.Intn(3), entity.ElfHostilities)
 		ent.LocationID = e.locID
 		ent.Faction = "elf"
 		ent.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"aggressive"}, FactionID: "elf", SleepCycle: "diurnal", HomeLocation: e.locID}
@@ -197,9 +197,10 @@ func (g *Generator) generateHostiles() []*entity.Entity {
 	}
 
 	for _, t := range thiefDefs {
-		ent := entity.NewEntity(t.id, t.name, "human", entity.RandomAttributes(g.RNG.Intn), 2+g.RNG.Intn(2))
+		ent := entity.NewEntity(t.id, t.name, "human", entity.RandomAttributes(g.RNG.Intn), 2+g.RNG.Intn(2), entity.ThiefHostilities)
 		ent.LocationID = t.locID
-		ent.Faction = "thief"
+		ent.Faction = "thieves_guild"
+		ent.Profession = "thief"
 		ent.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"thief"}, FactionID: "thief", SleepCycle: "nocturnal", HomeLocation: t.locID}
 		equipItem(ent, lookup("common_clothes"))
 		equipItem(ent, lookup("leather_boots"))
@@ -213,9 +214,10 @@ func (g *Generator) generateHostiles() []*entity.Entity {
 	}
 
 	for _, b := range banditDefs {
-		ent := entity.NewEntity(b.id, b.name, "human", entity.RandomAttributes(g.RNG.Intn), 2+g.RNG.Intn(3))
+		ent := entity.NewEntity(b.id, b.name, "human", entity.RandomAttributes(g.RNG.Intn), 2+g.RNG.Intn(3), entity.BanditHostilities)
 		ent.LocationID = b.locID
-		ent.Faction = "bandit"
+		ent.Faction = ""
+		ent.Profession = "bandit"
 		ent.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"aggressive"}, FactionID: "bandit", SleepCycle: "diurnal", HomeLocation: b.locID}
 		equipItem(ent, lookup("leather_armor"))
 		equipItem(ent, lookup("leather_boots"))
@@ -265,7 +267,7 @@ func (g *Generator) generateBeasts() []*entity.Entity {
 
 	var all []*entity.Entity
 	for _, b := range beastSpawns {
-		ent := entity.NewEntity(b.id, b.name, b.species, b.attrs, b.level)
+		ent := entity.NewEntity(b.id, b.name, b.species, b.attrs, b.level, entity.BeastHostilities)
 		ent.LocationID = b.locID
 		ent.Faction = "beast"
 		cycle := "diurnal"
