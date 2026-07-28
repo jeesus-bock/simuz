@@ -54,7 +54,14 @@ func NewSpawnManager() *SpawnManager {
 func (sm *SpawnManager) ProcessSpawns(w *world.World, worldEntities *entity.Manager, tick int, rng *rand.Rand) {
 	for i := range sm.Rules {
 		rule := &sm.Rules[i]
-		if tick%rule.Interval != 0 {
+		if rule.Interval < 0 {
+			continue
+		}
+		if rule.Interval == 0 {
+			if tick != 0 {
+				continue
+			}
+		} else if tick%rule.Interval != 0 {
 			continue
 		}
 		if w != nil {
