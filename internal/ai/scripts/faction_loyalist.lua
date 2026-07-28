@@ -35,7 +35,7 @@ local function do_tick()
     local nearby = world.nearby_entities()
     local factionMembers = {}
     local enemies = {}
-    var potentialAllies = {}
+    local potentialAllies = {}
 
     for _, id in ipairs(nearby) do
         if id ~= self.id then
