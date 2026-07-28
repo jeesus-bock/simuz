@@ -63,6 +63,9 @@ func starvationCheck(ent *entity.Entity, sim *Simulation) {
 	}
 }
 
-func oldAge{ent *entity.Entityn, sim *Simulation((lastWord string){
+func oldAge(ent *entity.Entity, sim *Simulation((lastWord string){
+
+}
+func jotain(pal int)(jotain int) {
 
 }
