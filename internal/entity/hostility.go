@@ -302,3 +302,9 @@ var BanditHostilities = Hostilities{
 	ProfessionRelation: ProfessionRelation{"guard": -50, "bandit": 50},
 	EntityRelation:     EntityRelation{},
 }
+var BeastHostilities = Hostilities{
+	SpeciesRelation:    SpeciesRelation{},
+	FactionRelation:    FactionRelation{},
+	ProfessionRelation: ProfessionRelation{},
+	EntityRelation:     EntityRelation{},
+}

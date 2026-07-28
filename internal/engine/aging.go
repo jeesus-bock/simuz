@@ -25,7 +25,7 @@ func processAging(ent *entity.Entity, sim *Simulation) {
 		return
 	}
 
-	if entity.GetSpecies(ent.Species).AutoFeed {
+	if species, ok := entity.GetSpeciesByID(ent.Species); ok && species.AutoFeed {
 		ent.LastMealTick = int(sim.Tick)
 		return
 	}
@@ -34,9 +34,10 @@ func processAging(ent *entity.Entity, sim *Simulation) {
 }
 
 func starvationCheck(ent *entity.Entity, sim *Simulation) {
-	threshold := entity.GetSpecies(ent.Species).StarvationThreshold
-	if threshold <= 0 {
-		return
+	if species, ok := entity.GetSpeciesByID(ent.Species); ok {
+		if threshold := species.StarvationThreshold; threshold <= 0 {
+			return
+		}
 	}
 
 	ticksSinceMeal := int(sim.Tick) - ent.LastMealTick

@@ -84,7 +84,9 @@ func NewSimulation(w *world.World) *Simulation {
 		if ent == nil || !ent.Alive {
 			return
 		}
-		if rewards.Experience > 0 && entity.GetSpeciesByID(ent.Species).CanLevelUp {
+
+		species, ok := entity.GetSpeciesByID(ent.Species)
+		if rewards.Experience > 0 && ok && species.CanLevelUp {
 			sim.Emit(events.SimEvent{
 				Type:   events.EventTypeQuestComplete,
 				Source: ent.ID,
@@ -226,7 +228,7 @@ func (s *Simulation) TickOnce() {
 		nearby := s.Entities.ByLocation(ent.LocationID)
 		hasHostile := false
 		for _, other := range nearby {
-			if other.ID != ent.ID && other.Alive && combat.Relation(ent.Faction, other.Faction) == combat.Hostile {
+			if other.ID != ent.ID && other.Alive && ent.GetFactionRelation(other.Faction).String() == "hostile" {
 				hasHostile = true
 				break
 			}
@@ -347,7 +349,7 @@ func processReproduction(s *Simulation) {
 		if !ent.IsAdult() {
 			continue
 		}
-		if !entity.GetSpecies(ent.Species).CanReproduce {
+		if species, ok := entity.GetSpeciesByID(ent.Species); !ok || !species.CanReproduce {
 			continue
 		}
 		key := groupKey{locID: ent.LocationID, species: ent.Species}
@@ -378,7 +380,7 @@ func processReproduction(s *Simulation) {
 		}
 
 		reproChance := 1 // 0.1% base chance per tick
-		if entity.GetSpecies(key.species).IsCaveman {
+		if species, ok := entity.GetSpeciesByID(key.species); ok && species.IsCaveman {
 			reproChance = 3 // 0.3% per tick for caveman species
 		}
 		if s.RNG.Intn(1000) >= reproChance {
@@ -406,7 +408,7 @@ func processReproduction(s *Simulation) {
 		childName := generateName(mother.Species, s.RNG)
 		childID := fmt.Sprintf("%s_child_%s_%d", mother.Species, mother.ID, s.Tick)
 
-		child := entity.NewEntity(childID, childName, mother.Species, childAttrs, 1)
+		child := entity.NewEntity(childID, childName, mother.Species, childAttrs, 1, entity.CombineHostilities(mother.Hostilities, father.Hostilities))
 		if s.RNG.Intn(2) == 0 {
 			child.Gender = "male"
 		} else {
@@ -439,7 +441,7 @@ func processReproduction(s *Simulation) {
 		child.AddRelationship(father.ID, entity.RelationshipParent, s.Tick)
 
 		// Caveman species do not form mate bonds or partner up.
-		if !entity.GetSpecies(mother.Species).IsCaveman {
+		if species, ok := entity.GetSpeciesByID(mother.Species); !ok || !species.IsCaveman {
 			mother.AddRelationship(father.ID, entity.RelationshipMate, s.Tick)
 			father.AddRelationship(mother.ID, entity.RelationshipMate, s.Tick)
 		}
@@ -541,7 +543,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if combat.Relation(ent.Faction, other.Faction) == combat.Hostile {
+			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
 				target = other
 				break
 			}
@@ -577,7 +579,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if combat.Relation(ent.Faction, other.Faction) == combat.Hostile {
+			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
 				target = other
 				break
 			}
@@ -612,7 +614,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if combat.Relation(ent.Faction, other.Faction) == combat.Hostile {
+			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
 				target = other
 				break
 			}
@@ -639,7 +641,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			for _, loc := range nearbyLocs {
 				locEntities := sim.Entities.ByLocation(loc.ID)
 				for _, e := range locEntities {
-					if e.Alive && !e.Immortal && combat.Relation(ent.Faction, e.Faction) == combat.Hostile {
+					if e.Alive && !e.Immortal && ent.GetFactionRelation(e.Faction).String() == "hostile" {
 						moveEntityTo(sim, ent, loc.ID)
 						return
 					}
@@ -658,7 +660,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if combat.Relation(ent.Faction, other.Faction) == combat.Hostile {
+			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
 				if home != "" && ent.LocationID != home {
 					moveEntityTo(sim, ent, home)
 				} else {
@@ -691,7 +693,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if other.HP < other.MaxHP && combat.Relation(ent.Faction, other.Faction) != combat.Hostile {
+			if other.HP < other.MaxHP && ent.GetFactionRelation(other.Faction).String() != "hostile" {
 				healAmt := 2 + ent.Level
 				other.Heal(healAmt)
 				log.Printf("[ai] %s healed %s for %d HP", ent.Name, other.Name, healAmt)
@@ -713,7 +715,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if combat.Relation(ent.Faction, other.Faction) == combat.Hostile {
+			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
 				hasHostile = true
 				break
 			}
@@ -757,7 +759,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if combat.Relation(ent.Faction, other.Faction) == combat.Hostile {
+			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
 				target = other
 				break
 			}
@@ -818,7 +820,7 @@ func nearbyCombatSites(sim *Simulation, ent *entity.Entity) []nearbyCombatSite {
 				continue
 			}
 			factions[other.Faction] = struct{}{}
-			if combat.Relation(ent.Faction, other.Faction) == combat.Hostile {
+			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
 				site.Hostiles++
 			} else {
 				site.Allies++
@@ -1166,7 +1168,7 @@ func defendPassiveSelf(ent *entity.Entity, sim *Simulation) bool {
 		if other == nil || other.ID == ent.ID || !other.Alive || other.Immortal {
 			continue
 		}
-		if combat.Relation(ent.Faction, other.Faction) == combat.Hostile {
+		if ent.GetFactionRelation(other.Faction).String() == "hostile" {
 			hostiles = append(hostiles, other)
 		}
 	}
@@ -1405,7 +1407,8 @@ func simpleAttackAt(sim *Simulation, attacker, defender *entity.Entity) bool {
 }
 
 func rewardXP(sim *Simulation, killer, target *entity.Entity) {
-	if !entity.GetSpecies(killer.Species).CanLevelUp {
+	species, ok := entity.GetSpeciesByID(killer.Species)
+	if !ok || !species.CanLevelUp {
 		return
 	}
 	xp := 5 + target.Level*3 + target.MaxHP/10
@@ -1421,7 +1424,7 @@ func rewardXP(sim *Simulation, killer, target *entity.Entity) {
 		Data: map[string]interface{}{"EntityID": killer.ID, "XP": xp},
 	})
 	if killer.Faction != target.Faction {
-		combat.ShiftRelation(killer.Faction, target.Faction, -1)
+		killer.ChangeFactionRelation(target.Faction, sim.RNG.Intn(-20))
 	}
 }
 

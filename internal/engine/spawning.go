@@ -111,7 +111,7 @@ func spawnEntity(rule *SpawnRule, em *entity.Manager, tick, idx int, rng *rand.R
 	name := generateName(rule.Species, rng)
 	id := fmt.Sprintf("%s_spawn_%s_%s_%d_%d", rule.Species, name, rule.LocationID, tick, idx)
 
-	ent := entity.NewEntity(id, name, rule.Species, attrs, level)
+	ent := entity.NewEntity(id, name, rule.Species, attrs, level, entity.EmptyHostilities)
 	ent.LocationID = rule.LocationID
 	ent.Faction = rule.Faction
 	ent.Profession = rule.Profession
@@ -385,14 +385,22 @@ func SpawnBaby(parent1, parent2 *entity.Entity, id, babyName string, tick uint64
 		parent1.Species,
 		attrs,
 		1,
+		entity.EmptyHostilities,
 	)
+	baby.LocationID = parent1.LocationID
+	baby.Faction = parent1.Faction
+	baby.Profession = ""
+	baby.AI = entity.EntityAI{
+		Type:         "scripted",
+		ScriptIDs:    defaultScripts(baby.Species, baby.Profession),
+		FactionID:    parent1.Faction,
+		SleepCycle:   defaultSleepCycle(baby.Species),
+		HomeLocation: parent1.LocationID,
+	}
+	baby.XP = randomXPForLevel(1, rng)
 
 	// Inherit gender randomly from one of the parents
-	if rng(2) == 0 {
-		baby.Gender = parent1.Gender
-	} else {
-		baby.Gender = parent2.Gender
-	}
+	baby.Gender = entity.GetRndGender()
 
 	// Mark the female parent as pregnant
 	if parent1.Gender == entity.GenderFemale {
@@ -472,7 +480,6 @@ func StartPregnancy(mother, father *entity.Entity, tick uint64) {
 	}
 	mother.Pregnant = true
 	mother.PregnantSinceTick = tick
-	mother.FatherID = father.ID
 }
 
 // ProcessPregnancy checks all entities for completed pregnancies and spawns babies.
@@ -659,7 +666,7 @@ func createSeededEntity(species, gender string, level int, locID string, rng *ra
 	name := generateName(species, rng)
 	id := fmt.Sprintf("%s_seed_%s_%s_%d", species, gender, name, rng.Intn(100000))
 
-	ent := entity.NewEntity(id, name, species, attrs, level, entity.Hostillities{}: make(map[string]entity.HostilityLevel))
+	ent := entity.NewEntity(id, name, species, attrs, level, entity.EmptyHosti)
 	ent.Gender = gender
 	ent.LocationID = locID
 	ent.Faction = "civilian"
