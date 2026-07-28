@@ -15,6 +15,7 @@ type SpawnRule struct {
 	LocationID      string
 	Species         string
 	Faction         string
+	Profession      string
 	FactionID       string
 	DesiredCount    int
 	Interval        int
@@ -32,18 +33,20 @@ type SpawnManager struct {
 func NewSpawnManager() *SpawnManager {
 	return &SpawnManager{
 		Rules: []SpawnRule{
-			{ID: "orc_patrol", LocationID: "orc_camp", Species: "orc", Faction: "orc", FactionID: "orc", DesiredCount: 4, Interval: 120, MinLevel: 1, MaxLevel: 3, RequireFaction: "orc"},
-			{ID: "wolf_pack", LocationID: "wolf_den", Species: "wolf", Faction: "beast", FactionID: "beast", DesiredCount: 4, Interval: 90, MinLevel: 1, MaxLevel: 2},
-			{ID: "bandit_camp", LocationID: "bandit_camp", Species: "human", Faction: "bandit", FactionID: "bandit", DesiredCount: 4, Interval: 150, MinLevel: 1, MaxLevel: 2, RequireFaction: "bandit"},
-			{ID: "bear_den", LocationID: "bear_den", Species: "bear", Faction: "beast", FactionID: "beast", DesiredCount: 2, Interval: 200, MinLevel: 3, MaxLevel: 5},
-			{ID: "boar_herd", LocationID: "boar_wallow", Species: "boar", Faction: "beast", FactionID: "beast", DesiredCount: 2, Interval: 180, MinLevel: 1, MaxLevel: 3},
-			{ID: "rat_infest", LocationID: "rat_king_lair_entrance", Species: "rat", Faction: "vermin", FactionID: "vermin", DesiredCount: 3, Interval: 60, MinLevel: 1, MaxLevel: 1},
-			{ID: "rat_corridor", LocationID: "rat_king_lair_corridor", Species: "rat", Faction: "vermin", FactionID: "vermin", DesiredCount: 3, Interval: 60, MinLevel: 1, MaxLevel: 2},
-			{ID: "spider_nest", LocationID: "spider_grove", Species: "spider", Faction: "beast", FactionID: "beast", DesiredCount: 2, Interval: 120, MinLevel: 1, MaxLevel: 3},
-			{ID: "goblin_gatherers", LocationID: "goblin_hollow", Species: "goblin", Faction: "goblin", FactionID: "goblin", DesiredCount: 2, Interval: 180, MinLevel: 1, MaxLevel: 1, RequireFaction: "goblin"},
-			{ID: "kobold_warren", LocationID: "kobold_warren", Species: "kobold", Faction: "kobold", FactionID: "kobold", DesiredCount: 4, Interval: 150, MinLevel: 1, MaxLevel: 2, RequireFaction: "kobold"},
-			{ID: "ash_scorpions", LocationID: "scorpion_dunes", Species: "spider", Faction: "beast", FactionID: "beast", DesiredCount: 2, Interval: 160, MinLevel: 2, MaxLevel: 4},
-			{ID: "ash_orcs", LocationID: "ash_ruins", Species: "orc", Faction: "orc", FactionID: "orc", DesiredCount: 2, Interval: 180, MinLevel: 2, MaxLevel: 4, RequireFaction: "orc"},
+			{ID: "orc_patrol", LocationID: "orc_camp", Species: "orc", Faction: "", Profession: "warrior", FactionID: "orc", DesiredCount: 4, Interval: 120, MinLevel: 1, MaxLevel: 3},
+			{ID: "wolf_pack", LocationID: "wolf_den", Species: "wolf", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 4, Interval: 90, MinLevel: 1, MaxLevel: 2},
+			{ID: "bandit_camp", LocationID: "bandit_camp", Species: "human", Faction: "", Profession: "bandit", FactionID: "bandit", DesiredCount: 4, Interval: 150, MinLevel: 1, MaxLevel: 2},
+			{ID: "bear_den", LocationID: "bear_den", Species: "bear", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 2, Interval: 200, MinLevel: 3, MaxLevel: 5},
+			{ID: "boar_herd", LocationID: "boar_wallow", Species: "boar", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 2, Interval: 180, MinLevel: 1, MaxLevel: 3},
+			{ID: "rat_infest", LocationID: "rat_king_lair_entrance", Species: "rat", Faction: "", Profession: "", FactionID: "vermin", DesiredCount: 3, Interval: 60, MinLevel: 1, MaxLevel: 1},
+			{ID: "rat_corridor", LocationID: "rat_king_lair_corridor", Species: "rat", Faction: "", Profession: "", FactionID: "vermin", DesiredCount: 3, Interval: 60, MinLevel: 1, MaxLevel: 2},
+			{ID: "spider_nest", LocationID: "spider_grove", Species: "spider", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 2, Interval: 120, MinLevel: 1, MaxLevel: 3},
+			{ID: "goblin_gatherers", LocationID: "goblin_hollow", Species: "goblin", Faction: "", Profession: "gatherer", FactionID: "goblin", DesiredCount: 2, Interval: 180, MinLevel: 1, MaxLevel: 1},
+			{ID: "kobold_warren", LocationID: "kobold_warren", Species: "kobold", Faction: "", Profession: "warrior", FactionID: "kobold", DesiredCount: 4, Interval: 150, MinLevel: 1, MaxLevel: 2},
+			{ID: "ash_scorpions", LocationID: "scorpion_dunes", Species: "spider", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 2, Interval: 160, MinLevel: 2, MaxLevel: 4},
+			{ID: "ash_orcs", LocationID: "ash_ruins", Species: "orc", Faction: "", Profession: "warrior", FactionID: "orc", DesiredCount: 2, Interval: 180, MinLevel: 2, MaxLevel: 4},
+			{ID: "town_bard", LocationID: "tavern", Species: "human", Faction: "", Profession: "bard", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 1, MaxLevel: 3},
+			{ID: "town_priest", LocationID: "temple", Species: "human", Faction: "", Profession: "priest", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 1, MaxLevel: 3},
 		},
 	}
 }
@@ -51,7 +54,14 @@ func NewSpawnManager() *SpawnManager {
 func (sm *SpawnManager) ProcessSpawns(w *world.World, worldEntities *entity.Manager, tick int, rng *rand.Rand) {
 	for i := range sm.Rules {
 		rule := &sm.Rules[i]
-		if tick%rule.Interval != 0 {
+		if rule.Interval < 0 {
+			continue
+		}
+		if rule.Interval == 0 {
+			if tick != 0 {
+				continue
+			}
+		} else if tick%rule.Interval != 0 {
 			continue
 		}
 		if w != nil {
@@ -101,6 +111,7 @@ func spawnEntity(rule *SpawnRule, em *entity.Manager, tick, idx int, rng *rand.R
 	ent := entity.NewEntity(id, name, rule.Species, attrs, level)
 	ent.LocationID = rule.LocationID
 	ent.Faction = rule.Faction
+	ent.Profession = rule.Profession
 	if entity.CanReproduce(rule.Species) {
 		if rng.Intn(2) == 0 {
 			ent.Gender = "male"
@@ -110,12 +121,13 @@ func spawnEntity(rule *SpawnRule, em *entity.Manager, tick, idx int, rng *rand.R
 	}
 	ent.AI = entity.EntityAI{
 		Type:         "scripted",
-		ScriptIDs:    defaultScripts(rule.Species),
+		ScriptIDs:    defaultScripts(rule.Species, rule.Profession),
 		FactionID:    rule.FactionID,
 		SleepCycle:   defaultSleepCycle(rule.Species),
 		HomeLocation: rule.LocationID,
 	}
 	equipSpawn(ent, rule, rng)
+	ent.XP = randomXPForLevel(level, rng.Intn)
 	em.Add(ent)
 	return ent
 }
@@ -158,7 +170,7 @@ func equipSpawn(ent *entity.Entity, rule *SpawnRule, rng *rand.Rand) {
 			equipSpawnItem(ent, "iron_sword")
 		}
 	case "human":
-		if rule.Faction == "bandit" {
+		if rule.Profession == "bandit" {
 			equipSpawnItem(ent, "leather_armor")
 			equipSpawnItem(ent, "leather_boots")
 			roll := rng.Intn(100)
@@ -172,6 +184,14 @@ func equipSpawn(ent *entity.Entity, rule *SpawnRule, rng *rand.Rand) {
 			default:
 				equipSpawnItem(ent, "iron_spear")
 			}
+		}
+		if rule.Profession == "bard" {
+			equipSpawnItem(ent, "work_tunic")
+			equipSpawnItem(ent, "lute")
+		}
+		if rule.Profession == "priest" {
+			equipSpawnItem(ent, "robes")
+			equipSpawnItem(ent, "holy_symbol")
 		}
 	case "goblin":
 		equipSpawnItem(ent, "work_tunic")
@@ -232,10 +252,11 @@ func generateName(species string, rng *rand.Rand) string {
 	spiderNames := []string{"Legs", "Weaver", "Sting", "Crawl"}
 	goblinNames := []string{"Snag", "Grib", "Nog", "Blink", "Mug"}
 	koboldNames := []string{"Skrit", "Yip", "Klik", "Drak", "Snik"}
+	humanNames := []string{"Aldric", "Brenna", "Cedric", "Delara", "Eamon", "Fiona", "Gareth", "Hilda", "Ivan", "Jenna", "Kol", "Lyssa", "Maren", "Nolan", "Opal", "Petra", "Quinn", "Rhea", "Soren", "Tessa"}
 	names := map[string][]string{
 		"orc": orcNames, "wolf": wolfNames, "bear": bearNames,
 		"boar": boarNames, "rat": ratNames, "spider": spiderNames, "goblin": goblinNames,
-		"kobold": koboldNames,
+		"kobold": koboldNames, "human": humanNames,
 	}
 	pool, ok := names[species]
 	if !ok || len(pool) == 0 {
@@ -244,7 +265,7 @@ func generateName(species string, rng *rand.Rand) string {
 	return pool[rng.Intn(len(pool))]
 }
 
-func defaultScripts(species string) []string {
+func defaultScripts(species, profession string) []string {
 	switch species {
 	case "orc":
 		return []string{"aggressive"}
@@ -261,7 +282,22 @@ func defaultScripts(species string) []string {
 	case "kobold":
 		return []string{"kobold"}
 	default:
-		return []string{"aggressive"}
+		switch profession {
+		case "bard":
+			return []string{"bard"}
+		case "priest":
+			return []string{"priest"}
+		case "bandit":
+			return []string{"bandit"}
+		case "ranger":
+			return []string{"ranger"}
+		case "merchant":
+			return []string{"merchant"}
+		case "cultist":
+			return []string{"cult_member"}
+		default:
+			return []string{"aggressive"}
+		}
 	}
 }
 
@@ -295,6 +331,17 @@ func clampInt(v, min, max int) int {
 	}
 	return v
 }
+
+// randomXPForLevel returns a random XP value for a given level.
+// The XP is randomized from 0 up to (but not including) the level-up threshold,
+// so the entity stays at its intended level.
+func randomXPForLevel(level int, rng func(int) int) int {
+	if level <= 0 {
+		return 0
+	}
+	return rng(level * 100)
+}
+
 // CanMate checks whether two entities are compatible for reproduction.
 func CanMate(a, b *entity.Entity) bool {
 	if a == nil || b == nil {
@@ -362,6 +409,9 @@ func SpawnBaby(parent1, parent2 *entity.Entity, id, babyName string, tick uint64
 	parent2.AddRelationship(baby.ID, entity.RelationshipParent, tick)
 	baby.AddRelationship(parent1.ID, entity.RelationshipChild, tick)
 	baby.AddRelationship(parent2.ID, entity.RelationshipChild, tick)
+
+	// Give the baby a random amount of XP appropriate for its level.
+	baby.XP = randomXPForLevel(1, rng)
 
 	return baby
 }
@@ -466,4 +516,166 @@ func ProcessPregnancy(em *entity.Manager, tick uint64, rng *rand.Rand) {
 			em.Add(baby)
 		}
 	}
+}
+
+// SeedFamilies creates multi-generational family groups at simulation start.
+// It places 2–5 families across civilian (indoor) locations in the world.
+func SeedFamilies(em *entity.Manager, w *world.World, rng *rand.Rand) {
+	const maxFamilies = 5
+
+	var candidates []*world.Location
+	for _, loc := range w.AllLocations() {
+		if loc.IsOutside {
+			continue // families live in towns, villages, and buildings
+		}
+		if w.IsDivineRealm(loc.ID) {
+			continue
+		}
+		candidates = append(candidates, loc)
+	}
+	if len(candidates) == 0 {
+		return
+	}
+
+	numFamilies := 2 + rng.Intn(maxFamilies-1)
+	for i := 0; i < numFamilies; i++ {
+		loc := candidates[rng.Intn(len(candidates))]
+		seedFamilyAtLocation(em, w, loc.ID, rng)
+	}
+}
+
+func seedFamilyAtLocation(em *entity.Manager, w *world.World, locID string, rng *rand.Rand) {
+	species := pickFamilySpecies(rng)
+	tick := uint64(0) // relationships start at tick 0 for seeded families
+
+	// Generation 1: Grandparents (old, level 6–9)
+	grandpa := createSeededEntity(species, "male", 6+rng.Intn(4), locID, rng)
+	grandma := createSeededEntity(species, "female", 6+rng.Intn(4), locID, rng)
+
+	grandpa.AddRelationship(grandma.ID, entity.RelationshipMate, tick)
+	grandma.AddRelationship(grandpa.ID, entity.RelationshipMate, tick)
+
+	// Generation 2: Parents (children of grandparents, level 3–6)
+	numParents := 1 + rng.Intn(2) // 1–2 parents
+	parents := make([]*entity.Entity, 0, numParents)
+	for i := 0; i < numParents; i++ {
+		gender := "male"
+		if i == 0 {
+			gender = "female"
+		}
+		parent := createSeededEntity(species, gender, 3+rng.Intn(4), locID, rng)
+		parents = append(parents, parent)
+
+		// Grandparent ↔ parent relationships
+		grandpa.AddRelationship(parent.ID, entity.RelationshipChild, tick)
+		grandma.AddRelationship(parent.ID, entity.RelationshipChild, tick)
+		parent.AddRelationship(grandpa.ID, entity.RelationshipParent, tick)
+		parent.AddRelationship(grandma.ID, entity.RelationshipParent, tick)
+	}
+
+	// Mate relationship between parents (if 2 parents)
+	if len(parents) >= 2 {
+		parents[0].AddRelationship(parents[1].ID, entity.RelationshipMate, tick)
+		parents[1].AddRelationship(parents[0].ID, entity.RelationshipMate, tick)
+	}
+
+	// Generation 3: Children (children of parents, level 1–3)
+	numChildren := 1 + rng.Intn(3) // 1–3 children
+	children := make([]*entity.Entity, 0, numChildren)
+	for i := 0; i < numChildren; i++ {
+		gender := "male"
+		if rng.Intn(2) == 0 {
+			gender = "female"
+		}
+		child := createSeededEntity(species, gender, 1+rng.Intn(3), locID, rng)
+		children = append(children, child)
+
+		// Parent ↔ child relationships
+		for _, parent := range parents {
+			parent.AddRelationship(child.ID, entity.RelationshipChild, tick)
+			child.AddRelationship(parent.ID, entity.RelationshipParent, tick)
+		}
+
+		// Sibling relationships
+		for _, sibling := range children {
+			if sibling.ID != child.ID {
+				child.AddRelationship(sibling.ID, entity.RelationshipSibling, tick)
+				sibling.AddRelationship(child.ID, entity.RelationshipSibling, tick)
+			}
+		}
+	}
+
+	// Generation 4: Grandchildren (children of one adult parent, level 1)
+	if len(parents) > 0 {
+		for _, parent := range parents {
+			if parent.Level >= 3 && rng.Intn(100) < 30 {
+				gcGender := "male"
+				if rng.Intn(2) == 0 {
+					gcGender = "female"
+				}
+				gc := createSeededEntity(species, gcGender, 1, locID, rng)
+
+				parent.AddRelationship(gc.ID, entity.RelationshipChild, tick)
+				gc.AddRelationship(parent.ID, entity.RelationshipParent, tick)
+
+				// Grandparent ↔ grandchild relationships
+				grandpa.AddRelationship(gc.ID, entity.RelationshipChild, tick)
+				grandma.AddRelationship(gc.ID, entity.RelationshipChild, tick)
+				gc.AddRelationship(grandpa.ID, entity.RelationshipParent, tick)
+				gc.AddRelationship(grandma.ID, entity.RelationshipParent, tick)
+
+				// Sibling relationships with existing children
+				for _, sibling := range children {
+					gc.AddRelationship(sibling.ID, entity.RelationshipSibling, tick)
+					sibling.AddRelationship(gc.ID, entity.RelationshipSibling, tick)
+				}
+
+				em.Add(gc)
+				break // one grandchild per family is enough
+			}
+		}
+	}
+
+	// Add all entities to the manager
+	em.Add(grandpa)
+	em.Add(grandma)
+	for _, p := range parents {
+		em.Add(p)
+	}
+	for _, c := range children {
+		em.Add(c)
+	}
+
+	log.Printf("[seed] seeded %s family at %s: grandpa=%s grandma=%s parents=%d children=%d",
+		species, locID, grandpa.Name, grandma.Name, len(parents), len(children))
+}
+
+func pickFamilySpecies(rng *rand.Rand) string {
+	species := []string{"human", "elf", "orc", "goblin", "kobold"}
+	return species[rng.Intn(len(species))]
+}
+
+func createSeededEntity(species, gender string, level int, locID string, rng *rand.Rand) *entity.Entity {
+	attrs := baseSpeciesAttrs(species, rng)
+	name := generateName(species, rng)
+	id := fmt.Sprintf("%s_seed_%s_%s_%d", species, gender, name, rng.Intn(100000))
+
+	ent := entity.NewEntity(id, name, species, attrs, level)
+	ent.Gender = gender
+	ent.LocationID = locID
+	ent.Faction = "civilian"
+	ent.Profession = pickCivilianProfession(rng)
+	ent.AI = entity.EntityAI{
+		Type:         "passive",
+		SleepCycle:   defaultSleepCycle(species),
+		HomeLocation: locID,
+	}
+	// Seeded entities start with a random amount of XP appropriate for their level.
+	ent.XP = randomXPForLevel(level, rng.Intn)
+	return ent
+}
+
+func pickCivilianProfession(rng *rand.Rand) string {
+	professions := []string{"", "farmer", "merchant", "herbalist", "miner", "fisherman", "craftsman", "scholar", "bard", "priest"}
+	return professions[rng.Intn(len(professions))]
 }
