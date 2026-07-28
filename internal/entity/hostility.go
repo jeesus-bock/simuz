@@ -16,10 +16,10 @@ func (r HostilityRelation) String() string {
 }
 
 type Hostilities struct {
-	speciesRelation    SpeciesRelation
-	factionRelation    FactionRelation
-	professionRelation ProfessionRelation
-	entityRelation     EntityRelation
+	SpeciesRelation    SpeciesRelation    `json:"speciesRelation,omitempty"`
+	FactionRelation    FactionRelation    `json:"factionRelation,omitempty"`
+	ProfessionRelation ProfessionRelation `json:"professionRelation,omitempty"`
+	EntityRelation     EntityRelation     `json:"entityRelation,omitempty"`
 }
 
 type FactionRelation map[string]HostilityRelation
@@ -29,60 +29,58 @@ type EntityRelation map[string]HostilityRelation
 
 func (f *Hostilities) Relation(ent Entity) HostilityRelation {
 	combined := 0
-	if f.entityRelation == nil {
-		f.entityRelation = make(EntityRelation)
-	}
-	if relation, exists := f.entityRelation[ent.ID]; exists {
-		combined += relation.Int()
-	}
+	combined += f.GetEntityRelation(ent.ID).Int()
+	combined += f.GetFactionRelation(ent.Faction).Int()
+	combined += f.GetSpeciesRelation(ent.Species).Int()
+	combined += f.GetProfessionRelation(ent.Profession).Int()
 	return HostilityRelation(combined)
 }
 
 func (f *Hostilities) SetSpeciesRelation(species string, relation HostilityRelation) {
-	if f.speciesRelation == nil {
-		f.speciesRelation = make(SpeciesRelation)
+	if f.SpeciesRelation == nil {
+		f.SpeciesRelation = make(SpeciesRelation)
 	}
-	f.speciesRelation[species] = relation
+	f.SpeciesRelation[species] = relation
 }
 
 func (f *Hostilities) GetSpeciesRelation(species string) HostilityRelation {
-	if f.speciesRelation == nil {
+	if f.SpeciesRelation == nil {
 		return HostilityRelation(0) // Default to neutral if no relations are defined
 	}
-	if relation, exists := f.speciesRelation[species]; exists {
+	if relation, exists := f.SpeciesRelation[species]; exists {
 		return relation
 	}
 	return HostilityRelation(0) // Default to neutral if no specific relation is defined
 }
 
 func (f *Hostilities) ChangeSpeciesRelation(species string, change int) HostilityRelation {
-	if f.speciesRelation == nil {
-		f.speciesRelation = make(SpeciesRelation)
-		f.speciesRelation[species] = HostilityRelation(change)
+	if f.SpeciesRelation == nil {
+		f.SpeciesRelation = make(SpeciesRelation)
+		f.SpeciesRelation[species] = HostilityRelation(change)
 	}
 
-	if relation, exists := f.speciesRelation[species]; exists {
-		f.speciesRelation[species] = relation + HostilityRelation(change)
+	if relation, exists := f.SpeciesRelation[species]; exists {
+		f.SpeciesRelation[species] = relation + HostilityRelation(change)
 	} else {
-		f.speciesRelation[species] = HostilityRelation(change)
+		f.SpeciesRelation[species] = HostilityRelation(change)
 	}
-	return f.speciesRelation[species]
+	return f.SpeciesRelation[species]
 }
 
 // SetFactionRelation sets the hostility relation for a specific faction.
 func (f *Hostilities) SetFactionRelation(faction string, relation HostilityRelation) {
-	if f.factionRelation == nil {
-		f.factionRelation = make(FactionRelation)
+	if f.FactionRelation == nil {
+		f.FactionRelation = make(FactionRelation)
 	}
-	f.factionRelation[faction] = relation
+	f.FactionRelation[faction] = relation
 }
 
 // GetFactionRelation retrieves the hostility relation for a specific faction.
 func (f *Hostilities) GetFactionRelation(faction string) HostilityRelation {
-	if f.factionRelation == nil {
+	if f.FactionRelation == nil {
 		return HostilityRelation(0) // Default to neutral if no relations are defined
 	}
-	if relation, exists := f.factionRelation[faction]; exists {
+	if relation, exists := f.FactionRelation[faction]; exists {
 		return relation
 	}
 	return HostilityRelation(0) // Default to neutral if no specific relation is defined
@@ -90,33 +88,33 @@ func (f *Hostilities) GetFactionRelation(faction string) HostilityRelation {
 
 // ChangeFactionRelation adjusts the hostility relation for a specific faction by a change amount.
 func (f *Hostilities) ChangeFactionRelation(faction string, change int) HostilityRelation {
-	if f.factionRelation == nil {
-		f.factionRelation = make(FactionRelation)
-		f.factionRelation[faction] = HostilityRelation(change)
+	if f.FactionRelation == nil {
+		f.FactionRelation = make(FactionRelation)
+		f.FactionRelation[faction] = HostilityRelation(change)
 	}
 
-	if relation, exists := f.factionRelation[faction]; exists {
-		f.factionRelation[faction] = relation + HostilityRelation(change)
+	if relation, exists := f.FactionRelation[faction]; exists {
+		f.FactionRelation[faction] = relation + HostilityRelation(change)
 	} else {
-		f.factionRelation[faction] = HostilityRelation(change)
+		f.FactionRelation[faction] = HostilityRelation(change)
 	}
-	return f.factionRelation[faction]
+	return f.FactionRelation[faction]
 }
 
 // SetProfessionRelation sets the hostility relation for a specific profession.
 func (f *Hostilities) SetProfessionRelation(profession string, relation HostilityRelation) {
-	if f.professionRelation == nil {
-		f.professionRelation = make(ProfessionRelation)
+	if f.ProfessionRelation == nil {
+		f.ProfessionRelation = make(ProfessionRelation)
 	}
-	f.professionRelation[profession] = relation
+	f.ProfessionRelation[profession] = relation
 }
 
 // GetProfessionRelation retrieves the hostility relation for a specific profession.
 func (f *Hostilities) GetProfessionRelation(profession string) HostilityRelation {
-	if f.professionRelation == nil {
+	if f.ProfessionRelation == nil {
 		return HostilityRelation(0) // Default to neutral if no relations are defined
 	}
-	if relation, exists := f.professionRelation[profession]; exists {
+	if relation, exists := f.ProfessionRelation[profession]; exists {
 		return relation
 	}
 	return HostilityRelation(0) // Default to neutral if no specific relation is defined
@@ -124,33 +122,33 @@ func (f *Hostilities) GetProfessionRelation(profession string) HostilityRelation
 
 // ChangeProfessionRelation adjusts the hostility relation for a specific profession by a change amount.
 func (f *Hostilities) ChangeProfessionRelation(profession string, change int) HostilityRelation {
-	if f.professionRelation == nil {
-		f.professionRelation = make(ProfessionRelation)
-		f.professionRelation[profession] = HostilityRelation(change)
+	if f.ProfessionRelation == nil {
+		f.ProfessionRelation = make(ProfessionRelation)
+		f.ProfessionRelation[profession] = HostilityRelation(change)
 	}
 
-	if relation, exists := f.professionRelation[profession]; exists {
-		f.professionRelation[profession] = relation + HostilityRelation(change)
+	if relation, exists := f.ProfessionRelation[profession]; exists {
+		f.ProfessionRelation[profession] = relation + HostilityRelation(change)
 	} else {
-		f.professionRelation[profession] = HostilityRelation(change)
+		f.ProfessionRelation[profession] = HostilityRelation(change)
 	}
-	return f.professionRelation[profession]
+	return f.ProfessionRelation[profession]
 }
 
 // SetEntityRelation sets the hostility relation for a specific entity.
 func (f *Hostilities) SetEntityRelation(entityID string, relation HostilityRelation) {
-	if f.entityRelation == nil {
-		f.entityRelation = make(EntityRelation)
+	if f.EntityRelation == nil {
+		f.EntityRelation = make(EntityRelation)
 	}
-	f.entityRelation[entityID] = relation
+	f.EntityRelation[entityID] = relation
 }
 
 // GetEntityRelation retrieves the hostility relation for a specific entity.
 func (f *Hostilities) GetEntityRelation(entityID string) HostilityRelation {
-	if f.entityRelation == nil {
+	if f.EntityRelation == nil {
 		return HostilityRelation(0) // Default to neutral if no relations are defined
 	}
-	if relation, exists := f.entityRelation[entityID]; exists {
+	if relation, exists := f.EntityRelation[entityID]; exists {
 		return relation
 	}
 	return HostilityRelation(0) // Default to neutral if no specific relation is defined
@@ -158,15 +156,70 @@ func (f *Hostilities) GetEntityRelation(entityID string) HostilityRelation {
 
 // ChangeEntityRelation adjusts the hostility relation for a specific entity by a change amount.
 func (f *Hostilities) ChangeEntityRelation(entityID string, change int) HostilityRelation {
-	if f.entityRelation == nil {
-		f.entityRelation = make(EntityRelation)
-		f.entityRelation[entityID] = HostilityRelation(change)
+	if f.EntityRelation == nil {
+		f.EntityRelation = make(EntityRelation)
+		f.EntityRelation[entityID] = HostilityRelation(change)
 	}
 
-	if relation, exists := f.entityRelation[entityID]; exists {
-		f.entityRelation[entityID] = relation + HostilityRelation(change)
+	if relation, exists := f.EntityRelation[entityID]; exists {
+		f.EntityRelation[entityID] = relation + HostilityRelation(change)
 	} else {
-		f.entityRelation[entityID] = HostilityRelation(change)
+		f.EntityRelation[entityID] = HostilityRelation(change)
 	}
-	return f.entityRelation[entityID]
+	return f.EntityRelation[entityID]
+}
+
+func CombineHostilities(h1, h2 Hostilities) Hostilities {
+	combined := Hostilities{
+		SpeciesRelation:    make(SpeciesRelation),
+		FactionRelation:    make(FactionRelation),
+		ProfessionRelation: make(ProfessionRelation),
+		EntityRelation:     make(EntityRelation),
+	}
+
+	for species, relation := range h1.SpeciesRelation {
+		combined.SpeciesRelation[species] = relation
+	}
+	for species, relation := range h2.SpeciesRelation {
+		if existing, exists := combined.SpeciesRelation[species]; exists {
+			combined.SpeciesRelation[species] = existing + relation
+		} else {
+			combined.SpeciesRelation[species] = relation
+		}
+	}
+
+	for faction, relation := range h1.FactionRelation {
+		combined.FactionRelation[faction] = relation
+	}
+	for faction, relation := range h2.FactionRelation {
+		if existing, exists := combined.FactionRelation[faction]; exists {
+			combined.FactionRelation[faction] = existing + relation
+		} else {
+			combined.FactionRelation[faction] = relation
+		}
+	}
+
+	for profession, relation := range h1.ProfessionRelation {
+		combined.ProfessionRelation[profession] = relation
+	}
+	for profession, relation := range h2.ProfessionRelation {
+		if existing, exists := combined.ProfessionRelation[profession]; exists {
+			combined.ProfessionRelation[profession] = existing + relation
+		} else {
+			combined.ProfessionRelation[profession] = relation
+		}
+	}
+
+	for entityID, relation := range h1.EntityRelation {
+		combined.EntityRelation[entityID] = relation
+	}
+	for entityID, relation := range h2.EntityRelation {
+		if existing, exists := combined.EntityRelation[entityID]; exists {
+			combined.EntityRelation[entityID] = existing + relation
+		} else {
+			combined.EntityRelation[entityID] = relation
+		}
+	}
+
+	return combined
 }
