@@ -266,3 +266,27 @@ var RatKingHostilities = Hostilities{
     ProfessionRelation: ProfessionRelation{},
     EntityRelation:     EntityRelation{},
 }
+var HumanHostilities = Hostilities{
+    SpeciesRelation:    SpeciesRelation{},
+    FactionRelation:    FactionRelation{},
+    ProfessionRelation: ProfessionRelation{},
+    EntityRelation:     EntityRelation{},
+}
+var ElfHostilities = Hostilities{
+    SpeciesRelation:    SpeciesRelation{},
+    FactionRelation:    FactionRelation{},
+    ProfessionRelation: ProfessionRelation{},
+    EntityRelation:     EntityRelation{},
+}
+var GoblinHostilities = Hostilities{
+    SpeciesRelation:    SpeciesRelation{},
+    FactionRelation:    FactionRelation{},
+    ProfessionRelation: ProfessionRelation{},
+    EntityRelation:     EntityRelation{},
+}
+var FeyHostilities = Hostilities{
+    SpeciesRelation:    SpeciesRelation{},
+    FactionRelation:    FactionRelation{},
+    ProfessionRelation: ProfessionRelation{},
+    EntityRelation:     EntityRelation{},
+}
