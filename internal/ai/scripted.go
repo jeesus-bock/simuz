@@ -143,17 +143,17 @@ func decodeSimEvents(L *lua.LState, tbl *lua.LTable, defaultTick uint64) []*even
 
 		// type (EventType int)
 		if typeVal := eventTbl.RawGetString("type"); typeVal != lua.LNil {
-			ev.Type = events.EventType(L.ToIntX(typeVal, 0))
+			ev.Type = events.EventType(L.ToInt(typeVal))
 		}
 
 		// tick (uint64)
 		if tickVal := eventTbl.RawGetString("tick"); tickVal != lua.LNil {
-			ev.Tick = uint64(L.ToIntX(tickVal, 0))
+			ev.Tick = uint64(L.ToInt(tickVal))
 		}
 
 		// source (string)
 		if srcVal := eventTbl.RawGetString("source"); srcVal != lua.LNil {
-			ev.Source = L.ToStringX(srcVal, "")
+			ev.Source = L.ToString(srcVal)
 		}
 
 		// data (table -> map[string]any)
