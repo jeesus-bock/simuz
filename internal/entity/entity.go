@@ -175,7 +175,19 @@ func NewEntity(id, name, species string, attrs Attributes, level int) *Entity {
 func CanReproduce(species string) bool {
 	switch species {
 	case "human", "orc", "elf", "goblin", "fey", "rat_king",
-		"kobold", "vampire", "hag":
+		"kobold", "vampire", "hag", "ogre", "giant":
+		return true
+	default:
+		return false
+	}
+}
+
+// IsCavemanSpecies returns true for species that reproduce without forming
+// mate bonds or courtship relationships. These species breed freely and
+// do not establish partner relationships when reproducing.
+func IsCavemanSpecies(species string) bool {
+	switch species {
+	case "orc", "ogre", "giant", "troll", "cyclops":
 		return true
 	default:
 		return false
