@@ -26,6 +26,7 @@ const (
 	EventTimePassed
 	EventEntityBorn
 	EventTypeQuestComplete
+	EventXPGained
 )
 
 type SimEvent struct {
