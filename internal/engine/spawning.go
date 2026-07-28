@@ -1,3 +1,4 @@
+// Package engine contains the simulation engine, tick processing, and related systems.
 package engine
 
 import (
@@ -112,7 +113,7 @@ func spawnEntity(rule *SpawnRule, em *entity.Manager, tick, idx int, rng *rand.R
 	ent.LocationID = rule.LocationID
 	ent.Faction = rule.Faction
 	ent.Profession = rule.Profession
-	if entity.CanReproduce(rule.Species) {
+	if entity.GetSpecies(rule.Species).CanReproduce {
 		if rng.Intn(2) == 0 {
 			ent.Gender = "male"
 		} else {
@@ -540,11 +541,11 @@ func SeedFamilies(em *entity.Manager, w *world.World, rng *rand.Rand) {
 	numFamilies := 2 + rng.Intn(maxFamilies-1)
 	for i := 0; i < numFamilies; i++ {
 		loc := candidates[rng.Intn(len(candidates))]
-		seedFamilyAtLocation(em, w, loc.ID, rng)
+		seedFamilyAtLocation(em, loc.ID, rng)
 	}
 }
 
-func seedFamilyAtLocation(em *entity.Manager, w *world.World, locID string, rng *rand.Rand) {
+func seedFamilyAtLocation(em *entity.Manager, locID string, rng *rand.Rand) {
 	species := pickFamilySpecies(rng)
 	tick := uint64(0) // relationships start at tick 0 for seeded families
 
@@ -651,7 +652,7 @@ func seedFamilyAtLocation(em *entity.Manager, w *world.World, locID string, rng 
 }
 
 func pickFamilySpecies(rng *rand.Rand) string {
-	species := []string{"human", "elf", "orc", "goblin", "kobold"}
+	species := []string{"human", "elf", "orc", "goblin", "kobold", "hobit", "dwarf"}
 	return species[rng.Intn(len(species))]
 }
 

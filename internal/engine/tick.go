@@ -27,29 +27,6 @@ type Storage interface {
 	Enabled() bool
 }
 
-type EventType int
-
-const (
-	EventEntityKilled EventType = iota
-	EventEntityTalked
-	EventLocationEntered
-	EventItemCollected
-	EventItemDelivered
-	EventItemUsed
-	EventCraftCompleted
-	EventTravelCompleted
-	EventTick
-	EventTimePassed
-	EventEntityBorn
-)
-
-type SimEvent struct {
-	Type   EventType
-	Tick   uint64
-	Source string
-	Data   map[string]any
-}
-
 type Simulation struct {
 	mu           sync.RWMutex
 	Tick         uint64
@@ -62,8 +39,8 @@ type Simulation struct {
 	Storage      Storage
 	RNG          *rand.Rand
 	running      bool
-	events       []SimEvent
-	listeners    []func(SimEvent)
+	events       []events.SimEvent
+	listeners    []func(events.SimEvent)
 	SpawnManager *SpawnManager
 	Traveling    map[string]*world.TravelState
 }
@@ -84,24 +61,6 @@ func (s *Simulation) Unlock()  { s.mu.Unlock() }
 
 func NewSimulation(w *world.World) *Simulation {
 	qm := quest.NewManager()
-	qm.OnQuestComplete = func(entityID, questID string, rewards *quest.Rewards) {
-		if rewards == nil {
-			return
-		}
-		ent := globalEntityManagerGet(entityID)
-		if ent == nil || !ent.Alive {
-			return
-		}
-		if rewards.Experience > 0 && entity.CanLevelUp(ent.Species) {
-			ent.AddXP(rewards.Experience)
-			log.Printf("[quest] %s earned %d XP from quest '%s'", ent.Name, rewards.Experience, questID)
-		}
-		if rewards.Gold > 0 {
-			for i := 0; i < rewards.Gold; i++ {
-				ent.AddItem(items.NewItemInstance("gold_"+questID+fmt.Sprint(i), "gp", items.GetDef("gp"), 1))
-			}
-		}
-	}
 	sim := &Simulation{
 		Tick:         0,
 		Scheduler:    NewScheduler(),
@@ -112,11 +71,40 @@ func NewSimulation(w *world.World) *Simulation {
 		Time:         world.NewGameTime(24),
 		RNG:          rand.New(rand.NewSource(time.Now().UnixNano())),
 		running:      false,
-		events:       make([]SimEvent, 0),
-		listeners:    make([]func(SimEvent), 0),
+		events:       make([]events.SimEvent, 0),
+		listeners:    make([]func(events.SimEvent), 0),
 		SpawnManager: NewSpawnManager(),
 		Traveling:    make(map[string]*world.TravelState),
 	}
+	qm.OnQuestComplete = func(entityID, questID string, rewards *quest.Rewards) {
+		if rewards == nil {
+			return
+		}
+		ent := globalEntityManagerGet(entityID)
+		if ent == nil || !ent.Alive {
+			return
+		}
+		if rewards.Experience > 0 && entity.GetSpecies(ent.Species).CanLevelUp {
+			sim.Emit(events.SimEvent{
+				Type:   events.EventTypeQuestComplete,
+				Source: ent.ID,
+				Data: map[string]interface{}{
+					"quest_id":   questID,
+					"experience": rewards.Experience,
+					"gold":       rewards.Gold,
+				},
+			})
+			ent.AddXP(rewards.Experience)
+			log.Printf("[quest] %s earned %d XP from quest '%s'", ent.Name, rewards.Experience, questID)
+		}
+		if rewards.Gold > 0 {
+			for i := 0; i < rewards.Gold; i++ {
+				ent.AddItem(items.NewItemInstance("gold_"+questID+fmt.Sprint(i), "gp", items.GetDef("gp"), 1))
+			}
+		}
+
+	}
+
 	globalEntityManager = sim.Entities
 	ai.MoveRequest = sim.RequestMove
 	ai.IsEntityTraveling = sim.IsTraveling
@@ -132,27 +120,27 @@ func globalEntityManagerGet(id string) *entity.Entity {
 	return globalEntityManager.Get(id)
 }
 
-func (s *Simulation) OnEvent(fn func(SimEvent)) {
+func (s *Simulation) OnEvent(fn func(events.SimEvent)) {
 	s.listeners = append(s.listeners, fn)
 }
 
-func (s *Simulation) Emit(event SimEvent) {
+func (s *Simulation) Emit(event events.SimEvent) {
 	s.events = append(s.events, event)
 	for _, fn := range s.listeners {
 		fn(event)
 	}
 }
 
-func (s *Simulation) DrainEvents() []SimEvent {
+func (s *Simulation) DrainEvents() []events.SimEvent {
 	events := s.events
 	s.events = nil
 	return events
 }
 
-func (s *Simulation) EventsCopy() []SimEvent {
+func (s *Simulation) EventsCopy() []events.SimEvent {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	out := make([]SimEvent, len(s.events))
+	out := make([]events.SimEvent, len(s.events))
 	copy(out, s.events)
 	return out
 }
@@ -293,8 +281,8 @@ func (s *Simulation) TickOnce() {
 		s.Events.ProcessTick(s.Tick, s.World, s.RNG, s.Entities.All())
 	}
 
-	s.Emit(SimEvent{
-		Type: EventTick,
+	s.Emit(events.SimEvent{
+		Type: events.EventTick,
 		Tick: s.Tick,
 	})
 
@@ -359,7 +347,7 @@ func processReproduction(s *Simulation) {
 		if !ent.IsAdult() {
 			continue
 		}
-		if !entity.CanReproduce(ent.Species) {
+		if !entity.GetSpecies(ent.Species).CanReproduce {
 			continue
 		}
 		key := groupKey{locID: ent.LocationID, species: ent.Species}
@@ -389,10 +377,8 @@ func processReproduction(s *Simulation) {
 			continue
 		}
 
-		// Caveman species reproduce more freely without courtship.
-		isCaveman := entity.IsCavemanSpecies(key.species)
 		reproChance := 1 // 0.1% base chance per tick
-		if isCaveman {
+		if entity.GetSpecies(key.species).IsCaveman {
 			reproChance = 3 // 0.3% per tick for caveman species
 		}
 		if s.RNG.Intn(1000) >= reproChance {
@@ -447,13 +433,13 @@ func processReproduction(s *Simulation) {
 		s.Entities.Add(child)
 
 		// Establish parent↔child relationships (always, for all species).
-		mother.AddRelationship(child.ID, entity.RelationshipParent, s.Tick)
-		father.AddRelationship(child.ID, entity.RelationshipParent, s.Tick)
-		child.AddRelationship(mother.ID, entity.RelationshipChild, s.Tick)
-		child.AddRelationship(father.ID, entity.RelationshipChild, s.Tick)
+		mother.AddRelationship(child.ID, entity.RelationshipChild, s.Tick)
+		father.AddRelationship(child.ID, entity.RelationshipChild, s.Tick)
+		child.AddRelationship(mother.ID, entity.RelationshipParent, s.Tick)
+		child.AddRelationship(father.ID, entity.RelationshipParent, s.Tick)
 
 		// Caveman species do not form mate bonds or partner up.
-		if !isCaveman {
+		if !entity.GetSpecies(mother.Species).IsCaveman {
 			mother.AddRelationship(father.ID, entity.RelationshipMate, s.Tick)
 			father.AddRelationship(mother.ID, entity.RelationshipMate, s.Tick)
 		}
@@ -471,8 +457,8 @@ func processReproduction(s *Simulation) {
 		mother.LastReproductionTick = s.Tick
 		father.LastReproductionTick = s.Tick
 		log.Printf("[birth] %s born to %s and %s at %s", child.Name, mother.Name, father.Name, key.locID)
-		s.Emit(SimEvent{
-			Type:   EventEntityBorn,
+		s.Emit(events.SimEvent{
+			Type:   events.EventEntityBorn,
 			Tick:   s.Tick,
 			Source: child.ID,
 			Data:   map[string]any{"mother": mother.ID, "father": father.ID, "species": mother.Species, "location": key.locID},
@@ -492,9 +478,18 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 				if sid == "" {
 					continue
 				}
-				if err := ai.RunScript(sid, ent, sim.World, sim.Entities, &sim.Time, sim.RNG, sim.Quests); err != nil {
-					log.Printf("AI script error for %s (%s): %v", ent.Name, sid, err)
+				scriptEvents, err := ai.RunScript(sid, ent, sim.World, sim.Entities, &sim.Time, sim.RNG, sim.Quests)
+				if err != nil {
+					log.Printf("AI  script error for %s (%s): %v", ent.Name, sid, err)
+					continue
 				}
+				if scriptEvents == nil {
+					continue
+				}
+				for _, event := range scriptEvents {
+					sim.Emit(*event)
+				}
+				break // Only run the first valid script per tick
 			}
 		}
 		return
@@ -556,13 +551,13 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			applyCombatMoods(ent, target, hit)
 			if !target.Alive {
 				combat.LootCorpse(ent, target)
-				sim.Emit(SimEvent{
-					Type:   EventEntityKilled,
+				sim.Emit(events.SimEvent{
+					Type:   events.EventEntityKilled,
 					Tick:   sim.Tick,
 					Source: ent.ID,
 					Data:   map[string]any{"target": target.ID, "attacker": ent.ID},
 				})
-				rewardXP(ent, target)
+				rewardXP(sim, ent, target)
 				questKilled(sim, target)
 			}
 			return
@@ -592,13 +587,13 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			applyCombatMoods(ent, target, hit)
 			if !target.Alive {
 				combat.LootCorpse(ent, target)
-				sim.Emit(SimEvent{
-					Type:   EventEntityKilled,
+				sim.Emit(events.SimEvent{
+					Type:   events.EventEntityKilled,
 					Tick:   sim.Tick,
 					Source: ent.ID,
 					Data:   map[string]any{"target": target.ID, "attacker": ent.ID},
 				})
-				rewardXP(ent, target)
+				rewardXP(sim, ent, target)
 				questKilled(sim, target)
 			}
 			return
@@ -627,13 +622,13 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			applyCombatMoods(ent, target, hit)
 			if !target.Alive {
 				combat.LootCorpse(ent, target)
-				sim.Emit(SimEvent{
-					Type:   EventEntityKilled,
+				sim.Emit(events.SimEvent{
+					Type:   events.EventEntityKilled,
 					Tick:   sim.Tick,
 					Source: ent.ID,
 					Data:   map[string]any{"target": target.ID, "attacker": ent.ID},
 				})
-				rewardXP(ent, target)
+				rewardXP(sim, ent, target)
 				questKilled(sim, target)
 			}
 			return
@@ -772,13 +767,13 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			applyCombatMoods(ent, target, hit)
 			if !target.Alive {
 				combat.LootCorpse(ent, target)
-				sim.Emit(SimEvent{
-					Type:   EventEntityKilled,
+				sim.Emit(events.SimEvent{
+					Type:   events.EventEntityKilled,
 					Tick:   sim.Tick,
 					Source: ent.ID,
 					Data:   map[string]any{"target": target.ID, "attacker": ent.ID},
 				})
-				rewardXP(ent, target)
+				rewardXP(sim, ent, target)
 				questKilled(sim, target)
 			}
 		}
@@ -1069,10 +1064,10 @@ func fleeFromCombat(sim *Simulation, ent *entity.Entity, hostiles []*entity.Enti
 		applyCombatMoods(attacker, ent, hit)
 		if !ent.Alive {
 			combat.LootCorpse(attacker, ent)
-			rewardXP(attacker, ent)
+			rewardXP(sim, attacker, ent)
 			questKilled(sim, ent)
-			sim.Emit(SimEvent{
-				Type:   EventEntityKilled,
+			sim.Emit(events.SimEvent{
+				Type:   events.EventEntityKilled,
 				Tick:   sim.Tick,
 				Source: attacker.ID,
 				Data:   map[string]any{"target": ent.ID, "attacker": attacker.ID},
@@ -1125,10 +1120,10 @@ func retreatOpportunityAttack(sim *Simulation, attacker, defender *entity.Entity
 	applyCombatMoods(attacker, defender, hit)
 	if !defender.Alive {
 		combat.LootCorpse(attacker, defender)
-		rewardXP(attacker, defender)
+		rewardXP(sim, attacker, defender)
 		questKilled(sim, defender)
-		sim.Emit(SimEvent{
-			Type:   EventEntityKilled,
+		sim.Emit(events.SimEvent{
+			Type:   events.EventEntityKilled,
 			Tick:   sim.Tick,
 			Source: attacker.ID,
 			Data:   map[string]any{"target": defender.ID, "attacker": attacker.ID},
@@ -1187,13 +1182,13 @@ func defendPassiveSelf(ent *entity.Entity, sim *Simulation) bool {
 	applyCombatMoods(ent, target, hit)
 	if !target.Alive {
 		combat.LootCorpse(ent, target)
-		sim.Emit(SimEvent{
-			Type:   EventEntityKilled,
+		sim.Emit(events.SimEvent{
+			Type:   events.EventEntityKilled,
 			Tick:   sim.Tick,
 			Source: ent.ID,
 			Data:   map[string]any{"target": target.ID, "attacker": ent.ID},
 		})
-		rewardXP(ent, target)
+		rewardXP(sim, ent, target)
 		questKilled(sim, target)
 	}
 	return true
@@ -1409,8 +1404,8 @@ func simpleAttackAt(sim *Simulation, attacker, defender *entity.Entity) bool {
 	return hit
 }
 
-func rewardXP(killer, target *entity.Entity) {
-	if !entity.CanLevelUp(killer.Species) {
+func rewardXP(sim *Simulation, killer, target *entity.Entity) {
+	if !entity.GetSpecies(killer.Species).CanLevelUp {
 		return
 	}
 	xp := 5 + target.Level*3 + target.MaxHP/10
@@ -1420,6 +1415,11 @@ func rewardXP(killer, target *entity.Entity) {
 	log.Printf("[xp] %s gained %d XP for killing %s", killer.Name, xp, target.Name)
 	killer.AddXP(xp)
 	killer.AddMoodModifier("combat_kill", "happy", 30)
+	sim.Emit(events.SimEvent{
+		Type: events.EventXPGained,
+		Tick: sim.Tick,
+		Data: map[string]interface{}{"EntityID": killer.ID, "XP": xp},
+	})
 	if killer.Faction != target.Faction {
 		combat.ShiftRelation(killer.Faction, target.Faction, -1)
 	}

@@ -1,3 +1,4 @@
+// Package ai contains the AI runtime, script loading, and Lua-facing helpers for entities.
 package ai
 
 import (
@@ -6,46 +7,43 @@ import (
 	"log"
 	"math/rand"
 	"strconv"
-	"sync"
 
-	lua "github.com/yuin/gopher-lua"
 	"simuz/internal/combat"
 	"simuz/internal/economy"
 	"simuz/internal/entity"
+	"simuz/internal/events"
 	"simuz/internal/items"
 	"simuz/internal/quest"
 	"simuz/internal/world"
+
+	lua "github.com/yuin/gopher-lua"
 )
 
 type ScriptManager struct {
-	mu      sync.RWMutex
-	scripts map[string]*lua.FunctionProto
+	scripts     map[string]*lua.FunctionProto
+	scriptTypes map[string]string
 }
 
 var globalScripts *ScriptManager
 
 func init() {
 	globalScripts = &ScriptManager{
-		scripts: make(map[string]*lua.FunctionProto),
+		scripts:     make(map[string]*lua.FunctionProto),
+		scriptTypes: make(map[string]string),
 	}
+
 }
-
-func LoadScript(name, source string) error {
-	L := lua.NewState()
-	defer L.Close()
-
-	fn, err := L.LoadString(source)
-	if err != nil {
-		return fmt.Errorf("load script %s: %w", name, err)
+func goValue(value lua.LValue) any {
+	switch v := value.(type) {
+	case lua.LString:
+		return string(v)
+	case lua.LNumber:
+		return float64(v)
+	case lua.LBool:
+		return bool(v)
+	default:
+		return nil // Handles lua.LNil
 	}
-
-	proto := fn.Proto
-
-	globalScripts.mu.Lock()
-	defer globalScripts.mu.Unlock()
-	globalScripts.scripts[name] = proto
-	log.Printf("Loaded AI script: %s", name)
-	return nil
 }
 
 // MoveRequest is set by the engine to handle instant vs multi-tick travel.
@@ -54,12 +52,12 @@ var MoveRequest func(ent *entity.Entity, destID string) bool
 // IsEntityTraveling is set by the engine.
 var IsEntityTraveling func(entityID string) bool
 
-func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manager, tm *world.GameTime, rng *rand.Rand, qm *quest.Manager) error {
-	globalScripts.mu.RLock()
+// RunScript executes a loaded Lua AI script and returns the events it generated.
+func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manager, tm *world.GameTime, rng *rand.Rand, qm *quest.Manager) ([]*events.SimEvent, error) {
 	proto, ok := globalScripts.scripts[name]
-	globalScripts.mu.RUnlock()
+
 	if !ok {
-		return fmt.Errorf("script not found: %s", name)
+		return nil, fmt.Errorf("script not found: %s", name)
 	}
 
 	L := lua.NewState()
@@ -72,14 +70,94 @@ func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manag
 	closure := L.NewFunctionFromProto(proto)
 	err := L.CallByParam(lua.P{
 		Fn:      closure,
-		NRet:    0,
+		NRet:    3,
 		Protect: true,
 	})
 	if err != nil {
-		return fmt.Errorf("run script %s: %w", name, err)
+		return nil, fmt.Errorf("run script %s: %w", name, err)
 	}
 
-	return nil
+	var simEvents []*events.SimEvent
+
+	val := L.Get(-1)
+	if tbl, ok := val.(*lua.LTable); ok {
+		simEvents = decodeSimEvents(tbl, tm.Tick)
+	}
+
+	return simEvents, nil
+}
+
+// decodeSimEvents converts a Lua table of event tables into []*events.SimEvent.
+// Each entry in the Lua table should have keys: type (int), tick (uint64), source (string), data (table).
+func decodeSimEvents(tbl *lua.LTable, defaultTick uint64) []*events.SimEvent {
+	var luaEvents []*events.SimEvent
+	tbl.ForEach(func(k, v lua.LValue) {
+		eventTbl, ok := v.(*lua.LTable)
+		if !ok {
+			return
+		}
+		ev := &events.SimEvent{
+			Tick: defaultTick,
+		}
+
+		// type (EventType int)
+		if typeVal := eventTbl.RawGetString("type"); typeVal != lua.LNil {
+			typeInt, err := strconv.Atoi(typeVal.String())
+			if err != nil {
+				log.Printf("Error converting type to int: %v", err)
+				return
+			}
+			ev.Type = events.EventType(typeInt)
+		}
+
+		// tick (uint64)
+		if tickVal := eventTbl.RawGetString("tick"); tickVal != lua.LNil {
+			tickInt, err := strconv.Atoi(tickVal.String())
+			if err != nil {
+				log.Printf("Error converting tick to int: %v", err)
+				return
+			}
+			ev.Tick = uint64(tickInt)
+		}
+
+		// source (string)
+		if srcVal := eventTbl.RawGetString("source"); srcVal != lua.LNil {
+			ev.Source = srcVal.String()
+		}
+
+		// data (table -> map[string]any)
+		if dataVal := eventTbl.RawGet(lua.LString("data")); dataVal != lua.LNil {
+			result := make(map[string]any)
+			table, ok := dataVal.(*lua.LTable)
+			if !ok {
+				log.Printf("Error: data is not a table")
+				return
+			}
+			// Iterate through the Lua table keys and values
+			table.ForEach(func(key lua.LValue, val lua.LValue) {
+				// Ensure the key is a string (ignores numeric array indices if necessary)
+				if strKey, ok := key.(lua.LString); ok {
+					result[string(strKey)] = goValue(val)
+				}
+			})
+		}
+
+		luaEvents = append(luaEvents, ev)
+	})
+	return luaEvents
+}
+
+// luaTableToMap converts a Lua table with string keys to a Go map[string]any.
+func luaTableToMap(L *lua.LState, tbl *lua.LTable) map[string]any {
+	m := make(map[string]any)
+	tbl.ForEach(func(k, v lua.LValue) {
+		key, ok := k.(lua.LString)
+		if !ok {
+			return
+		}
+		m[string(key)] = luaValueToGo(L, v)
+	})
+	return m
 }
 
 func bindEntity(L *lua.LState, e *entity.Entity, tick uint64) {
@@ -131,6 +209,25 @@ func bindEntity(L *lua.LState, e *entity.Entity, tick uint64) {
 			return 1
 		}
 		rel, ok := e.GetRelationship(otherID)
+		if !ok {
+			L.Push(lua.LNil)
+			return 1
+		}
+		tbl := L.NewTable()
+		tbl.RawSetString("other_id", lua.LString(rel.OtherID))
+		tbl.RawSetString("type", lua.LString(string(rel.Type)))
+		tbl.RawSetString("since_tick", lua.LNumber(rel.SinceTick))
+		L.Push(tbl)
+		return 1
+	}))
+
+	entTbl.RawSetString("get_relationship_to", L.NewFunction(func(L *lua.LState) int {
+		relationshipType := L.ToString(1)
+		if relationshipType == "" {
+			L.Push(lua.LNil)
+			return 1
+		}
+		rel, ok := e.GetRelationshipTo(entity.RelationshipType(relationshipType))
 		if !ok {
 			L.Push(lua.LNil)
 			return 1
@@ -314,8 +411,8 @@ func bindEntity(L *lua.LState, e *entity.Entity, tick uint64) {
 }
 
 func computeHunger(e *entity.Entity, tick uint64) float64 {
-	if !entity.ShouldAutoFeed(e.Species) && e.LastMealTick > 0 {
-		threshold := entity.SpeciesStarvationThreshold(e.Species)
+	if !entity.GetSpecies(e.Species).AutoFeed && e.LastMealTick > 0 {
+		threshold := entity.GetSpecies(e.Species).StarvationThreshold
 		if threshold > 0 {
 			ticksSince := int(tick) - e.LastMealTick
 			if ticksSince >= threshold {
@@ -616,7 +713,7 @@ func scriptCombatAttack(w *world.World, em *entity.Manager, qm *quest.Manager, r
 				}
 			}
 		}
-		if entity.CanLevelUp(attacker.Species) {
+		if entity.GetSpecies(attacker.Species).CanLevelUp {
 			xp := 5 + target.Level*3 + target.MaxHP/10
 			if xp < 1 {
 				xp = 1
@@ -1339,7 +1436,7 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 				if attacker.Faction != other.Faction {
 					combat.ShiftRelation(attacker.Faction, other.Faction, -1)
 				}
-				if entity.CanLevelUp(attacker.Species) {
+				if entity.GetSpecies(attacker.Species).CanLevelUp {
 					xp := 5 + other.Level*3 + other.MaxHP/10
 					if xp < 1 {
 						xp = 1

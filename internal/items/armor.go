@@ -1,3 +1,4 @@
+// Package items defines item definitions, instances, and registry support for the simulation.
 package items
 
 type HitLocation int
@@ -73,7 +74,7 @@ func (hl HitLocation) WoundMultiplier() float64 {
 type ArmorCoverage int
 
 const (
-	CoversNone ArmorCoverage = 0
+	CoversNone  ArmorCoverage = 0
 	CoversTorso ArmorCoverage = 1 << iota
 	CoversHead
 	CoversArms
@@ -86,11 +87,11 @@ const (
 )
 
 type ArmorDef struct {
-	DR       float64        `json:"dr"`
-	Coverage ArmorCoverage  `json:"coverage"`
-	Flexible bool           `json:"flexible"`
-	Weight   float64        `json:"weight"`
-	Penalty  int            `json:"penalty"`
+	DR       float64       `json:"dr"`
+	Coverage ArmorCoverage `json:"coverage"`
+	Flexible bool          `json:"flexible"`
+	Weight   float64       `json:"weight"`
+	Penalty  int           `json:"penalty"`
 }
 
 func (ac ArmorCoverage) Covers(loc HitLocation) bool {

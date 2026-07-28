@@ -1,3 +1,4 @@
+// Package events contains the simulation event engine and tick-based event processing helpers.
 package events
 
 import (
@@ -9,6 +10,32 @@ import (
 	"simuz/internal/entity"
 	"simuz/internal/world"
 )
+
+type EventType int
+
+const (
+	EventEntityKilled EventType = iota
+	EventEntityTalked
+	EventLocationEntered
+	EventItemCollected
+	EventItemDelivered
+	EventItemUsed
+	EventCraftCompleted
+	EventTravelCompleted
+	EventTick
+	EventTimePassed
+	EventEntityBorn
+	EventTypeQuestComplete
+	EventXPGained
+	EventTypeStarvation
+)
+
+type SimEvent struct {
+	Type   EventType
+	Tick   uint64
+	Source string
+	Data   map[string]any
+}
 
 type Event struct {
 	Tick    uint64
@@ -150,7 +177,7 @@ var ambientEvents = []ambientTemplate{
 	{
 		Title:   "Firelight",
 		Message: "Firelight dances warmly, casting long shadows on the walls.",
-		Check:   func(loc *world.Location, rng *rand.Rand, ents []*entity.Entity) bool {
+		Check: func(loc *world.Location, rng *rand.Rand, ents []*entity.Entity) bool {
 			return !loc.IsOutside && hasTag(loc, "inn")
 		},
 	},

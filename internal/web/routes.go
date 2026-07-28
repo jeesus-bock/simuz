@@ -1,3 +1,4 @@
+// Package web provides the HTTP routes and view wiring for the Simuz web UI.
 package web
 
 import (

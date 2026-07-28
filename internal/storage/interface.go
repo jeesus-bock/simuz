@@ -1,3 +1,4 @@
+// Package storage defines the persistence interfaces and SQLite-backed implementation used by the simulation.
 package storage
 
 import "simuz/internal/engine"

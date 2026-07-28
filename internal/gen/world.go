@@ -1,3 +1,4 @@
+// Package gen contains world generation helpers and seeded simulation setup utilities.
 package gen
 
 import (
@@ -330,12 +331,12 @@ func (g *Generator) generateTown(id, name, regionID string, x, y float64) []*ent
 		g.World.AddLocation(loc)
 	}
 
-	g.generateRooms(id+"_inn", "The Sleeping Dragon")
+	g.generateRooms(id + "_inn")
 
 	return g.generateNPCs(id)
 }
 
-func (g *Generator) generateRooms(innID, innName string) {
+func (g *Generator) generateRooms(innID string) {
 	rooms := []struct {
 		id, name string
 		x, y     float64
@@ -658,13 +659,13 @@ func (g *Generator) generateNewCreatures() []*entity.Entity {
 	manor.IsOutside = false
 	g.World.AddLocation(manor)
 
-	manor_hall := world.NewLocation("manor_hall", "Manorial Hall", world.LocBuilding, "ravenmoor_manor", world.Position{})
-	manor_hall.IsOutside = false
-	g.World.AddLocation(manor_hall)
+	manorHall := world.NewLocation("manor_hall", "Manorial Hall", world.LocBuilding, "ravenmoor_manor", world.Position{})
+	manorHall.IsOutside = false
+	g.World.AddLocation(manorHall)
 
-	coffin_chamber := world.NewLocation("coffin_chamber", "Coffin Chamber", world.LocRoom, "manor_hall", world.Position{X: 0, Y: 5})
-	coffin_chamber.IsOutside = false
-	g.World.AddLocation(coffin_chamber)
+	coffinChamber := world.NewLocation("coffin_chamber", "Coffin Chamber", world.LocRoom, "manor_hall", world.Position{X: 0, Y: 5})
+	coffinChamber.IsOutside = false
+	g.World.AddLocation(coffinChamber)
 
 	// Count Valerius - Vampire
 	vampireAttrs := entity.Attributes{STR: 18, DEX: 14, CON: 16, INT: 14, WIS: 12, CHA: 16}
@@ -679,10 +680,10 @@ func (g *Generator) generateNewCreatures() []*entity.Entity {
 	all = append(all, vampire)
 
 	// Hag's Cottage
-	hag_cottage := world.NewLocation("hag_cottage", "Hag's Cottage", world.LocBuilding, "golden_plains", world.Position{X: 350, Y: 320})
-	hag_cottage.IsOutside = false
-	hag_cottage.Tags = []string{"cottage"}
-	g.World.AddLocation(hag_cottage)
+	hagCottage := world.NewLocation("hag_cottage", "Hag's Cottage", world.LocBuilding, "golden_plains", world.Position{X: 350, Y: 320})
+	hagCottage.IsOutside = false
+	hagCottage.Tags = []string{"cottage"}
+	g.World.AddLocation(hagCottage)
 
 	// Mirelda - Hag
 	hagAttrs := entity.Attributes{STR: 12, DEX: 10, CON: 14, INT: 16, WIS: 18, CHA: 8}
@@ -860,7 +861,7 @@ func (g *Generator) generateTownExtras() []*entity.Entity {
 		patron := entity.NewEntity(townID+"_patron", patronNames[i], "human", entity.RandomAttributes(g.RNG.Intn), 1)
 		patron.LocationID = townID + "_inn_common"
 		patron.Faction = "civilian"
-		patron.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"bard_patron"}, FactionID: townID, HomeLocation: townID + "_inn_common", SleepCycle: "diurnal"}
+		patron.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"bar_patron"}, FactionID: townID, HomeLocation: townID + "_inn_common", SleepCycle: "diurnal"}
 		equipItem(patron, lookup("common_clothes"))
 		giveCurrency(patron, 5+g.RNG.Intn(10), 2, 0)
 		all = append(all, patron)

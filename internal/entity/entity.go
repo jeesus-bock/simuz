@@ -135,7 +135,7 @@ func NewEntity(id, name, species string, attrs Attributes, level int) *Entity {
 		Profession:    "",
 		Level:         level,
 		Age:           0,
-		MaxAge:        SpeciesMaxAge(species),
+		MaxAge:        GetSpecies(species).MaxAge,
 		LastMealTick:  0,
 		Alive:         true,
 		Conscious:     true,
@@ -152,29 +152,6 @@ func NewEntity(id, name, species string, attrs Attributes, level int) *Entity {
 		AI: EntityAI{
 			Type: "passive",
 		},
-	}
-}
-
-// CanReproduce returns true for species that can breed naturally.
-func CanReproduce(species string) bool {
-	switch species {
-	case "human", "orc", "elf", "goblin", "fey", "rat_king",
-		"kobold", "vampire", "hag", "ogre", "giant":
-		return true
-	default:
-		return false
-	}
-}
-
-// IsCavemanSpecies returns true for species that reproduce without forming
-// mate bonds or courtship relationships. These species breed freely and
-// do not establish partner relationships when reproducing.
-func IsCavemanSpecies(species string) bool {
-	switch species {
-	case "orc", "ogre", "giant", "troll", "cyclops":
-		return true
-	default:
-		return false
 	}
 }
 
@@ -386,6 +363,16 @@ func (e *Entity) AddRelationship(otherID string, relType RelationshipType, tick 
 func (e *Entity) GetRelationship(otherID string) (EntityRelationship, bool) {
 	rel, ok := e.Relationships[otherID]
 	return rel, ok
+}
+
+// GetRelationshipTo returns who the given relationship is to entity, returns only first entityID.
+func (e *Entity) GetRelationshipTo(rst RelationshipType) (EntityRelationship, bool) {
+	for _, val := range e.Relationships {
+		if val.Type == rst {
+			return val, true
+		}
+	}
+	return EntityRelationship{}, false
 }
 
 // GetChildren returns all parent-child relationships from this entity's perspective.

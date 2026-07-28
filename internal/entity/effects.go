@@ -1,16 +1,17 @@
+// Package entity defines the simulation entities, their attributes, and related behaviors.
 package entity
 
 type ActiveEffect struct {
-	ID             string `json:"id"`
-	Name           string `json:"name"`
-	ItemDefID      string `json:"item_def_id"`
-	StartTick      uint64 `json:"start_tick"`
-	BoostRemaining int    `json:"boost_remaining"`
-	CrashRemaining int    `json:"crash_remaining"`
+	ID             string     `json:"id"`
+	Name           string     `json:"name"`
+	ItemDefID      string     `json:"item_def_id"`
+	StartTick      uint64     `json:"start_tick"`
+	BoostRemaining int        `json:"boost_remaining"`
+	CrashRemaining int        `json:"crash_remaining"`
 	BoostMod       Attributes `json:"boost_mod"`
 	CrashMod       Attributes `json:"crash_mod"`
-	HealPerTick    int    `json:"heal_per_tick"`
-	FPPerTick      int    `json:"fp_per_tick"`
+	HealPerTick    int        `json:"heal_per_tick"`
+	FPPerTick      int        `json:"fp_per_tick"`
 }
 
 func (e *Entity) ApplySubstance(name, itemDefID string, duration, crashDuration int, boostMod, crashMod Attributes, healHP, healFP, healPerTick, fpPerTick int, tick uint64) {

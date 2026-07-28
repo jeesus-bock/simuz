@@ -1,3 +1,4 @@
+// Package combat contains the core combat rules, relation handling, and attack resolution helpers.
 package combat
 
 import (
@@ -10,10 +11,10 @@ type ArmorSet struct {
 }
 
 type ArmorPiece struct {
-	Name     string             `json:"name"`
-	DR       float64            `json:"dr"`
+	Name     string              `json:"name"`
+	DR       float64             `json:"dr"`
 	Coverage items.ArmorCoverage `json:"coverage"`
-	Flexible bool               `json:"flexible"`
+	Flexible bool                `json:"flexible"`
 }
 
 func GetEffectiveDR(target *entity.Entity, hitLoc items.HitLocation) (float64, bool) {
