@@ -1,3 +1,4 @@
+// Package engine contains the simulation engine, tick processing, and related systems.
 package engine
 
 import (
@@ -365,9 +366,10 @@ func processReproduction(s *Simulation) {
 
 		var males, females []*entity.Entity
 		for _, ent := range members {
-			if ent.Gender == "male" {
+			switch ent.Gender {
+			case "male":
 				males = append(males, ent)
-			} else if ent.Gender == "female" {
+			case "female":
 				females = append(females, ent)
 			}
 		}
@@ -419,6 +421,25 @@ func processReproduction(s *Simulation) {
 		}
 
 		s.Entities.Add(child)
+
+		// Establish family relationships: parent↔child and mate↔mate.
+		mother.AddRelationship(child.ID, entity.RelationshipParent, s.Tick)
+		father.AddRelationship(child.ID, entity.RelationshipParent, s.Tick)
+		child.AddRelationship(mother.ID, entity.RelationshipChild, s.Tick)
+		child.AddRelationship(father.ID, entity.RelationshipChild, s.Tick)
+		mother.AddRelationship(father.ID, entity.RelationshipMate, s.Tick)
+		father.AddRelationship(mother.ID, entity.RelationshipMate, s.Tick)
+
+		// Sibling relationships with existing children of the mother.
+		for _, rel := range mother.Relationships {
+			if rel.Type == entity.RelationshipChild && rel.OtherID != child.ID {
+				child.AddRelationship(rel.OtherID, entity.RelationshipSibling, s.Tick)
+				if sibling := s.Entities.Get(rel.OtherID); sibling != nil {
+					sibling.AddRelationship(child.ID, entity.RelationshipSibling, s.Tick)
+				}
+			}
+		}
+
 		mother.LastReproductionTick = s.Tick
 		father.LastReproductionTick = s.Tick
 		log.Printf("[birth] %s born to %s and %s at %s", child.Name, mother.Name, father.Name, key.locID)
@@ -504,7 +525,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 		}
 		if target != nil {
 			hit := simpleAttackAt(sim, ent, target)
-			applyCombatMoods(ent, target, hit, sim.Tick)
+			applyCombatMoods(ent, target, hit)
 			if !target.Alive {
 				combat.LootCorpse(ent, target)
 				sim.Emit(SimEvent{
@@ -540,7 +561,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 		}
 		if target != nil {
 			hit := simpleAttackAt(sim, ent, target)
-			applyCombatMoods(ent, target, hit, sim.Tick)
+			applyCombatMoods(ent, target, hit)
 			if !target.Alive {
 				combat.LootCorpse(ent, target)
 				sim.Emit(SimEvent{
@@ -575,7 +596,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 		}
 		if target != nil {
 			hit := simpleAttackAt(sim, ent, target)
-			applyCombatMoods(ent, target, hit, sim.Tick)
+			applyCombatMoods(ent, target, hit)
 			if !target.Alive {
 				combat.LootCorpse(ent, target)
 				sim.Emit(SimEvent{
@@ -720,7 +741,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 		}
 		if target != nil {
 			hit := simpleAttackAt(sim, ent, target)
-			applyCombatMoods(ent, target, hit, sim.Tick)
+			applyCombatMoods(ent, target, hit)
 			if !target.Alive {
 				combat.LootCorpse(ent, target)
 				sim.Emit(SimEvent{
@@ -1015,7 +1036,7 @@ func fleeFromCombat(sim *Simulation, ent *entity.Entity, hostiles []*entity.Enti
 		}
 		hit := combat.SimpleAttack(attacker, ent, sim.RNG)
 		combat.ResetWeatherVisibility()
-		applyCombatMoods(attacker, ent, hit, sim.Tick)
+		applyCombatMoods(attacker, ent, hit)
 		if !ent.Alive {
 			combat.LootCorpse(attacker, ent)
 			rewardXP(attacker, ent)
@@ -1071,7 +1092,7 @@ func retreatOpportunityAttack(sim *Simulation, attacker, defender *entity.Entity
 	}
 	hit := combat.SimpleAttack(attacker, defender, sim.RNG)
 	combat.ResetWeatherVisibility()
-	applyCombatMoods(attacker, defender, hit, sim.Tick)
+	applyCombatMoods(attacker, defender, hit)
 	if !defender.Alive {
 		combat.LootCorpse(attacker, defender)
 		rewardXP(attacker, defender)
@@ -1133,7 +1154,7 @@ func defendPassiveSelf(ent *entity.Entity, sim *Simulation) bool {
 	braveCombatBonus(ent, hostiles)
 	target := hostiles[0]
 	hit := simpleAttackAt(sim, ent, target)
-	applyCombatMoods(ent, target, hit, sim.Tick)
+	applyCombatMoods(ent, target, hit)
 	if !target.Alive {
 		combat.LootCorpse(ent, target)
 		sim.Emit(SimEvent{
@@ -1374,7 +1395,7 @@ func rewardXP(killer, target *entity.Entity) {
 	}
 }
 
-func applyCombatMoods(attacker, defender *entity.Entity, hit bool, tick uint64) {
+func applyCombatMoods(attacker, defender *entity.Entity, hit bool) {
 	if hit {
 		attacker.AddMoodModifier("combat_hit", "angry", 10)
 		defender.AddMoodModifier("combat_take_damage", "fearful", 10)

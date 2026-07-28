@@ -1,3 +1,4 @@
+// Package web provides HTTP handlers and template rendering for the Simuz web UI.
 package web
 
 import (
@@ -294,18 +295,14 @@ func sortStringsByFoldAndRaw(values []string) {
 	})
 }
 
-func sortTravelersForDisplay(travelers []gin.H) {
+func sortTravelersForDisplay(travelers []travelerView) {
 	sort.SliceStable(travelers, func(i, j int) bool {
-		ni, _ := travelers[i]["name"].(string)
-		nj, _ := travelers[j]["name"].(string)
-		li := strings.ToLower(ni)
-		lj := strings.ToLower(nj)
-		if li != lj {
-			return li < lj
+		ni := strings.ToLower(travelers[i].Name)
+		nj := strings.ToLower(travelers[j].Name)
+		if ni != nj {
+			return ni < nj
 		}
-		ei, _ := travelers[i]["entity_id"].(string)
-		ej, _ := travelers[j]["entity_id"].(string)
-		return ei < ej
+		return travelers[i].EntityID < travelers[j].EntityID
 	})
 }
 
@@ -1012,14 +1009,7 @@ func buildTravelerViews(sim *engine.Simulation, locID string) []travelerView {
 			TotalSteps:  len(route) - 1,
 		})
 	}
-	sort.SliceStable(travelers, func(i, j int) bool {
-		ni := strings.ToLower(travelers[i].Name)
-		nj := strings.ToLower(travelers[j].Name)
-		if ni != nj {
-			return ni < nj
-		}
-		return travelers[i].EntityID < travelers[j].EntityID
-	})
+	sortTravelersForDisplay(travelers)
 	return travelers
 }
 
@@ -1285,12 +1275,12 @@ func annotateMapTravelers(nodes []mapNode, travelers []travelerView) {
 			}
 			countsByLoc[step.ID]++
 			notesByLoc[step.ID] = append(notesByLoc[step.ID], fmt.Sprintf("%s: %s (%d/%d, %dt)",
-				tv.Name,
-				routeText,
-				currentIdx+1,
-				len(tv.Route),
-				tv.Eta,
-			))
+					tv.Name,
+					routeText,
+					currentIdx+1,
+					len(tv.Route),
+					tv.Eta,
+				))
 		}
 	}
 	var walk func([]mapNode)
@@ -1532,4 +1522,224 @@ func (h *Handler) SSEEvents(c *gin.Context) {
 		c.SSEvent("tick", fmt.Sprintf(`{"tick":%d}`, tick))
 		return true
 	})
+}
+
+// --- Pregnancies view ---
+
+type pregnantEntityView struct {
+	EntityID       string
+	EntityName     string
+	Species        string
+	Faction        string
+	Level          int
+	Progress       int
+	TicksRemaining int
+	LocationID     string
+	LocationName   string
+}
+
+type recentBirthView struct {
+	OffspringID   string
+	OffspringName string
+	Species       string
+	Gender        string
+	ParentID      string
+	ParentName    string
+	Tick          uint64
+}
+
+type relationshipView struct {
+	EntityAID   string
+	EntityAName string
+	EntityBID   string
+	EntityBName string
+	Type        string
+	SinceTick   uint64
+}
+
+// SpeciesGestationTicks returns the gestation period in ticks for a given species.
+func SpeciesGestationTicks(species string) int {
+	switch species {
+	case "human":
+		return 200
+	case "orc":
+		return 150
+	case "elf":
+		return 250
+	case "dwarf":
+		return 180
+	case "goblin":
+		return 120
+	case "fey":
+		return 160
+	case "rat_king":
+		return 100
+	case "kobold":
+		return 90
+	case "vampire":
+		return 0
+	case "hag":
+		return 140
+	default:
+		return 200
+	}
+}
+
+func (h *Handler) PregnanciesPage(c *gin.Context) {
+	h.Sim.RLock()
+	defer h.Sim.RUnlock()
+
+	pregnantEntities := buildPregnantEntities(h.Sim)
+	recentBirths := buildRecentBirths(h.Sim)
+	relationships := buildRelationships(h.Sim)
+
+	h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
+		"title":             "Pregnancies & Births",
+		"page":              "pregnancies",
+		"tick":              h.Sim.Tick,
+		"time":              h.Sim.Time.String(),
+		"phase":             h.Sim.Time.Phase().String(),
+		"season":            h.Sim.Time.Season().String(),
+		"entities":          len(h.Sim.Entities.All()),
+		"locations":         len(h.Sim.World.AllLocations()),
+		"pregnant_entities": pregnantEntities,
+		"recent_births":     recentBirths,
+		"relationships":     relationships,
+	})
+}
+
+func (h *Handler) PregnanciesFragment(c *gin.Context) {
+	h.Sim.RLock()
+	defer h.Sim.RUnlock()
+
+	pregnantEntities := buildPregnantEntities(h.Sim)
+	recentBirths := buildRecentBirths(h.Sim)
+	relationships := buildRelationships(h.Sim)
+
+	h.Tmpls.ExecuteTemplate(c.Writer, "pregnancies_list", gin.H{
+		"tick":              h.Sim.Tick,
+		"pregnant_entities": pregnantEntities,
+		"recent_births":     recentBirths,
+		"relationships":     relationships,
+	})
+}
+
+func buildPregnantEntities(sim *engine.Simulation) []pregnantEntityView {
+	var out []pregnantEntityView
+	for _, e := range sim.Entities.All() {
+		if !e.Pregnant {
+			continue
+		}
+		gestation := SpeciesGestationTicks(e.Species)
+		if gestation <= 0 {
+			gestation = 200
+		}
+		// PregnancyTick not yet available on entity.Entity; progress unavailable.
+		progress := 0
+		remaining := gestation
+
+		locName := e.LocationID
+		if loc := sim.World.Location(e.LocationID); loc != nil {
+			locName = loc.Name
+		}
+
+		out = append(out, pregnantEntityView{
+			EntityID:       e.ID,
+			EntityName:     e.Name,
+			Species:        e.Species,
+			Faction:        e.Faction,
+			Level:          e.Level,
+			Progress:       progress,
+			TicksRemaining: remaining,
+			LocationID:     e.LocationID,
+			LocationName:   locName,
+		})
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		if out[i].EntityName != out[j].EntityName {
+			return out[i].EntityName < out[j].EntityName
+		}
+		return out[i].EntityID < out[j].EntityID
+	})
+	return out
+}
+
+func buildRecentBirths(sim *engine.Simulation) []recentBirthView {
+	var out []recentBirthView
+	events := combat.LocationEvents("", 500)
+	for _, evt := range events {
+		if evt.Action != "birth" {
+			continue
+		}
+		parent := sim.Entities.Get(evt.AttackerID)
+		parentName := evt.AttackerID
+		if parent != nil {
+			parentName = parent.Name
+		}
+		offspring := sim.Entities.Get(evt.DefenderID)
+		offspringName := evt.DefenderName
+		species := ""
+		gender := ""
+		if offspring != nil {
+			offspringName = offspring.Name
+			species = offspring.Species
+			gender = offspring.Gender
+		}
+		out = append(out, recentBirthView{
+			OffspringID:   evt.DefenderID,
+			OffspringName: offspringName,
+			Species:       species,
+			Gender:        gender,
+			ParentID:      evt.AttackerID,
+			ParentName:    parentName,
+			Tick:          evt.Tick,
+		})
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		return out[i].Tick > out[j].Tick
+	})
+	if len(out) > 50 {
+		out = out[:50]
+	}
+	return out
+}
+
+func buildRelationships(sim *engine.Simulation) []relationshipView {
+	var out []relationshipView
+	seen := make(map[string]bool)
+	for _, e := range sim.Entities.All() {
+		for _, rel := range e.Relationships {
+			key := rel.OtherID + ":" + e.ID
+			reverseKey := e.ID + ":" + rel.OtherID
+			if seen[key] || seen[reverseKey] {
+				continue
+			}
+			seen[key] = true
+			seen[reverseKey] = true
+
+			other := sim.Entities.Get(rel.OtherID)
+			otherName := rel.OtherID
+			if other != nil {
+				otherName = other.Name
+			}
+			out = append(out, relationshipView{
+				EntityAID:   e.ID,
+				EntityAName: e.Name,
+				EntityBID:   rel.OtherID,
+				EntityBName: otherName,
+				Type:        string(rel.Type),
+				SinceTick:   rel.SinceTick,
+			})
+		}
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		if out[i].EntityAName != out[j].EntityAName {
+			return out[i].EntityAName < out[j].EntityAName
+		}
+		if out[i].EntityBName != out[j].EntityBName {
+			return out[i].EntityBName < out[j].EntityBName
+		}
+		return out[i].SinceTick < out[j].SinceTick
+	})
+	return out
 }
