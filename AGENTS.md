@@ -23,38 +23,16 @@ Simuz is a Go-based world simulation game with:
 - The locations page keeps its tree/map view selection in browser storage so SSE swaps do not reset it.
 - Use markers, badges, or explicit labels for active-state UI instead of letting ordering imply state.
 
-## Lua / World API
+## Lua Scripting
 
-The runtime exposes `self`, `world`, and `util` tables.
+Full API reference for Lua scripting is in `docs/lua-scripting.md`.
 
-### Script Return Values
-
-Lua AI scripts can return up to three values:
-1. **boolean** — `didAct` (true if the script performed an action)
-2. **table of strings** — log messages
-3. **table of event tables** — each entry has keys: `type` (int), `tick` (uint64), `source` (string), `data` (table). These are converted into `[]*events.SimEvent` by the engine.
-
-If the script returns fewer values, missing values are zero-filled (false, nil, empty slice).
-
-The `events` package (`internal/events/engine.go`) defines `SimEvent` with fields `Type` (EventType), `Tick` (uint64), `Source` (string), and `Data` (map[string]any). The engine emits these events during tick processing so scripted AI actions are observable in the UI and persisted.
-
-### Notable runtime capabilities:
-- Movement and travel: `world.move_to`, `world.is_traveling`, `world.travel_exits`, `world.parent_location`
-- Entities and combat: `world.entity_info`, `world.entities_at`, `world.nearby_entities`, `world.attack`, `world.heal`
-- Social/quest hooks: `world.talk_to`, `world.give_quest`, `world.quest_progress`, `world.quest_set`
-- Rescue/travel leash support: `world.drag_entity`, `world.undrag_entity`, `world.is_leashed`, `world.start_rescue`, `world.complete_rescue`
-- Items and economy: `world.add_item`, `world.use_item`, `world.try_buy`, `world.try_sell`, `world.craft`
-- Utility: `util.log`, `util.mem_set`, `util.mem_get`, `util.json_encode`, `util.json_decode`, `util.set_mood`
-
-Relationship accessors (on `self` and `world`):
-- `self.get_relationship(other_id)`, `self.get_relationships()`, `self.get_children()`, `self.get_parents()`, `self.get_partner()`
-- `self.get_relationship_type(other_id)`, `self.get_relationship_since(other_id)`, `self.has_relationship(other_id)`, `self.has_relationship_type(other_id, type)`, `self.is_related(other_id)`
-- `self.add_relationship(other_id, type, tick)`, `self.remove_relationship(other_id)`, `self.num_relationships()`
-- `world.get_relationship(entity_id, other_id)`, `world.get_children(entity_id)`, `world.get_parents(entity_id)`, `world.get_partner(entity_id)`
-- `world.get_relationship_type(entity_id, other_id)`, `world.get_relationship_since(entity_id, other_id)`, `world.has_relationship(entity_id, other_id)`, `world.has_relationship_type(entity_id, other_id, type)`, `world.is_related(entity_id, other_id)`
-- `world.add_relationship(entity_id, other_id, type, tick)`, `world.remove_relationship(entity_id, other_id)`, `world.num_relationships(entity_id)`
-
-If you need exact signatures or enum values, check the code instead of expanding this file.
+Key points:
+- Scripts are loaded from `internal/ai/scripts/` and execute once per tick.
+- Each script defines a `do_tick()` function as the main entry point.
+- Scripts have access to `self` (the entity), `world` (game state & actions), and `util` (helpers).
+- Scripts can return up to three values: `didAct`, log messages, and event tables.
+- The `events` package (`internal/events/engine.go`) defines `SimEvent` for scripted AI actions.
 
 ## Systems Worth Preserving
 
