@@ -96,8 +96,8 @@ func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manag
 	var messages []string
 
 	if L.GetTop() >= 1 {
-		if L.GetType(-1) == lua.LTTable {
-			tbl := L.ToTable(-1)
+		topVal := L.Get(-1)
+		if tbl, ok := topVal.(*lua.LTable); ok {
 			messages = make([]string, 0, tbl.Len())
 			tbl.ForEach(func(k, v lua.LValue) {
 				if str, ok := v.(lua.LString); ok {
