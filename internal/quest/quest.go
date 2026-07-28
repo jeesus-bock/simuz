@@ -253,7 +253,7 @@ func (m *Manager) CheckVisitLocation(entityID, locationID string) {
 				if obj.Type == "visit_location" && obj.LocationID == locationID {
 					state.Objectives[obj.ID] = 1
 					m.addActivity(state, "Visited '"+locationID+"' for objective '"+obj.ID+"'")
-					m.checkStageCompletionLocked(entityID, state.QuestID)
+					m.checkStageCompletion(entityID, state.QuestID)
 				}
 			}
 		}
@@ -278,7 +278,7 @@ func (m *Manager) CheckTalkToNPC(entityID, npcID string) {
 				if obj.Type == "talk_to_npc" && obj.NPCID == npcID {
 					state.Objectives[obj.ID] = 1
 					m.addActivity(state, "Talked to '"+npcID+"' for objective '"+obj.ID+"'")
-					m.checkStageCompletionLocked(entityID, state.QuestID)
+					m.checkStageCompletion(entityID, state.QuestID)
 				}
 			}
 		}
@@ -303,7 +303,7 @@ func (m *Manager) CheckDeliverItem(entityID, npcID, itemID string) {
 				if obj.Type == "deliver_item" && obj.NPCID == npcID && obj.ItemTemplate == itemID {
 					state.Objectives[obj.ID] = 1
 					m.addActivity(state, "Delivered '"+itemID+"' to '"+npcID+"' for objective '"+obj.ID+"'")
-					m.checkStageCompletionLocked(entityID, state.QuestID)
+					m.checkStageCompletion(entityID, state.QuestID)
 				}
 			}
 		}
