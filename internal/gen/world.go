@@ -360,7 +360,7 @@ func (g *Generator) generateRooms(innID string) {
 
 func (g *Generator) generateNPCs(townID string) []*entity.Entity {
 	npcDefs := []struct {
-		id, name, species, role, locID string
+		id, name, species, profession, locID string
 	}{
 		{townID + "_greta", "Greta", "human", "innkeeper", townID + "_inn_common"},
 		{townID + "_sven", "Sven", "human", "blacksmith", townID + "_blacksmith"},
@@ -369,7 +369,7 @@ func (g *Generator) generateNPCs(townID string) []*entity.Entity {
 	}
 	var entities []*entity.Entity
 	for _, n := range npcDefs {
-		ent := entity.NewEntity(n.id, n.name, n.species, entity.RandomAttributes(g.RNG.Intn), 1)
+		ent := entity.NewEntity(n.id, n.name, n.species, entity.RandomAttributes(g.RNG.Intn), 1, entity.CivilianHostilities)
 		ent.LocationID = n.locID
 		ent.AI = entity.EntityAI{
 			Type:         "passive",
@@ -379,8 +379,9 @@ func (g *Generator) generateNPCs(townID string) []*entity.Entity {
 		}
 		ent.Faction = "civilian"
 
-		switch n.role {
+		switch n.profession {
 		case "innkeeper":
+			ent.Profession = n.profession
 			ent.AI.Type = "scripted"
 			ent.AI.ScriptIDs = []string{"innkeeper"}
 			equipItem(ent, lookup("common_clothes"))
@@ -394,6 +395,8 @@ func (g *Generator) generateNPCs(townID string) []*entity.Entity {
 			addItem(ent, lookup("brandy"))
 			giveCurrency(ent, 10+g.RNG.Intn(20), 3+g.RNG.Intn(5), 0)
 		case "blacksmith":
+			ent.Profession = n.profession
+			ent.Hostilities = entity.CivilianHostilities
 			ent.AI.Type = "scripted"
 			ent.AI.ScriptIDs = []string{"blacksmith"}
 			equipItem(ent, lookup("work_tunic"))
@@ -408,6 +411,8 @@ func (g *Generator) generateNPCs(townID string) []*entity.Entity {
 			addItem(ent, lookup("leather_strips"))
 			giveCurrency(ent, 5+g.RNG.Intn(10), 5+g.RNG.Intn(10), 1+g.RNG.Intn(3))
 		case "guard":
+			ent.Profession = n.profession
+			ent.Hostilities = entity.CivilianHostilities
 			ent.AI.Type = "scripted"
 			ent.AI.ScriptIDs = []string{"guard"}
 			ent.AI.Brave = true
@@ -419,12 +424,15 @@ func (g *Generator) generateNPCs(townID string) []*entity.Entity {
 			equipItem(ent, lookup("leather_gloves"))
 			giveCurrency(ent, 5, 3, 0)
 		case "priest":
+			ent.Profession = n.profession
+			ent.Hostilities = entity.CivilianHostilities
 			ent.AI.Type = "scripted"
 			ent.AI.ScriptIDs = []string{"priest"}
 			equipItem(ent, lookup("priest_robe"))
 			equipItem(ent, lookup("holy_symbol"))
 			giveCurrency(ent, 3+g.RNG.Intn(6), 2+g.RNG.Intn(3), 0)
 		default:
+			ent.Hostilities = entity.CivilianHostilities
 			equipItem(ent, lookup("common_clothes"))
 			giveCurrency(ent, 1+g.RNG.Intn(5), 0, 0)
 		}
@@ -671,13 +679,13 @@ func (g *Generator) generateNewCreatures() []*entity.Entity {
 
 	// Count Valerius - Vampire
 	vampireAttrs := entity.Attributes{STR: 18, DEX: 14, CON: 16, INT: 14, WIS: 12, CHA: 16}
-	vampire := entity.NewEntity("vampire_valerius", "Count Valerius", "vampire", vampireAttrs, ent)
+	vampire := entity.NewEntity("vampire_valerius", "Count Valerius", "vampire", vampireAttrs, 14, entity.VampireHostilities)
 	vampire.LocationID = "coffin_chamber"
 	vampire.Faction = "undead"
 	vampire.MaxHP = 100
 	vampire.HP = 100
 	vampire.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"vampire"}, FactionID: "undead", SleepCycle: "nocturnal", HomeLocation: "coffin_chamber"}
-
+	vampire.Profession = "count"
 	equipItem(vampire, lookup("dark_robe"))
 	equipItem(vampire, lookup("vampire_fang"))
 	all = append(all, vampire)
@@ -690,7 +698,7 @@ func (g *Generator) generateNewCreatures() []*entity.Entity {
 
 	// Mirelda - Hag
 	hagAttrs := entity.Attributes{STR: 12, DEX: 10, CON: 14, INT: 16, WIS: 18, CHA: 8}
-	hag := entity.NewEntity("hag_mirelda", "Mirelda", "hag", hagAttrs, 4)
+	hag := entity.NewEntity("hag_mirelda", "Mirelda", "hag", hagAttrs, 10, entity.HagHostilities)
 	hag.LocationID = "hag_cottage"
 	hag.Faction = "hag"
 	hag.MaxHP = 60
@@ -702,7 +710,7 @@ func (g *Generator) generateNewCreatures() []*entity.Entity {
 	// Kobolds - Pack in kobold warren
 	koboldAttrs := entity.Attributes{STR: 10, DEX: 14, CON: 10, INT: 8, WIS: 8, CHA: 8}
 	for i := 0; i < 8; i++ {
-		kobold := entity.NewEntity("kobold_"+fmt.Sprint(i), "Kobold"+fmt.Sprint(i), "kobold", koboldAttrs, 1+g.RNG.Intn(2))
+		kobold := entity.NewEntity("kobold_"+fmt.Sprint(i), "Kobold"+fmt.Sprint(i), "kobold", koboldAttrs, 1+g.RNG.Intn(2), entity.KoboldHostilities)
 		kobold.LocationID = "kobold_warren"
 		kobold.Faction = "kobold"
 		kobold.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"kobold"}, FactionID: "kobold", SleepCycle: "diurnal", HomeLocation: "kobold_warren"}
@@ -730,7 +738,7 @@ func (g *Generator) generateNewCreatures() []*entity.Entity {
 
 	// Fairy - In fey glade
 	fairyAttrs := entity.Attributes{STR: 6, DEX: 18, CON: 8, INT: 14, WIS: 16, CHA: 14}
-	fairy := entity.NewEntity("fairy_sparkle", "Sparkle", "fey", fairyAttrs, 3)
+	fairy := entity.NewEntity("fairy_sparkle", "Sparkle", "fey", fairyAttrs, 3, entity.FeyHostilities)
 	fairy.LocationID = "fey_glade"
 	fairy.Faction = "fey"
 	fairy.MaxHP = 20
