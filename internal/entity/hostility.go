@@ -32,7 +32,7 @@ type Hostilities struct {
 }
 
 // Relation calculates the combined hostility relation based on species, faction, profession, and entity relations.
-func (f *Hostilities) Relation(ent Entity) HostilityRelation {
+func (f *Hostilities) Relation(ent *Entity) HostilityRelation {
 	combined := 0
 	combined += f.GetEntityRelation(ent.ID).Int()
 	combined += f.GetFactionRelation(ent.Faction).Int()

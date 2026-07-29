@@ -97,6 +97,7 @@ type Entity struct {
 	MaxFP                int                           `json:"max_fp"`
 	FP                   int                           `json:"fp"`
 	XP                   int                           `json:"xp"`
+	SkillProgressXP      map[string]int                `json:"skillProgressXP"`
 	LocationID           string                        `json:"location_id"`
 	Position             Position                      `json:"position"`
 	Equipment            Equipment                     `json:"equipment"`
@@ -159,6 +160,9 @@ func NewEntity(id, name, species string, attrs Attributes, level int, hostilitie
 		},
 		Hostilities: hostilities,
 	}
+}
+func GetEntityById(id string) *Entity {
+	return EntityManager.Get(id)
 }
 func GetRndGender() string {
 	choices := []string{GenderMale, GenderFemale, GenderOther}

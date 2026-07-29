@@ -712,7 +712,8 @@ func scriptCombatAttack(w *world.World, em *entity.Manager, qm *quest.Manager, r
 	if !target.Alive {
 		combat.LootCorpse(attacker, target)
 		if attacker.Faction != target.Faction {
-			combat.ShiftRelation(attacker.Faction, target.Faction, -1)
+			target.ChangeEntityRelation(attacker.ID, -10)
+			target.ChangeFactionRelation(attacker.ID, 7)
 		}
 		if loc := w.Location(target.LocationID); loc != nil && attacker.Faction != "" && attacker.Faction != "civilian" && attacker.Faction != "deity" {
 			if loc.ControllingFaction == attacker.Faction {
@@ -728,7 +729,11 @@ func scriptCombatAttack(w *world.World, em *entity.Manager, qm *quest.Manager, r
 				}
 			}
 		}
-		if entity.GetSpecies(attacker.Species).CanLevelUp {
+		species, ok := entity.GetSpeciesByID(attacker.Species)
+		if !ok {
+			return false
+		}
+		if species.CanLevelUp {
 			xp := 5 + target.Level*3 + target.MaxHP/10
 			if xp < 1 {
 				xp = 1
@@ -1039,6 +1044,16 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 	worldTbl.RawSetString("is_hostile", L.NewFunction(func(L *lua.LState) int {
 		a := L.ToString(1)
 		b := L.ToString(2)
+		att, ok := entity.GetEntityByID(a)
+		if !ok {
+			return 0
+		}
+		def, ok := entity.GetEntityByID(a)
+		if !ok {
+			return 0
+		}
+
+		att.Hostilities.Relation(def)
 		L.Push(lua.LBool(combat.Relation(a, b) == combat.Hostile))
 		return 1
 	}))
