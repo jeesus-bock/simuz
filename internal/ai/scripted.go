@@ -743,13 +743,9 @@ func scriptCombatAttack(w *world.World, em *entity.Manager, qm *quest.Manager, r
 	}
 	hit := combat.SimpleAttack(attacker, target, rng)
 	combat.ResetWeatherVisibility()
-	if !target.Alive {
-		combat.LootCorpse(attacker, target)
-		if attacker.Faction != target.Faction {
-			target.ChangeEntityRelation(attacker.ID, -10)
-			target.ChangeFactionRelation(attacker.ID, 7)
-		}
-		if loc := w.Location(target.LocationID); loc != nil && attacker.Faction != "" && attacker.Faction != "civilian" && attacker.Faction != "deity" {
+	if attacker.Faction != "" && attacker.Faction != "civilian" && attacker.Faction != "deity" &&
+		target.Faction != "" && target.Faction != "civilian" && target.Faction != "deity" {
+		if loc := w.Location(target.LocationID); loc != nil {
 			if loc.ControllingFaction == attacker.Faction {
 				loc.ControlStrength += 3
 				if loc.ControlStrength > 100 {
@@ -761,6 +757,29 @@ func scriptCombatAttack(w *world.World, em *entity.Manager, qm *quest.Manager, r
 					loc.ControllingFaction = attacker.Faction
 					loc.ControlStrength = 5
 				}
+			}
+		}
+	}
+	if hit {
+		target.ChangeEntityRelation(attacker.ID, -2)
+		target.ChangeFactionRelation(attacker.Faction, -1)
+		if aFac, ok := entity.GetFactionByID(attacker.Faction); ok {
+			aFac.Hostilities.ChangeFactionRelation(target.Faction, -1)
+		}
+		if tFac, ok := entity.GetFactionByID(target.Faction); ok {
+			tFac.Hostilities.ChangeFactionRelation(attacker.Faction, -1)
+		}
+	}
+	if !target.Alive {
+		combat.LootCorpse(attacker, target)
+		if attacker.Faction != target.Faction {
+			target.ChangeEntityRelation(attacker.ID, -10)
+			target.ChangeFactionRelation(attacker.Faction, -7)
+			if aFac, ok := entity.GetFactionByID(attacker.Faction); ok {
+				aFac.Hostilities.ChangeFactionRelation(target.Faction, -7)
+			}
+			if tFac, ok := entity.GetFactionByID(target.Faction); ok {
+				tFac.Hostilities.ChangeFactionRelation(attacker.Faction, -7)
 			}
 		}
 		species, ok := entity.GetSpeciesByID(attacker.Species)
@@ -1183,7 +1202,7 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 			if other == nil || other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if !IsHostile(ent.Faction, other.Faction) {
+			if ent.Hostilities.Relation(other) >= 0 {
 				continue
 			}
 			hostiles = append(hostiles, other)
@@ -1498,7 +1517,7 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 			if other.ID == attacker.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if factionHostility(attacker.Faction, other.Faction) > 0 {
+			if attacker.Hostilities.Relation(other) >= 0 {
 				continue
 			}
 			other.TakeDamage(amount)
