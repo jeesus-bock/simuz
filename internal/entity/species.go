@@ -25,7 +25,12 @@ type Species struct {
 // GetSpeciesByID returns the Species definition for a given ID.
 func GetSpeciesByID(id string) (Species, bool) {
 	species, exists := SpeciesRegistry[id]
-	return species, exists}
+	return species, exists
+}
+
+var StarvationDamageInterval = 10
+var StarvationDamageMin = 10
+var StarvationDamageMax = 20
 
 // SpeciesRegistry is the one source of truth for all species data in simuz.
 // Every species used in the simulation must have an entry here.
@@ -97,8 +102,8 @@ var SpeciesRegistry = map[string]Species{
 			"Õiesilm",
 			"Härmatis",
 		},
-		BaseAttrs: Attributes{STR: 10, DEX: 12, CON: 10, INT: 12, WIS: 12, CHA: 10},
-		Hostilities:         ElfHostilities,
+		BaseAttrs:   Attributes{STR: 10, DEX: 12, CON: 10, INT: 12, WIS: 12, CHA: 10},
+		Hostilities: ElfHostilities,
 	},
 	"orc": {
 		ID:                  "orc",
@@ -148,8 +153,8 @@ var SpeciesRegistry = map[string]Species{
 			"Raudnõges",
 			"Põlendik",
 		},
-		BaseAttrs: Attributes{STR: 14, DEX: 10, CON: 13, INT: 6, WIS: 6, CHA: 5},
-		Hostilities:         OrcHostilities,
+		BaseAttrs:   Attributes{STR: 14, DEX: 10, CON: 13, INT: 6, WIS: 6, CHA: 5},
+		Hostilities: OrcHostilities,
 	},
 	"goblin": {
 		ID:                  "goblin",
@@ -237,7 +242,7 @@ var SpeciesRegistry = map[string]Species{
 			"Kirgas",
 			"Tuuleiil",
 		},
-		BaseAttrs: Attributes{STR: 10, DEX: 12, CON: 10, INT: 12, WIS: 12, CHA: 10},
-		Hostilities:         FeyHostilities,
+		BaseAttrs:   Attributes{STR: 10, DEX: 12, CON: 10, INT: 12, WIS: 12, CHA: 10},
+		Hostilities: FeyHostilities,
 	},
 }

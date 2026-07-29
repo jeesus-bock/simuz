@@ -11,7 +11,6 @@ import (
 	"simuz/internal/api"
 	"simuz/internal/engine"
 	"simuz/internal/gen"
-	"simuz/internal/storage"
 	"simuz/internal/web"
 
 	"github.com/gin-gonic/gin"
@@ -19,7 +18,6 @@ import (
 
 func main() {
 	seed := flag.String("seed", "default", "World generation seed")
-	dbPath := flag.String("db", "", "Path to SQLite database (empty = no persistence)")
 	port := flag.String("port", "8080", "HTTP server port")
 	flag.Parse()
 
@@ -40,18 +38,6 @@ func main() {
 	// Quests are defined as Lua scripts in internal/quest/scripts/*.lua
 	for _, q := range gen.SeedQuests() {
 		sim.Quests.Register(q)
-	}
-
-	if *dbPath != "" {
-		store := storage.NewSQLiteStore(*dbPath)
-		if err := store.Open(); err != nil {
-			log.Fatalf("Failed to open database: %v", err)
-		}
-		defer store.Close()
-		sim.Storage = store
-		log.Printf("Persistence enabled: %s", *dbPath)
-	} else {
-		log.Println("Running without persistence")
 	}
 
 	go sim.Start()

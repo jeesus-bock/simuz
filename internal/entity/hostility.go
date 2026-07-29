@@ -40,6 +40,12 @@ func (f *Hostilities) Relation(ent Entity) HostilityRelation {
 	combined += f.GetProfessionRelation(ent.Profession).Int()
 	return HostilityRelation(combined)
 }
+func (f *Hostilities) FactinRelation(fac Faction) HostilityRelation {
+	combined := 0
+	combined += f.GetFactionRelation(fac.ID).Int()
+
+	return HostilityRelation(combined)
+}
 
 // SetSpeciesRelation sets the hostility relation for a specific species.
 func (f *Hostilities) SetSpeciesRelation(species string, relation HostilityRelation) {

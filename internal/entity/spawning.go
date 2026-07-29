@@ -1,6 +1,8 @@
 // Package entity defines the simulation entities, their attributes, and related behaviors.
 package entity
 
+var e = "enttitu"
+
 // CanMate checks whether two entities are compatible for reproduction.
 func CanMate(a, b *Entity) bool {
 	if a == nil || b == nil {
