@@ -2068,6 +2068,47 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 		L.Push(lua.LBool(family))
 		return 1
 	}))
+	// Drop this directly into your existing bindWorld(L, w, em, tm, rng, ent, qm) function
+	L.SetField(worldTbl, "damage_location", L.NewFunction(func(L *lua.LState) int {
+		// 1. Parse arguments passed down from the Lua script execution layer
+		attackerID := L.CheckString(1)
+		rawAmount := L.CheckNumber(2)
+		damageAmount := int(rawAmount)
+
+		// 2. Fetch the current location of the executing entity
+		// (Assuming your entity or manager has a clean spatial map registry)
+		currentLocationID := ent.LocationID
+
+		// 3. Scan all live entities in the exact same location node map sector
+		// Use your em (*entity.Manager) to safely query the world registry
+		allEntities := em.GetEntitiesInLocation(currentLocationID)
+
+		// 4. Iterate over the group and apply damage vectors cleanly
+		for _, target := range allEntities {
+			// Guard: Do not let an explosion damage deceased entities or the attacker themselves!
+			if target.ID == attackerID || !target.Alive {
+				continue
+			}
+
+			// Subtract health points directly on the target struct model memory layer
+			target.HP -= damageAmount
+
+			// Handle sudden fatality checks
+			if target.HP <= 0 {
+				target.HP = 0
+				target.Alive = false
+				target.TimeOfDeath = uint64(tm.Tick) // Log history timestamps accurately
+
+				// Set their mood modifier context to dead state
+				target.Mood = "dead"
+
+				// Optional: Trigger your event system return pipeline array
+				// simEvents = append(simEvents, events.NewDeathEvent(target.ID, attackerID))
+			}
+		}
+
+		return 0 // Returns nothing back to the Lua script execution stack
+	}))
 
 	L.SetGlobal("world", worldTbl)
 }

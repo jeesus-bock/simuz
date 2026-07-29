@@ -62,13 +62,6 @@ const (
 	FactionDeity    = "deity"
 )
 
-// Reproduction holds pregnancy and breeding-related state for an entity.
-type Reproduction struct {
-	Pregnant          bool   `json:"pregnant,omitempty"`
-	PregnantSinceTick uint64 `json:"pregnant_since_tick,omitempty"`
-	FatherID          string `json:"father_id,omitempty"`
-}
-
 type EntityActivity struct {
 	Type      ActivityType `json:"type"`
 	SinceTick uint64       `json:"since_tick"`

@@ -74,3 +74,13 @@ func (m *Manager) Count() int {
 	defer m.mu.RUnlock()
 	return len(m.entities)
 }
+
+func (m *Manager) GetEntitiesInLocation(locationID string) []*Entity {
+	ret := make([]*Entity, 0)
+	for _, es := range m.entities {
+		if es.LocationID == locationID {
+			ret = append(ret, es)
+		}
+	}
+	return ret
+}
