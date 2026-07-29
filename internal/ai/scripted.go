@@ -49,6 +49,40 @@ func goValue(value lua.LValue) any {
 // MoveRequest is set by the engine to handle instant vs multi-tick travel.
 var MoveRequest func(ent *entity.Entity, destID string) bool
 
+// setFactionHostility sets the faction-level hostility relation between two factions bidirectionally.
+func setFactionHostility(factionA, factionB string, relation entity.HostilityRelation) {
+	if factionA == factionB {
+		return
+	}
+	if fac, ok := entity.GetFactionByID(factionA); ok {
+		fac.Hostilities.SetFactionRelation(factionB, relation)
+	}
+	if fac, ok := entity.GetFactionByID(factionB); ok {
+		fac.Hostilities.SetFactionRelation(factionA, relation)
+	}
+}
+
+// factionHostility returns the combined faction-level hostility between two factions.
+// Positive means friendly, negative means hostile, zero means neutral.
+func factionHostility(factionA, factionB string) entity.HostilityRelation {
+	if factionA == factionB {
+		return 1
+	}
+	var combined entity.HostilityRelation
+	if fac, ok := entity.GetFactionByID(factionA); ok {
+		combined += fac.Hostilities.GetFactionRelation(factionB)
+	}
+	if fac, ok := entity.GetFactionByID(factionB); ok {
+		combined += fac.Hostilities.GetFactionRelation(factionA)
+	}
+	return combined
+}
+
+// IsHostile checks whether factionA is hostile toward factionB.
+func IsHostile(factionA, factionB string) bool {
+	return factionHostility(factionA, factionB) < 0
+}
+
 // IsEntityTraveling is set by the engine.
 var IsEntityTraveling func(entityID string) bool
 
@@ -1048,13 +1082,13 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 		if !ok {
 			return 0
 		}
-		def, ok := entity.GetEntityByID(a)
+		def, ok := entity.GetEntityByID(b)
 		if !ok {
 			return 0
 		}
 
-		att.Hostilities.Relation(def)
-		L.Push(lua.LBool(combat.Relation(a, b) == combat.Hostile))
+		rel := att.Hostilities.Relation(def)
+		L.Push(lua.LBool(rel < 0))
 		return 1
 	}))
 
@@ -1111,8 +1145,16 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 	worldTbl.RawSetString("get_relation", L.NewFunction(func(L *lua.LState) int {
 		factionA := L.ToString(1)
 		factionB := L.ToString(2)
-		rel := combat.Relation(factionA, factionB)
-		L.Push(lua.LString(rel.String()))
+		rel := factionHostility(factionA, factionB)
+		var relStr string
+		if rel < 0 {
+			relStr = "hostile"
+		} else if rel > 0 {
+			relStr = "friendly"
+		} else {
+			relStr = "neutral"
+		}
+		L.Push(lua.LString(relStr))
 		return 1
 	}))
 
@@ -1120,16 +1162,16 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 		a := L.ToString(1)
 		b := L.ToString(2)
 		rel := L.ToString(3)
-		var r combat.FactionRelation
+		var r entity.HostilityRelation
 		switch rel {
 		case "hostile":
-			r = combat.Hostile
+			r = -5
 		case "friendly":
-			r = combat.Friendly
+			r = 5
 		default:
-			r = combat.Neutral
+			r = 0
 		}
-		combat.SetRelation(a, b, r)
+		setFactionHostility(a, b, r)
 		log.Printf("[lua] %s set relation %s <-> %s = %s", ent.Name, a, b, rel)
 		return 0
 	}))
@@ -1141,7 +1183,7 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 			if other == nil || other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if combat.Relation(ent.Faction, other.Faction) != combat.Hostile {
+			if !IsHostile(ent.Faction, other.Faction) {
 				continue
 			}
 			hostiles = append(hostiles, other)
@@ -1456,7 +1498,7 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 			if other.ID == attacker.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if combat.Relation(attacker.Faction, other.Faction) == combat.Friendly {
+			if factionHostility(attacker.Faction, other.Faction) > 0 {
 				continue
 			}
 			other.TakeDamage(amount)
