@@ -14,8 +14,8 @@ import (
 	"simuz/internal/combat"
 	"simuz/internal/engine"
 	"simuz/internal/entity"
-	"simuz/internal/faction"
 	"simuz/internal/events"
+	"simuz/internal/faction"
 	"simuz/internal/items"
 	"simuz/internal/quest"
 	"simuz/internal/species"
@@ -1683,7 +1683,7 @@ func (h *Handler) PregnanciesFragment(c *gin.Context) {
 func buildPregnantEntities(sim *engine.Simulation) []pregnantEntityView {
 	var out []pregnantEntityView
 	for _, e := range sim.Entities.All() {
-		if !e.Pregnant {
+		if !e.Reproduction.Pregnant {
 			continue
 		}
 		gestation := SpeciesGestationTicks(e.Species)

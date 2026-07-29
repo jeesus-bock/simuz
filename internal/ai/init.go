@@ -3,7 +3,7 @@ package ai
 
 import (
 	// embed allows embedding files from the filesystem into the Go binary at compile time.
-	"embed"
+
 	// fmt provides formatted I/O utilities for error message construction.
 	"fmt"
 	// log provides standard logging functionality for runtime diagnostics.
@@ -18,11 +18,6 @@ import (
 	// lua is the Gopher-Lua interpreter used to load and execute embedded Lua scripts.
 	lua "github.com/yuin/gopher-lua"
 )
-
-// scriptFS is an embedded filesystem containing all Lua AI scripts found under
-// the internal/ai/scripts/ directory. These are compiled into the binary.
-//go:embed scripts/**/*.lua
-var scriptFS embed.FS
 
 // InitScripts loads all embedded AI Lua scripts from the scripts directory
 // into the global script registry, making them available for runtime execution.

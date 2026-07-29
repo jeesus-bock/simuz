@@ -64,7 +64,7 @@ const (
 
 // Reproduction holds pregnancy and breeding-related state for an entity.
 type Reproduction struct {
-	Pregnant          bool  `json:"pregnant,omitempty"`
+	Pregnant          bool   `json:"pregnant,omitempty"`
 	PregnantSinceTick uint64 `json:"pregnant_since_tick,omitempty"`
 	FatherID          string `json:"father_id,omitempty"`
 }
@@ -126,6 +126,7 @@ type Entity struct {
 	LastReproductionTick uint64                        `json:"last_reproduction_tick,omitempty"`
 	TimeOfDeath          uint64                        `json:"timeOfDeath"`
 	relation.Relation
+	Memory map[string]string `json:"memory,omitempty"`
 }
 
 func NewEntity(id, name, speciesID string, attrs Attributes, level int, rel relation.Relation) *Entity {
@@ -176,9 +177,9 @@ func GetEntityByID(id string) (*Entity, bool) {
 	}
 	return ent, true
 }
-func (e *Entity) GetID() string { return e.ID }
-func (e *Entity) GetFaction() string { return e.Faction }
-func (e *Entity) GetSpecies() string { return e.Species }
+func (e *Entity) GetID() string         { return e.ID }
+func (e *Entity) GetFaction() string    { return e.Faction }
+func (e *Entity) GetSpecies() string    { return e.Species }
 func (e *Entity) GetProfession() string { return e.Profession }
 func GetRndGender() string {
 	choices := []string{GenderMale, GenderFemale, GenderOther}
