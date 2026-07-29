@@ -12,6 +12,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// ListCombats returns a summary of active combat zones (locations with
+// multiple hostile factions) along with the most recent combat log entries.
 func (h *Handler) ListCombats(c *gin.Context) {
 	all := h.Sim.Entities.All()
 
@@ -74,12 +76,16 @@ func (h *Handler) ListCombats(c *gin.Context) {
 	})
 }
 
+// GetBestiary returns a list of all known creature species and their stats.
+// Currently returns a placeholder "not implemented" message.
 func (h *Handler) GetBestiary(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "bestiary not implemented",
 	})
 }
 
+// GetSpecies returns detailed information about a specific creature species.
+// Currently returns a placeholder "not implemented" message.
 func (h *Handler) GetSpecies(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"species": c.Param("species"),
@@ -87,10 +93,14 @@ func (h *Handler) GetSpecies(c *gin.Context) {
 	})
 }
 
+// GetItems returns a list of all items available in the game world.
+// Currently returns an empty list as a placeholder.
 func (h *Handler) GetItems(c *gin.Context) {
 	c.JSON(http.StatusOK, []gin.H{})
 }
 
+// GetItem returns detailed information about a specific item by its ID.
+// Currently returns a placeholder "not implemented" message.
 func (h *Handler) GetItem(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"id":      c.Param("id"),
@@ -98,14 +108,20 @@ func (h *Handler) GetItem(c *gin.Context) {
 	})
 }
 
+// GetAIArchetypes returns a list of all available AI archetype names that
+// entities can be assigned.
 func (h *Handler) GetAIArchetypes(c *gin.Context) {
 	c.JSON(http.StatusOK, []string{"passive", "aggressive", "territorial", "cowardly", "greedy", "noble", "curious", "guarded", "patrol", "scripted", "dormant"})
 }
 
+// GetAIScripts returns a list of all available AI Lua scripts that can be
+// assigned to entities. Currently returns an empty list as a placeholder.
 func (h *Handler) GetAIScripts(c *gin.Context) {
 	c.JSON(http.StatusOK, []gin.H{})
 }
 
+// GetEntityAI returns the AI configuration for a specific entity by its ID.
+// Returns a 404 error if the entity is not found.
 func (h *Handler) GetEntityAI(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
@@ -119,6 +135,9 @@ func (h *Handler) GetEntityAI(c *gin.Context) {
 	c.JSON(http.StatusOK, e.AI)
 }
 
+// UpdateEntityAI updates the AI configuration for a specific entity by its ID.
+// The new AI config is read from the request body. Returns a 404 error if the
+// entity is not found, or a 400 error if the request body is invalid.
 func (h *Handler) UpdateEntityAI(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
