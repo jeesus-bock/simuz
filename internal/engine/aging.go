@@ -34,40 +34,34 @@ func processAging(ent *entity.Entity, sim *Simulation) {
 }
 
 func starvationCheck(ent *entity.Entity, sim *Simulation) {
-	// Determine starvation threshold from species if available
-	threshold := ent.StarvationThreshold
-	if threshold <= 0 {
-		return
+	species, ok := entity.GetSpeciesByID(ent.Species)
+
+	if ok {
+		if threshold := species.StarvationThreshold; threshold <= 0 {
+			return
+		}
 	}
 
 	ticksSinceMeal := int(sim.Tick) - ent.LastMealTick
-	if ticksSinceMeal > threshold {
-		// Get faction for the entity to possibly adjust interval
-		faction, ok := entity.GetFactionByID(ent.Faction)
-		if ok {
-			// Use faction-specific interval if defined, else default
-			interval := entity.StarvationDamageInterval
-			if (ticksSinceMeal - threshold) % interval == 0 {
-				dmg := rand.Intn(entity.StarvationDamageMax() - entity.StarvationDamageMin() + 1) + entity.StarvationDamageMin()
-				ent.TakeDamage(dmg)
-				sim.Emit(events.SimEvent{
-					Type:   events.EventTypeStarvation,
-					Source: ent.ID,
-					Data: map[string]interface{}{
-						"damage": dmg,
-					},
-				})
-				if !ent.Alive {
-					log.Printf("%s starved to death at tick %d (age %d)", ent.Name, sim.Tick, ent.Age)
-				}
+	if ticksSinceMeal > species.StarvationThreshold {
+		interval := entity.StarvationDamageInterval
+		if (ticksSinceMeal-int(species.StarvationThreshold))%interval == 0 {
+			dmg := rand.Intn(entity.StarvationDamageMax-entity.StarvationDamageMin+1) + entity.StarvationDamageMin
+			ent.TakeDamage(dmg)
+			sim.Emit(events.SimEvent{
+				Type:   events.EventTypeStarvation,
+				Source: ent.ID,
+				Data: map[string]interface{}{
+					"damage": dmg,
+				},
+			})
+			if !ent.Alive {
+				log.Printf("%s starved to death at tick %d (age %d)", ent.Name, sim.Tick, ent.Age)
 			}
 		}
 	}
 }
 
-func oldAge(ent *entity.Entity, sim *Simulation) {
-	// Entity dies of old age
-	ent.Alive = false
-	log.Printf("%s died of old age at tick %d (age %d)", ent.Name, sim.Tick, ent.Age)
-	// Optionally emit an event if needed; for now just log.
+func oldAge(ent *entity.Entity, sim *Simulation) (lastWords string) {
+	return lastWords
 }

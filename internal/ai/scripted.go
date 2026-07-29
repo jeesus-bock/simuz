@@ -411,8 +411,12 @@ func bindEntity(L *lua.LState, e *entity.Entity, tick uint64) {
 }
 
 func computeHunger(e *entity.Entity, tick uint64) float64 {
-	if !entity.GetSpecies(e.Species).AutoFeed && e.LastMealTick > 0 {
-		threshold := entity.GetSpecies(e.Species).StarvationThreshold
+	species, ok := entity.GetSpeciesByID(e.Species)
+	if !ok {
+		return 0
+	}
+	if !species.AutoFeed && e.LastMealTick > 0 {
+		threshold := species.StarvationThreshold
 		if threshold > 0 {
 			ticksSince := int(tick) - e.LastMealTick
 			if ticksSince >= threshold {
@@ -529,7 +533,18 @@ func nearbyCombatSitesLua(w *world.World, em *entity.Manager, ent *entity.Entity
 				continue
 			}
 			factions[other.Faction] = struct{}{}
-			if combat.Relation(ent.Faction, other.Faction) == combat.Hostile {
+			fac1, ok := entity.GetFactionByID(ent.Faction)
+			if !ok {
+				continue
+			}
+			fac2, ok := entity.GetFactionByID(other.Faction)
+			if !ok {
+				continue
+			}
+			fac1h := fac1.Hostilities.FactionRelation[other.Faction].Int()
+			fac2h := fac2.Hostilities.FactionRelation[ent.Faction].Int()
+			combined := fac1h + fac2h
+			if combined > 5 {
 				site.Hostiles++
 			} else {
 				site.Allies++

@@ -232,13 +232,15 @@ func hostileFactionMixExists(factions map[string]int) bool {
 		return false
 	}
 	keys := make([]string, 0, len(factions))
-	for faction := range factions {
-		keys = append(keys, faction)
-	}
+
 	sortStringsByFoldAndRaw(keys)
-	for i := range keys {
-		for j := i + 1; j < len(keys); j++ {
-			if keys[i] == combat.Hostile {
+	for _, faction := range keys {
+		fac, ok := entity.GetFactionByID(faction)
+		if !ok {
+			continue
+		}
+		for _, fac2 := range keys {
+			if fac.Hostilities.FactionRelation[fac2].String() == "hostile" {
 				return true
 			}
 		}
@@ -246,15 +248,13 @@ func hostileFactionMixExists(factions map[string]int) bool {
 	return false
 }
 
-func relationLabel(rel combat.FactionRelation) string {
-	switch rel {
-	case combat.Friendly:
-		return "friendly"
-	case combat.Hostile:
-		return "hostile"
-	default:
-		return "neutral"
+func relationLabel(factionID1 string, factionID2 string) string {
+	fac1, ok := entity.GetFactionByID(factionID1)
+	relation := fac1.Hostilities.GetFactionRelation(factionID2)
+	if ok && ok {
+		return relation.String()
 	}
+	return "neutral"
 }
 
 func buildFactionRelationNotes(factions []string) []string {
@@ -264,10 +264,13 @@ func buildFactionRelationNotes(factions []string) []string {
 	notes := make([]string, 0, len(factions))
 	for i := range factions {
 		for j := i + 1; j < len(factions); j++ {
-			rel := combat.Relation(factions[i], factions[j])
-			if rel == combat.Hostile {
+			rel, ok := entity.GetFactionByID(factions[i])
+			if !ok {
 				continue
 			}
+			rel.
+				rel.Hostilities.FactionRelation(factions[j])
+
 			notes = append(notes, factions[i]+" + "+factions[j]+" ("+relationLabel(rel)+")")
 		}
 	}
