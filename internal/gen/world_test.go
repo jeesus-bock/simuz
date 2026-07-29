@@ -9,7 +9,7 @@ import (
 )
 
 func TestGenerateWildSitesAndExits(t *testing.T) {
-	g := New("test-stab")
+	g := NewGenerator("test-stab")
 	w, ents := g.Generate()
 	_ = ents
 
@@ -59,7 +59,7 @@ func TestGenerateWildSitesAndExits(t *testing.T) {
 }
 
 func TestRegionBidirectional(t *testing.T) {
-	g := New("test-exits")
+	g := NewGenerator("test-exits")
 	w, _ := g.Generate()
 	nh := w.Location("northern_highlands")
 	if nh == nil {

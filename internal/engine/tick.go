@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 
 	"simuz/internal/ai"
@@ -25,24 +24,6 @@ type Storage interface {
 	Save(sim *Simulation) error
 	Load() (*Simulation, error)
 	Enabled() bool
-}
-
-type Simulation struct {
-	mu           sync.RWMutex
-	Tick         uint64
-	Scheduler    *Scheduler
-	World        *world.World
-	Entities     *entity.Manager
-	Quests       *quest.Manager
-	Events       *events.Manager
-	Time         world.GameTime
-	Storage      Storage
-	RNG          *rand.Rand
-	running      bool
-	events       []events.SimEvent
-	listeners    []func(events.SimEvent)
-	SpawnManager *SpawnManager
-	Traveling    map[string]*world.TravelState
 }
 
 type nearbyCombatSite struct {
@@ -80,7 +61,7 @@ func NewSimulation(w *world.World) *Simulation {
 		if rewards == nil {
 			return
 		}
-		ent := globalEntityManagerGet(entityID)
+		ent := GlobalEntityManagerGet(entityID)
 		if ent == nil || !ent.Alive {
 			return
 		}
@@ -107,19 +88,19 @@ func NewSimulation(w *world.World) *Simulation {
 
 	}
 
-	globalEntityManager = sim.Entities
+	GlobalEntityManager = sim.Entities
 	ai.MoveRequest = sim.RequestMove
 	ai.IsEntityTraveling = sim.IsTraveling
 	return sim
 }
 
-var globalEntityManager *entity.Manager
+var GlobalEntityManager *entity.Manager
 
-func globalEntityManagerGet(id string) *entity.Entity {
-	if globalEntityManager == nil {
+func GlobalEntityManagerGet(id string) *entity.Entity {
+	if GlobalEntityManager == nil {
 		return nil
 	}
-	return globalEntityManager.Get(id)
+	return GlobalEntityManager.Get(id)
 }
 
 func (s *Simulation) OnEvent(fn func(events.SimEvent)) {

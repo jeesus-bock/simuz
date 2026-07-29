@@ -8,10 +8,13 @@ type Manager struct {
 	entities map[string]*Entity
 }
 
+var EntityManager *Manager
+
 func NewManager() *Manager {
-	return &Manager{
+	EntityManager = &Manager{
 		entities: make(map[string]*Entity),
 	}
+	return EntityManager
 }
 
 func (m *Manager) Add(e *Entity) {

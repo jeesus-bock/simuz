@@ -17,7 +17,7 @@ type Generator struct {
 	World *world.World
 }
 
-func New(seed string) *Generator {
+func NewGenerator(seed string) *Generator {
 	h := sha256.Sum256([]byte(seed))
 	rng := rand.New(rand.NewSource(int64(binary.LittleEndian.Uint64(h[:8]))))
 	return &Generator{
@@ -892,7 +892,7 @@ func (g *Generator) generateWildernessBosses() []*entity.Entity {
 
 	cultistNames := []string{"Keth", "Vorg", "Zara"}
 	for i, name := range cultistNames {
-		cultist := entity.NewEntity("cultist_"+fmt.Sprint(i), name, "human", entity.RandomAttributes(g.RNG.Intn), 2+g.RNG.Intn(2))
+		cultist := entity.NewEntity("cultist_"+fmt.Sprint(i), name, "human", entity.RandomAttributes(g.RNG.Intn), 2+g.RNG.Intn(2), entity.HagHostilities)
 		cultist.LocationID = "cultist_camp"
 		cultist.Faction = "cultist"
 		cultist.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"cultist"}, FactionID: "cultist", HomeLocation: "cultist_camp", SleepCycle: "nocturnal"}
@@ -907,7 +907,7 @@ func (g *Generator) generateWildernessBosses() []*entity.Entity {
 	werewolfCottage.IsOutside = false
 	g.World.AddLocation(werewolfCottage)
 
-	werewolf := entity.NewEntity("werewolf_cursed", "Cursed Traveler", "human", entity.Attributes{STR: 16, DEX: 14, CON: 14, INT: 8, WIS: 10, CHA: 8}, 4, entity.CivilianHostilities
+	werewolf := entity.NewEntity("werewolf_cursed", "Cursed Traveler", "human", entity.Attributes{STR: 16, DEX: 14, CON: 14, INT: 8, WIS: 10, CHA: 8}, 4, entity.CivilianHostilities)
 	werewolf.LocationID = "werewolf_cottage"
 	werewolf.Faction = "werewolf"
 	werewolf.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"werewolf"}, FactionID: "werewolf", HomeLocation: "werewolf_cottage", SleepCycle: "nocturnal"}
@@ -922,7 +922,7 @@ func (g *Generator) generateWildernessBosses() []*entity.Entity {
 	graveyard.Tags = []string{"cauldron"}
 	g.World.AddLocation(graveyard)
 
-	necromancer := entity.NewEntity("necromancer_morth", "Morth the Pale", "human", entity.Attributes{STR: 10, DEX: 12, CON: 12, INT: 18, WIS: 14, CHA: 10}, 5)
+	necromancer := entity.NewEntity("necromancer_morth", "Morth the Pale", "human", entity.Attributes{STR: 10, DEX: 12, CON: 12, INT: 18, WIS: 14, CHA: 10}, 5, entity.HagHostilities)
 	necromancer.LocationID = "golden_plains_graveyard"
 	necromancer.Faction = "undead"
 	necromancer.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"necromancer"}, FactionID: "undead", HomeLocation: "golden_plains_graveyard", SleepCycle: "nocturnal"}
@@ -938,7 +938,7 @@ func (g *Generator) generateWildernessBosses() []*entity.Entity {
 	dragonLair.IsOutside = false
 	g.World.AddLocation(dragonLair)
 
-	dragon := entity.NewEntity("dragon_ash", "Ashscale the Ancient", "dragon", entity.Attributes{STR: 30, DEX: 16, CON: 28, INT: 14, WIS: 16, CHA: 20}, 10)
+	dragon := entity.NewEntity("dragon_ash", "Ashscale the Ancient", "dragon", entity.Attributes{STR: 30, DEX: 16, CON: 28, INT: 14, WIS: 16, CHA: 20}, 10, entity.HagHostilities)
 	dragon.LocationID = "dragon_lair"
 	dragon.Faction = "dragon"
 	dragon.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"dragon"}, FactionID: "dragon", HomeLocation: "dragon_lair", SleepCycle: "none"}
@@ -953,7 +953,7 @@ func (g *Generator) generateWildernessBosses() []*entity.Entity {
 	rangerLocs := []string{"crystal_forest", "northern_highlands", "golden_plains"}
 	rangerNames := []string{"Sylas", "Rowan", "Kael"}
 	for i, loc := range rangerLocs {
-		ranger := entity.NewEntity("ranger_"+fmt.Sprint(i), rangerNames[i], "human", entity.Attributes{STR: 14, DEX: 16, CON: 12, INT: 10, WIS: 14, CHA: 10}, 3)
+		ranger := entity.NewEntity("ranger_"+fmt.Sprint(i), rangerNames[i], "human", entity.Attributes{STR: 14, DEX: 16, CON: 12, INT: 10, WIS: 14, CHA: 10}, 3, entity.HagHostilities)
 		ranger.LocationID = loc
 		ranger.Faction = "ranger"
 		ranger.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"ranger"}, FactionID: "ranger", HomeLocation: loc, SleepCycle: "diurnal"}
@@ -965,7 +965,7 @@ func (g *Generator) generateWildernessBosses() []*entity.Entity {
 	}
 
 	// Bandit chief in the wilderness
-	banditChief := entity.NewEntity("bandit_chief", "Blackheart", "human", entity.Attributes{STR: 18, DEX: 14, CON: 16, INT: 10, WIS: 10, CHA: 12}, 5)
+	banditChief := entity.NewEntity("bandit_chief", "Blackheart", "human", entity.Attributes{STR: 18, DEX: 14, CON: 16, INT: 10, WIS: 10, CHA: 12}, 5, entity.HagHostilities)
 	banditChief.LocationID = "golden_plains"
 	banditChief.Faction = "bandit"
 	banditChief.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"bandit_chief"}, FactionID: "bandit", HomeLocation: "golden_plains", SleepCycle: "diurnal"}
@@ -985,7 +985,7 @@ func (g *Generator) generateGoblinAmbushers() []*entity.Entity {
 
 	goblinAttrs := entity.Attributes{STR: 10, DEX: 16, CON: 10, INT: 6, WIS: 8, CHA: 4}
 	for i := 0; i < 2; i++ {
-		goblin := entity.NewEntity("goblin_ambush_"+fmt.Sprint(i), "GoblinAmbush"+fmt.Sprint(i), "goblin", goblinAttrs, 1+g.RNG.Intn(2))
+		goblin := entity.NewEntity("goblin_ambush_"+fmt.Sprint(i), "GoblinAmbush"+fmt.Sprint(i), "goblin", goblinAttrs, 1+g.RNG.Intn(2), entity.GoblinHostilities)
 		goblin.LocationID = "northern_highlands"
 		goblin.Faction = "goblin"
 		goblin.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"goblin_ambush"}, FactionID: "goblin", SleepCycle: "diurnal", HomeLocation: "northern_highlands"}
@@ -1000,7 +1000,7 @@ func (g *Generator) generateGoblinAmbushers() []*entity.Entity {
 }
 
 func GenerateDefaultWorld() (*world.World, []*entity.Entity) {
-	g := New("default")
+	g := NewGenerator("default")
 	return g.Generate()
 }
 

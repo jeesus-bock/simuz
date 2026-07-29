@@ -17,42 +17,42 @@ import (
 )
 
 func main() {
-	seed := flag.String("seed", "default", "World generation seed")
+	// seed := flag.String("seed", "default", "World generation seed")
 	port := flag.String("port", "8080", "HTTP server port")
 	flag.Parse()
 
 	ai.InitScripts()
 
-	g := gen.New(*seed)
+	g := gen.NewGenerator("puisto")
 	w, entities := g.Generate()
 
 	deities, _ := gen.GenerateDeities(w)
 
-	sim := engine.NewSimulation(w)
+	engine.Sim = engine.NewSimulation(w)
 	for _, e := range entities {
-		sim.Entities.Add(e)
+		engine.Sim.Entities.Add(e)
 	}
 	for _, d := range deities {
-		sim.Entities.Add(d)
+		engine.Sim.Entities.Add(d)
 	}
 	// Quests are defined as Lua scripts in internal/quest/scripts/*.lua
 	for _, q := range gen.SeedQuests() {
-		sim.Quests.Register(q)
+		engine.Sim.Quests.Register(q)
 	}
 
-	go sim.Start()
+	go engine.Sim.Start()
 
 	router := gin.Default()
 
 	v1 := router.Group("/api/v1")
-	api.RegisterRoutes(v1, sim)
-	web.SetupRoutes(router, sim)
+	api.RegisterRoutes(v1, engine.Sim)
+	web.SetupRoutes(router, engine.Sim)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		log.Printf("Simuz listening on :%s", *port)
+		log.Printf("engine.Simuz listening on :%s", *port)
 		if err := router.Run(":" + *port); err != nil {
 			log.Fatalf("Server failed: %v", err)
 		}
@@ -60,5 +60,5 @@ func main() {
 
 	<-quit
 	log.Println("Shutting down...")
-	sim.Stop()
+	engine.Sim.Stop()
 }
