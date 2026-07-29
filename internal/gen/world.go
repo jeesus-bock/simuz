@@ -784,7 +784,7 @@ func (g *Generator) generateFarms() []*entity.Entity {
 		for _, ad := range animalDefs {
 			for i := 0; i < ad.count; i++ {
 				animalID := farmID + "_" + ad.species + fmt.Sprint(i)
-				animal := entity.NewEntity(animalID, ad.species+"_"+fmt.Sprint(i), ad.species, ad.attrs, 1)
+				animal := entity.NewEntity(animalID, ad.species+"_"+fmt.Sprint(i), ad.species, ad.attrs, 1, entity.FarmAnimalHostilities)
 				animal.LocationID = farmID
 				animal.Faction = "civilian"
 				animal.AI = entity.EntityAI{Type: "passive", FactionID: town.townID, HomeLocation: farmID, SleepCycle: "diurnal"}
@@ -792,14 +792,14 @@ func (g *Generator) generateFarms() []*entity.Entity {
 			}
 		}
 
-		dog := entity.NewEntity(farmID+"_dog", "Mutt", "dog", entity.Attributes{STR: 8, DEX: 12, CON: 10, INT: 4, WIS: 8, CHA: 6}, 1)
+		dog := entity.NewEntity(farmID+"_dog", "Mutt", "dog", entity.Attributes{STR: 8, DEX: 12, CON: 10, INT: 4, WIS: 8, CHA: 6}, 1, entity.FarmAnimalHostilities)
 		dog.LocationID = farmID
 		dog.Faction = "civilian"
 		dog.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"dog"}, FactionID: town.townID, HomeLocation: farmID, SleepCycle: "diurnal"}
 		all = append(all, dog)
 
 		farmerID := town.townID + "_farmer"
-		farmer := entity.NewEntity(farmerID, farmerNames[ti], "human", entity.RandomAttributes(g.RNG.Intn), 2)
+		farmer := entity.NewEntity(farmerID, farmerNames[ti], "human", entity.RandomAttributes(g.RNG.Intn), 2, entity.CivilianHostilities)
 		farmer.LocationID = farmID
 		farmer.Faction = "civilian"
 		farmer.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"farmer"}, FactionID: town.townID, HomeLocation: farmID, SleepCycle: "diurnal"}
@@ -827,7 +827,7 @@ func (g *Generator) generateTownExtras() []*entity.Entity {
 		mine.IsOutside = false
 		g.World.AddLocation(mine)
 
-		miner := entity.NewEntity(townID+"_miner", minerNames[i], "human", entity.RandomAttributes(g.RNG.Intn), 2)
+		miner := entity.NewEntity(townID+"_miner", minerNames[i], "human", entity.RandomAttributes(g.RNG.Intn), 2, entity.CivilianHostilities)
 		miner.LocationID = mineID
 		miner.Faction = "civilian"
 		miner.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"miner"}, FactionID: townID, HomeLocation: mineID, SleepCycle: "diurnal"}
@@ -842,7 +842,7 @@ func (g *Generator) generateTownExtras() []*entity.Entity {
 		hut.Tags = []string{"campfire", "cauldron"}
 		g.World.AddLocation(hut)
 
-		herbalist := entity.NewEntity(townID+"_herbalist", "Herbalist "+fmt.Sprint(i+1), "human", entity.RandomAttributes(g.RNG.Intn), 2)
+		herbalist := entity.NewEntity(townID+"_herbalist", "Herbalist "+fmt.Sprint(i+1), "human", entity.RandomAttributes(g.RNG.Intn), 2, entity.CivilianHostilities)
 		herbalist.LocationID = hutID
 		herbalist.Faction = "civilian"
 		herbalist.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"herbalist"}, FactionID: townID, HomeLocation: hutID, SleepCycle: "diurnal"}
@@ -852,7 +852,7 @@ func (g *Generator) generateTownExtras() []*entity.Entity {
 		giveCurrency(herbalist, 5+g.RNG.Intn(10), 1, 0)
 		all = append(all, herbalist)
 
-		courier := entity.NewEntity(townID+"_courier", "Courier "+fmt.Sprint(i+1), "human", entity.RandomAttributes(g.RNG.Intn), 2)
+		courier := entity.NewEntity(townID+"_courier", "Courier "+fmt.Sprint(i+1), "human", entity.RandomAttributes(g.RNG.Intn), 2, entity.CivilianHostilities)
 		courier.LocationID = townID + "_inn_common"
 		courier.Faction = "civilian"
 		courier.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"courier"}, FactionID: townID, HomeLocation: townID + "_inn_common", SleepCycle: "diurnal"}
@@ -861,7 +861,7 @@ func (g *Generator) generateTownExtras() []*entity.Entity {
 		giveCurrency(courier, 2+g.RNG.Intn(5), 1, 0)
 		all = append(all, courier)
 
-		child := entity.NewEntity(townID+"_child", "Child "+fmt.Sprint(i+1), "human", entity.RandomAttributes(g.RNG.Intn), 1)
+		child := entity.NewEntity(townID+"_child", "Child "+fmt.Sprint(i+1), "human", entity.RandomAttributes(g.RNG.Intn), 1, entity.ChildHostilities)
 		child.LocationID = townID + "_inn_common"
 		child.Faction = "civilian"
 		child.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"child"}, FactionID: townID, HomeLocation: townID + "_inn_common", SleepCycle: "diurnal"}
@@ -869,7 +869,7 @@ func (g *Generator) generateTownExtras() []*entity.Entity {
 		giveCurrency(child, 1, 0, 0)
 		all = append(all, child)
 
-		patron := entity.NewEntity(townID+"_patron", patronNames[i], "human", entity.RandomAttributes(g.RNG.Intn), 1)
+		patron := entity.NewEntity(townID+"_patron", patronNames[i], "human", entity.RandomAttributes(g.RNG.Intn), 1, entity.CivilianHostilities)
 		patron.LocationID = townID + "_inn_common"
 		patron.Faction = "civilian"
 		patron.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"bar_patron"}, FactionID: townID, HomeLocation: townID + "_inn_common", SleepCycle: "diurnal"}
@@ -907,7 +907,7 @@ func (g *Generator) generateWildernessBosses() []*entity.Entity {
 	werewolfCottage.IsOutside = false
 	g.World.AddLocation(werewolfCottage)
 
-	werewolf := entity.NewEntity("werewolf_cursed", "Cursed Traveler", "human", entity.Attributes{STR: 16, DEX: 14, CON: 14, INT: 8, WIS: 10, CHA: 8}, 4)
+	werewolf := entity.NewEntity("werewolf_cursed", "Cursed Traveler", "human", entity.Attributes{STR: 16, DEX: 14, CON: 14, INT: 8, WIS: 10, CHA: 8}, 4, entity.CivilianHostilities
 	werewolf.LocationID = "werewolf_cottage"
 	werewolf.Faction = "werewolf"
 	werewolf.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"werewolf"}, FactionID: "werewolf", HomeLocation: "werewolf_cottage", SleepCycle: "nocturnal"}

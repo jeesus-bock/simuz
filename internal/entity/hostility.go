@@ -262,6 +262,12 @@ var ChildHostilities = Hostilities{
 	ProfessionRelation: ProfessionRelation{},
 	EntityRelation:     EntityRelation{},
 }
+var FarmAnimalHostilities = Hostilities{
+	SpeciesRelation:    SpeciesRelation{"wolf": -50},
+	FactionRelation:    FactionRelation{},
+	ProfessionRelation: ProfessionRelation{},
+	EntityRelation:     EntityRelation{},
+}
 
 // DragonHostilities defines the default hostility relations for Dragon species.
 var DragonHostilities = Hostilities{
