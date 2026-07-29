@@ -3,6 +3,7 @@ package gen
 
 import (
 	"simuz/internal/entity"
+	"simuz/internal/relation"
 	"simuz/internal/world"
 )
 
@@ -95,7 +96,7 @@ func GenerateDeities(w *world.World) ([]*entity.Entity, []*world.Location) {
 		realmID := findRealmForDeity(dd.ID)
 		attrs := dd.Attributes
 		level := 50
-		ent := entity.NewEntity(dd.ID, dd.Name, "deity", attrs, level, entity.Relation{})
+		ent := entity.NewEntity(dd.ID, dd.Name, "deity", attrs, level, relation.Relation{})
 		ent.Immortal = true
 		ent.LocationID = realmID
 		ent.Faction = "deity"

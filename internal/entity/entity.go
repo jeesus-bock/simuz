@@ -5,6 +5,7 @@ import (
 	"math/rand"
 
 	"simuz/internal/items"
+	"simuz/internal/relation"
 )
 
 type Position struct {
@@ -118,10 +119,10 @@ type Entity struct {
 	Relationships        map[string]EntityRelationship `json:"relationships,omitempty"`
 	LastReproductionTick uint64                        `json:"last_reproduction_tick,omitempty"`
 	TimeOfDeath          uint64                        `json:"timeOfDeath"`
-	Relation
+	relation.Relation
 }
 
-func NewEntity(id, name, species string, attrs Attributes, level int, Relation Relation) *Entity {
+func NewEntity(id, name, species string, attrs Attributes, level int, rel relation.Relation) *Entity {
 	maxHP := attrs.CON*2 + level*2
 	maxFP := attrs.CON + attrs.STR/2
 	if maxHP < 1 {
@@ -159,7 +160,7 @@ func NewEntity(id, name, species string, attrs Attributes, level int, Relation R
 		AI: EntityAI{
 			Type: "passive",
 		},
-		Relation: Relation,
+		Relation: rel,
 	}
 }
 func GetEntityByID(id string) (*Entity, bool) {
@@ -169,6 +170,10 @@ func GetEntityByID(id string) (*Entity, bool) {
 	}
 	return ent, true
 }
+func (e *Entity) GetID() string { return e.ID }
+func (e *Entity) GetFaction() string { return e.Faction }
+func (e *Entity) GetSpecies() string { return e.Species }
+func (e *Entity) GetProfession() string { return e.Profession }
 func GetRndGender() string {
 	choices := []string{GenderMale, GenderFemale, GenderOther}
 	return choices[rand.Intn(len(choices))]

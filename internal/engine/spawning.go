@@ -9,6 +9,7 @@ import (
 	"slices"
 
 	"simuz/internal/entity"
+	"simuz/internal/relation"
 	"simuz/internal/items"
 	"simuz/internal/world"
 )
@@ -111,7 +112,7 @@ func spawnEntity(rule *SpawnRule, em *entity.Manager, tick, idx int, rng *rand.R
 	name := generateName(rule.Species, rng)
 	id := fmt.Sprintf("%s_spawn_%s_%s_%d_%d", rule.Species, name, rule.LocationID, tick, idx)
 
-	ent := entity.NewEntity(id, name, rule.Species, attrs, level, entity.EmptyRelation)
+	ent := entity.NewEntity(id, name, rule.Species, attrs, level, relation.EmptyRelation)
 	ent.LocationID = rule.LocationID
 	ent.Faction = rule.Faction
 	ent.Profession = rule.Profession
@@ -385,7 +386,7 @@ func SpawnBaby(parent1, parent2 *entity.Entity, id, babyName string, tick uint64
 		parent1.Species,
 		attrs,
 		1,
-		entity.EmptyRelation,
+		relation.EmptyRelation,
 	)
 	baby.LocationID = parent1.LocationID
 	baby.Faction = parent1.Faction
@@ -666,7 +667,7 @@ func createSeededEntity(species, gender string, level int, locID string, rng *ra
 	name := generateName(species, rng)
 	id := fmt.Sprintf("%s_seed_%s_%s_%d", species, gender, name, rng.Intn(100000))
 
-	ent := entity.NewEntity(id, name, species, attrs, level, entity.EmptyRelation)
+	ent := entity.NewEntity(id, name, species, attrs, level, relation.EmptyRelation)
 	ent.Gender = gender
 	ent.LocationID = locID
 	ent.Faction = "civilian"

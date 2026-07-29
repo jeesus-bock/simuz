@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"simuz/internal/entity"
+	"simuz/internal/relation"
 
 	"github.com/gin-gonic/gin"
 )
@@ -77,7 +78,7 @@ func (h *Handler) CreateEntity(c *gin.Context) {
 	}
 
 	attrs := entity.RandomAttributes(func(n int) int { return h.Sim.RNG.Intn(n) })
-	ent := entity.NewEntity(req.ID, req.Name, req.Species, attrs, req.Level, entity.CivilianRelation)
+	ent := entity.NewEntity(req.ID, req.Name, req.Species, attrs, req.Level, relation.CivilianRelation)
 	if req.LocationID != "" {
 		ent.LocationID = req.LocationID
 	}

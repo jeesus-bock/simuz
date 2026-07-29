@@ -12,8 +12,10 @@ import (
 	"simuz/internal/economy"
 	"simuz/internal/entity"
 	"simuz/internal/events"
+	"simuz/internal/faction"
 	"simuz/internal/items"
 	"simuz/internal/quest"
+	"simuz/internal/relation"
 	"simuz/internal/world"
 
 	lua "github.com/yuin/gopher-lua"
@@ -49,30 +51,33 @@ func goValue(value lua.LValue) any {
 // MoveRequest is set by the engine to handle instant vs multi-tick travel.
 var MoveRequest func(ent *entity.Entity, destID string) bool
 
+// IsEntityTraveling is set by the engine.
+var IsEntityTraveling func(entityID string) bool
+
 // setFactionHostility sets the faction-level hostility relation between two factions bidirectionally.
-func setFactionHostility(factionA, factionB string, relation entity.HostilityRelation) {
+func setFactionHostility(factionA, factionB string, rel relation.HostilityRelation) {
 	if factionA == factionB {
 		return
 	}
-	if fac, ok := entity.GetFactionByID(factionA); ok {
-		fac.Relation.SetFactionRelation(factionB, relation)
+	if fac, ok := faction.GetFactionByID(factionA); ok {
+		fac.Relation.SetFactionRelation(factionB, rel)
 	}
-	if fac, ok := entity.GetFactionByID(factionB); ok {
-		fac.Relation.SetFactionRelation(factionA, relation)
+	if fac, ok := faction.GetFactionByID(factionB); ok {
+		fac.Relation.SetFactionRelation(factionA, rel)
 	}
 }
 
 // factionHostility returns the combined faction-level hostility between two factions.
 // Positive means friendly, negative means hostile, zero means neutral.
-func factionHostility(factionA, factionB string) entity.HostilityRelation {
+func factionHostility(factionA, factionB string) relation.HostilityRelation {
 	if factionA == factionB {
 		return 1
 	}
-	var combined entity.HostilityRelation
-	if fac, ok := entity.GetFactionByID(factionA); ok {
+	var combined relation.HostilityRelation
+	if fac, ok := faction.GetFactionByID(factionA); ok {
 		combined += fac.Relation.GetFactionRelation(factionB)
 	}
-	if fac, ok := entity.GetFactionByID(factionB); ok {
+	if fac, ok := faction.GetFactionByID(factionB); ok {
 		combined += fac.Relation.GetFactionRelation(factionA)
 	}
 	return combined
@@ -82,9 +87,6 @@ func factionHostility(factionA, factionB string) entity.HostilityRelation {
 func IsHostile(factionA, factionB string) bool {
 	return factionHostility(factionA, factionB) < 0
 }
-
-// IsEntityTraveling is set by the engine.
-var IsEntityTraveling func(entityID string) bool
 
 // RunScript executes a loaded Lua AI script and returns the events it generated.
 func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manager, tm *world.GameTime, rng *rand.Rand, qm *quest.Manager) ([]*events.SimEvent, error) {
@@ -567,16 +569,16 @@ func nearbyCombatSitesLua(w *world.World, em *entity.Manager, ent *entity.Entity
 				continue
 			}
 			factions[other.Faction] = struct{}{}
-			fac1, ok := entity.GetFactionByID(ent.Faction)
+			fac1, ok := faction.GetFactionByID(ent.Faction)
 			if !ok {
 				continue
 			}
-			fac2, ok := entity.GetFactionByID(other.Faction)
+			fac2, ok := faction.GetFactionByID(other.Faction)
 			if !ok {
 				continue
 			}
-			fac1h := fac1.Relation.FactionRelation[other.Faction].Int()
-			fac2h := fac2.Relation.FactionRelation[ent.Faction].Int()
+			fac1h := fac1.Relation.GetFactionRelation(other.Faction)
+			fac2h := fac2.Relation.GetFactionRelation(ent.Faction)
 			combined := fac1h + fac2h
 			if combined > 5 {
 				site.Hostiles++
@@ -763,10 +765,10 @@ func scriptCombatAttack(w *world.World, em *entity.Manager, qm *quest.Manager, r
 	if hit {
 		target.ChangeEntityRelation(attacker.ID, -2)
 		target.ChangeFactionRelation(attacker.Faction, -1)
-		if aFac, ok := entity.GetFactionByID(attacker.Faction); ok {
+		if aFac, ok := faction.GetFactionByID(attacker.Faction); ok {
 			aFac.Relation.ChangeFactionRelation(target.Faction, -1)
 		}
-		if tFac, ok := entity.GetFactionByID(target.Faction); ok {
+		if tFac, ok := faction.GetFactionByID(target.Faction); ok {
 			tFac.Relation.ChangeFactionRelation(attacker.Faction, -1)
 		}
 	}
@@ -775,10 +777,10 @@ func scriptCombatAttack(w *world.World, em *entity.Manager, qm *quest.Manager, r
 		if attacker.Faction != target.Faction {
 			target.ChangeEntityRelation(attacker.ID, -10)
 			target.ChangeFactionRelation(attacker.Faction, -7)
-			if aFac, ok := entity.GetFactionByID(attacker.Faction); ok {
+			if aFac, ok := faction.GetFactionByID(attacker.Faction); ok {
 				aFac.Relation.ChangeFactionRelation(target.Faction, -7)
 			}
-			if tFac, ok := entity.GetFactionByID(target.Faction); ok {
+			if tFac, ok := faction.GetFactionByID(target.Faction); ok {
 				tFac.Relation.ChangeFactionRelation(attacker.Faction, -7)
 			}
 		}
@@ -1181,7 +1183,7 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 		a := L.ToString(1)
 		b := L.ToString(2)
 		rel := L.ToString(3)
-		var r entity.HostilityRelation
+		var r relation.HostilityRelation
 		switch rel {
 		case "hostile":
 			r = -5

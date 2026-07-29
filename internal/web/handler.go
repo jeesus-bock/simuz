@@ -14,6 +14,7 @@ import (
 	"simuz/internal/combat"
 	"simuz/internal/engine"
 	"simuz/internal/entity"
+	"simuz/internal/faction"
 	"simuz/internal/events"
 	"simuz/internal/items"
 	"simuz/internal/quest"
@@ -234,13 +235,13 @@ func hostileFactionMixExists(factions map[string]int) bool {
 	keys := make([]string, 0, len(factions))
 
 	sortStringsByFoldAndRaw(keys)
-	for _, faction := range keys {
-		fac, ok := entity.GetFactionByID(faction)
+	for _, fID := range keys {
+		fac, ok := faction.GetFactionByID(fID)
 		if !ok {
 			continue
 		}
-		for _, fac2 := range keys {
-			if fac.Relation.FactionRelation[fac2].String() == "hostile" {
+		for _, fac2ID := range keys {
+			if fac.Relation.FactionRelation[fac2ID].String() == "hostile" {
 				return true
 			}
 		}
@@ -249,7 +250,7 @@ func hostileFactionMixExists(factions map[string]int) bool {
 }
 
 func relationLabel(factionID1 string, factionID2 string) string {
-	fac1, ok := entity.GetFactionByID(factionID1)
+	fac1, ok := faction.GetFactionByID(factionID1)
 	relation := fac1.GetFactionRelation(factionID2)
 	if ok {
 		return relation.String()
@@ -264,7 +265,7 @@ func buildFactionRelationNotes(factions []string) []string {
 	notes := make([]string, 0, len(factions))
 	for i := range factions {
 		for j := i + 1; j < len(factions); j++ {
-			fac, ok := entity.GetFactionByID(factions[i])
+			fac, ok := faction.GetFactionByID(factions[i])
 			if !ok {
 				continue
 			}

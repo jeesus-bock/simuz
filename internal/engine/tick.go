@@ -12,6 +12,7 @@ import (
 	"simuz/internal/ai"
 	"simuz/internal/combat"
 	"simuz/internal/entity"
+	"simuz/internal/relation"
 	"simuz/internal/events"
 	"simuz/internal/items"
 	"simuz/internal/quest"
@@ -389,7 +390,7 @@ func processReproduction(s *Simulation) {
 		childName := generateName(mother.Species, s.RNG)
 		childID := fmt.Sprintf("%s_child_%s_%d", mother.Species, mother.ID, s.Tick)
 
-		child := entity.NewEntity(childID, childName, mother.Species, childAttrs, 1, entity.CombineRelation(mother.Relation, father.Relation))
+		child := entity.NewEntity(childID, childName, mother.Species, childAttrs, 1, relation.CombineRelation(mother.Relation, father.Relation))
 		if s.RNG.Intn(2) == 0 {
 			child.Gender = "male"
 		} else {

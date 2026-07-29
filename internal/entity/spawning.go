@@ -1,6 +1,8 @@
 // Package entity defines the simulation entities, their attributes, and related behaviors.
 package entity
 
+import "simuz/internal/relation"
+
 // CanMate checks whether two entities are compatible for reproduction.
 func CanMate(a, b *Entity) bool {
 	if a == nil || b == nil {
@@ -39,7 +41,7 @@ func SpawnBaby(parent1, parent2 *Entity, id, babyName string, rng func(int) int)
 		parent1.Species,
 		attrs,
 		1,
-		Relation{},
+		relation.Relation{},
 	)
 
 	// Inherit gender randomly from one of the parents
