@@ -16,8 +16,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var Sim *engine.Simulation
-
 func main() {
 	seed := flag.String("seed", "default", "World generation seed")
 	port := flag.String("port", "8080", "HTTP server port")
@@ -30,25 +28,25 @@ func main() {
 
 	deities, _ := gen.GenerateDeities(w)
 
-	Sim := engine.NewSimulation(w)
+	sim := engine.NewSimulation(w)
 	for _, e := range entities {
-		Sim.Entities.Add(e)
+		sim.Entities.Add(e)
 	}
 	for _, d := range deities {
-		Sim.Entities.Add(d)
+		sim.Entities.Add(d)
 	}
 	// Quests are defined as Lua scripts in internal/quest/scripts/*.lua
 	for _, q := range gen.SeedQuests() {
-		Sim.Quests.Register(q)
+		sim.Quests.Register(q)
 	}
 
-	go Sim.Start()
+	go sim.Start()
 
 	router := gin.Default()
 
 	v1 := router.Group("/api/v1")
-	api.RegisterRoutes(v1, Sim)
-	web.SetupRoutes(router, Sim)
+	api.RegisterRoutes(v1, sim)
+	web.SetupRoutes(router, sim)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
@@ -62,5 +60,5 @@ func main() {
 
 	<-quit
 	log.Println("Shutting down...")
-	Sim.Stop()
+	sim.Stop()
 }
