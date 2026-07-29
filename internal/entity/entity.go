@@ -66,6 +66,7 @@ const (
 type Reproduction struct {
 	Pregnant          bool  `json:"pregnant,omitempty"`
 	PregnantSinceTick uint64 `json:"pregnant_since_tick,omitempty"`
+	FatherID          string `json:"father_id,omitempty"`
 }
 
 type EntityActivity struct {
@@ -121,7 +122,6 @@ type Entity struct {
 	LeashedBy            string                        `json:"leashed_by,omitempty"`
 	RescueState          string                        `json:"rescue_state,omitempty"`
 	Reproduction         Reproduction                  `json:"reproduction,omitempty"`
-	FatherID             string                        `json:"father_id,omitempty"`
 	Relationships        map[string]EntityRelationship `json:"relationships,omitempty"`
 	LastReproductionTick uint64                        `json:"last_reproduction_tick,omitempty"`
 	TimeOfDeath          uint64                        `json:"timeOfDeath"`
