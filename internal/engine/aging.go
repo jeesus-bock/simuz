@@ -63,5 +63,7 @@ func starvationCheck(ent *entity.Entity, sim *Simulation) {
 }
 
 func oldAge(ent *entity.Entity, sim *Simulation) (lastWords string) {
+	ent.Alive = false
+	ent.TimeOfDeath = sim.Tick
 	return lastWords
 }

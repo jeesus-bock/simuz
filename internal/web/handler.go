@@ -250,8 +250,8 @@ func hostileFactionMixExists(factions map[string]int) bool {
 
 func relationLabel(factionID1 string, factionID2 string) string {
 	fac1, ok := entity.GetFactionByID(factionID1)
-	relation := fac1.Hostilities.GetFactionRelation(factionID2)
-	if ok && ok {
+	relation := fac1.GetFactionRelation(factionID2)
+	if ok {
 		return relation.String()
 	}
 	return "neutral"
@@ -1098,7 +1098,11 @@ func (h *Handler) EntityDetailPage(c *gin.Context) {
 	xpForNext := ent.Level * 100
 	xpPercent := 0
 	canLevelUp := false
-	if xpForNext > 0 && entity.GetSpecies(ent.Species).CanLevelUp {
+	species, ok := entity.GetSpeciesByID(ent.Species)
+	if !ok {
+		return
+	}
+	if xpForNext > 0 && species.CanLevelUp {
 		xpPercent = ent.XP * 100 / xpForNext
 		if ent.XP >= xpForNext {
 			canLevelUp = true
@@ -1184,7 +1188,11 @@ func (h *Handler) EntityDetailFragment(c *gin.Context) {
 	xpForNext := ent.Level * 100
 	xpPercent := 0
 	canLevelUp := false
-	if xpForNext > 0 && entity.GetSpecies(ent.Species).CanLevelUp {
+	species, ok := entity.GetSpeciesByID(ent.Species)
+	if !ok {
+		return
+	}
+	if xpForNext > 0 && species.CanLevelUp {
 		xpPercent = ent.XP * 100 / xpForNext
 		if ent.XP >= xpForNext {
 			canLevelUp = true

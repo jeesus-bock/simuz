@@ -27,13 +27,6 @@ func GetSpeciesByID(id string) (Species, bool) {
 	species, exists := SpeciesRegistry[id]
 	return species, exists
 }
-func GetEntityByID(id string) (*Entity, bool) {
-	ent := EntityManager.Get(id)
-	if ent == nil {
-		return ent, false
-	}
-	return ent, true
-}
 
 var StarvationDamageInterval = 10
 var StarvationDamageMin = 10

@@ -117,6 +117,7 @@ type Entity struct {
 	FatherID             string                        `json:"father_id,omitempty"`
 	Relationships        map[string]EntityRelationship `json:"relationships,omitempty"`
 	LastReproductionTick uint64                        `json:"last_reproduction_tick,omitempty"`
+	TimeOfDeath          uint64                        `json:"timeOfDeath"`
 	Hostilities
 }
 
@@ -161,8 +162,12 @@ func NewEntity(id, name, species string, attrs Attributes, level int, hostilitie
 		Hostilities: hostilities,
 	}
 }
-func GetEntityById(id string) *Entity {
-	return EntityManager.Get(id)
+func GetEntityByID(id string) (*Entity, bool) {
+	ent := EntityManager.Get(id)
+	if ent == nil {
+		return ent, false
+	}
+	return ent, true
 }
 func GetRndGender() string {
 	choices := []string{GenderMale, GenderFemale, GenderOther}
