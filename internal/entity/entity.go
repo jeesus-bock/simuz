@@ -163,13 +163,7 @@ func NewEntity(id, name, speciesID string, attrs Attributes, level int, rel rela
 		Relation: rel,
 	}
 }
-func GetEntityByID(id string) (*Entity, bool) {
-	ent := EntityManager.Get(id)
-	if ent == nil {
-		return ent, false
-	}
-	return ent, true
-}
+
 func (e *Entity) GetID() string         { return e.ID }
 func (e *Entity) GetFaction() string    { return e.Faction }
 func (e *Entity) GetSpecies() string    { return e.Species }

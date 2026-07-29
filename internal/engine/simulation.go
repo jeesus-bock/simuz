@@ -22,7 +22,7 @@ type Simulation struct {
 	Tick         uint64
 	Scheduler    *Scheduler
 	World        *world.World
-	Entities     *entity.Manager
+	Entities     *entity.EntityManager
 	Quests       *quest.Manager
 	Events       *events.Manager
 	Time         world.GameTime
@@ -48,7 +48,7 @@ func NewSimulation(w *world.World) *Simulation {
 		Tick:         0,
 		Scheduler:    NewScheduler(),
 		World:        w,
-		Entities:     entity.NewManager(),
+		Entities:     entity.NewEntityManager(),
 		Quests:       qm,
 		Events:       events.NewManager(),
 		Time:         world.NewGameTime(24),

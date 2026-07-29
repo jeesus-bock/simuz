@@ -3,39 +3,38 @@ package entity
 
 import "sync"
 
-type Manager struct {
+type EntityManager struct {
 	mu       sync.RWMutex
 	entities map[string]*Entity
 }
 
-var EntityManager *Manager
+var EntityMemgtanager *EntityManager
 
-func NewManager() *Manager {
-	EntityManager = &Manager{
+func NewEntityManager() *EntityManager {
+	var ems = &EntityManager{
 		entities: make(map[string]*Entity),
 	}
-	return EntityManager
+	return ems
 }
-
-func (m *Manager) Add(e *Entity) {
+func (m *EntityManager) Add(e *Entity) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.entities[e.ID] = e
 }
 
-func (m *Manager) Get(id string) *Entity {
+func (m *EntityManager) Get(id string) *Entity {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.entities[id]
 }
 
-func (m *Manager) Remove(id string) {
+func (m *EntityManager) Remove(id string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	delete(m.entities, id)
 }
 
-func (m *Manager) All() []*Entity {
+func (m *EntityManager) All() []*Entity {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	result := make([]*Entity, 0, len(m.entities))
@@ -45,7 +44,7 @@ func (m *Manager) All() []*Entity {
 	return result
 }
 
-func (m *Manager) ByLocation(locID string) []*Entity {
+func (m *EntityManager) ByLocation(locID string) []*Entity {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	var result []*Entity
@@ -57,7 +56,7 @@ func (m *Manager) ByLocation(locID string) []*Entity {
 	return result
 }
 
-func (m *Manager) Filter(fn func(*Entity) bool) []*Entity {
+func (m *EntityManager) Filter(fn func(*Entity) bool) []*Entity {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	var result []*Entity
@@ -69,13 +68,13 @@ func (m *Manager) Filter(fn func(*Entity) bool) []*Entity {
 	return result
 }
 
-func (m *Manager) Count() int {
+func (m *EntityManager) Count() int {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return len(m.entities)
 }
 
-func (m *Manager) GetEntitiesInLocation(locationID string) []*Entity {
+func (m *EntityManager) GetEntitiesInLocation(locationID string) []*Entity {
 	ret := make([]*Entity, 0)
 	for _, es := range m.entities {
 		if es.LocationID == locationID {

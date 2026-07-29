@@ -90,7 +90,7 @@ func IsHostile(factionA, factionB string) bool {
 }
 
 // RunScript executes a loaded Lua AI script and returns the events it generated.
-func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manager, tm *world.GameTime, rng *rand.Rand, qm *quest.Manager) ([]*events.SimEvent, error) {
+func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.EntityManager, tm *world.GameTime, rng *rand.Rand, qm *quest.Manager) ([]*events.SimEvent, error) {
 	proto, ok := globalScripts.scripts[name]
 
 	if !ok {
@@ -549,7 +549,7 @@ type luaNearbyCombatSite struct {
 	ControlStrength    int
 }
 
-func nearbyCombatSitesLua(w *world.World, em *entity.Manager, ent *entity.Entity) []luaNearbyCombatSite {
+func nearbyCombatSitesLua(w *world.World, em *entity.EntityManager, ent *entity.Entity) []luaNearbyCombatSite {
 	if w == nil || em == nil || ent == nil {
 		return nil
 	}
@@ -676,7 +676,7 @@ func shouldAssistNearbyCombatLua(rng *rand.Rand, ent *entity.Entity, site luaNea
 	return rng.Intn(chance) == 0
 }
 
-func passiveCombatResponseLua(w *world.World, em *entity.Manager, ent *entity.Entity, rng *rand.Rand) bool {
+func passiveCombatResponseLua(w *world.World, em *entity.EntityManager, ent *entity.Entity, rng *rand.Rand) bool {
 	if w == nil || em == nil || ent == nil {
 		return false
 	}
@@ -733,7 +733,7 @@ func retreatCatchChanceLua(attacker, defender *entity.Entity) int {
 	return chance
 }
 
-func scriptCombatAttack(w *world.World, em *entity.Manager, qm *quest.Manager, rng *rand.Rand, tick uint64, attacker, target *entity.Entity) bool {
+func scriptCombatAttack(w *world.World, em *entity.EntityManager, qm *quest.Manager, rng *rand.Rand, tick uint64, attacker, target *entity.Entity) bool {
 	if attacker == nil || target == nil || !attacker.Alive || !attacker.Conscious || !target.Alive {
 		return false
 	}
@@ -801,7 +801,7 @@ func scriptCombatAttack(w *world.World, em *entity.Manager, qm *quest.Manager, r
 	return hit
 }
 
-func scriptRetreatOpportunityAttack(w *world.World, em *entity.Manager, qm *quest.Manager, rng *rand.Rand, tick uint64, attacker, defender *entity.Entity) bool {
+func scriptRetreatOpportunityAttack(w *world.World, em *entity.EntityManager, qm *quest.Manager, rng *rand.Rand, tick uint64, attacker, defender *entity.Entity) bool {
 	if w == nil || attacker == nil || defender == nil || !attacker.Alive || !defender.Alive {
 		return false
 	}
@@ -812,7 +812,7 @@ func scriptRetreatOpportunityAttack(w *world.World, em *entity.Manager, qm *ques
 	return scriptCombatAttack(w, em, qm, rng, tick, attacker, defender)
 }
 
-func scriptFleeCombat(w *world.World, em *entity.Manager, qm *quest.Manager, rng *rand.Rand, tick uint64, ent *entity.Entity, hostiles []*entity.Entity) bool {
+func scriptFleeCombat(w *world.World, em *entity.EntityManager, qm *quest.Manager, rng *rand.Rand, tick uint64, ent *entity.Entity, hostiles []*entity.Entity) bool {
 	if w == nil || ent == nil || len(hostiles) == 0 {
 		return false
 	}
@@ -859,7 +859,7 @@ func scriptFleeCombat(w *world.World, em *entity.Manager, qm *quest.Manager, rng
 	return true
 }
 
-func questKilledLua(qm *quest.Manager, em *entity.Manager, target *entity.Entity) {
+func questKilledLua(qm *quest.Manager, em *entity.EntityManager, target *entity.Entity) {
 	if qm == nil || em == nil || target == nil {
 		return
 	}
@@ -894,7 +894,7 @@ func questKilledLua(qm *quest.Manager, em *entity.Manager, target *entity.Entity
 	}
 }
 
-func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.GameTime, rng *rand.Rand, ent *entity.Entity, qm *quest.Manager) {
+func bindWorld(L *lua.LState, w *world.World, em *entity.EntityManager, tm *world.GameTime, rng *rand.Rand, ent *entity.Entity, qm *quest.Manager) {
 	worldTbl := L.NewTable()
 	worldTbl.RawSetString("time", lua.LString(tm.String()))
 	worldTbl.RawSetString("tick", lua.LNumber(tm.Tick))
@@ -1100,14 +1100,9 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 	worldTbl.RawSetString("is_hostile", L.NewFunction(func(L *lua.LState) int {
 		a := L.ToString(1)
 		b := L.ToString(2)
-		att, ok := entity.GetEntityByID(a)
-		if !ok {
-			return 0
-		}
-		def, ok := entity.GetEntityByID(b)
-		if !ok {
-			return 0
-		}
+		att := em.Get(a)
+
+		def := em.Get(b)
 
 		rel := att.Relation.Relation(def)
 		L.Push(lua.LBool(rel < 0))
@@ -2080,7 +2075,7 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 		currentLocationID := ent.LocationID
 
 		// 3. Scan all live entities in the exact same location node map sector
-		// Use your em (*entity.Manager) to safely query the world registry
+		// Use your em (*entity.EntityManager) to safely query the world registry
 		allEntities := em.GetEntitiesInLocation(currentLocationID)
 
 		// 4. Iterate over the group and apply damage vectors cleanly

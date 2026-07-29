@@ -9,8 +9,8 @@ import (
 	"slices"
 
 	"simuz/internal/entity"
-	"simuz/internal/relation"
 	"simuz/internal/items"
+	"simuz/internal/relation"
 	"simuz/internal/species"
 	"simuz/internal/world"
 )
@@ -56,7 +56,7 @@ func NewSpawnManager() *SpawnManager {
 	}
 }
 
-func (sm *SpawnManager) ProcessSpawns(w *world.World, worldEntities *entity.Manager, tick int, rng *rand.Rand) {
+func (sm *SpawnManager) ProcessSpawns(w *world.World, worldEntities *entity.EntityManager, tick int, rng *rand.Rand) {
 	for i := range sm.Rules {
 		rule := &sm.Rules[i]
 		if rule.Interval < 0 {
@@ -94,7 +94,7 @@ func (sm *SpawnManager) ProcessSpawns(w *world.World, worldEntities *entity.Mana
 	}
 }
 
-func countAliveAtLocation(em *entity.Manager, locID, faction, species string) int {
+func countAliveAtLocation(em *entity.EntityManager, locID, faction, species string) int {
 	count := 0
 	for _, e := range em.All() {
 		if e.Alive && e.LocationID == locID && e.Faction == faction && e.Species == species {
@@ -104,7 +104,7 @@ func countAliveAtLocation(em *entity.Manager, locID, faction, species string) in
 	return count
 }
 
-func spawnEntity(rule *SpawnRule, em *entity.Manager, tick, idx int, rng *rand.Rand) *entity.Entity {
+func spawnEntity(rule *SpawnRule, em *entity.EntityManager, tick, idx int, rng *rand.Rand) *entity.Entity {
 	level := rule.MinLevel
 	if rule.MaxLevel > rule.MinLevel {
 		level += rng.Intn(rule.MaxLevel - rule.MinLevel + 1)
@@ -488,7 +488,7 @@ func StartPregnancy(mother, father *entity.Entity, tick uint64) {
 }
 
 // ProcessPregnancy checks all entities for completed pregnancies and spawns babies.
-func ProcessPregnancy(em *entity.Manager, tick uint64, rng *rand.Rand) {
+func ProcessPregnancy(em *entity.EntityManager, tick uint64, rng *rand.Rand) {
 	for _, e := range em.All() {
 		if !e.Reproduction.Pregnant {
 			continue
@@ -531,7 +531,7 @@ func ProcessPregnancy(em *entity.Manager, tick uint64, rng *rand.Rand) {
 
 // SeedFamilies creates multi-generational family groups at simulation start.
 // It places 2–5 families across civilian (indoor) locations in the world.
-func SeedFamilies(em *entity.Manager, w *world.World, rng *rand.Rand) {
+func SeedFamilies(em *entity.EntityManager, w *world.World, rng *rand.Rand) {
 	const maxFamilies = 5
 
 	var candidates []*world.Location
@@ -555,7 +555,7 @@ func SeedFamilies(em *entity.Manager, w *world.World, rng *rand.Rand) {
 	}
 }
 
-func seedFamilyAtLocation(em *entity.Manager, locID string, rng *rand.Rand) {
+func seedFamilyAtLocation(em *entity.EntityManager, locID string, rng *rand.Rand) {
 	species := pickFamilySpecies(rng)
 	tick := uint64(0) // relationships start at tick 0 for seeded families
 

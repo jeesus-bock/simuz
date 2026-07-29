@@ -468,7 +468,7 @@ func combatDetailData(h *Handler, locID string) gin.H {
 	}
 }
 
-func buildLocationTree(w *world.World, entities *entity.Manager) []locNode {
+func buildLocationTree(w *world.World, entities *entity.EntityManager) []locNode {
 	root := w.RootLocation()
 	if root == nil {
 		return nil
@@ -476,7 +476,7 @@ func buildLocationTree(w *world.World, entities *entity.Manager) []locNode {
 	return buildChildren(w, entities, root.ID, 0)
 }
 
-func buildChildren(w *world.World, entities *entity.Manager, parentID string, depth int) []locNode {
+func buildChildren(w *world.World, entities *entity.EntityManager, parentID string, depth int) []locNode {
 	children := w.ChildLocations(parentID)
 	sortLocationsForDisplay(children)
 	var nodes []locNode

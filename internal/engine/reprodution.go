@@ -15,7 +15,7 @@ const (
 // and evaluates historical childbed/labor risks once the duration concludes.
 // UpdatePregnancy tracks gestational milestones, handles random miscarriages,
 // and evaluates historical childbed/labor risks once the duration concludes.
-func (s *Simulation) UpdatePregnancy(mother *entity.Entity, tm *world.GameTime, rng *rand.Rand, em *entity.Manager) {
+func (s *Simulation) UpdatePregnancy(mother *entity.Entity, tm *world.GameTime, rng *rand.Rand, em *entity.EntityManager) {
 	ticksPregnant := tm.Tick - mother.Reproduction.PregnantSinceTick
 
 	// 1. Evaluate early/mid-term miscarriage risks due to medieval health hazards

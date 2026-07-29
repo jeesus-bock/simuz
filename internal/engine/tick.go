@@ -33,7 +33,7 @@ type nearbyCombatSite struct {
 	ControlStrength    int
 }
 
-var GlobalEntityManager *entity.Manager
+var GlobalEntityManager *entity.EntityManager
 
 func GlobalEntityManagerGet(id string) *entity.Entity {
 	if GlobalEntityManager == nil {
