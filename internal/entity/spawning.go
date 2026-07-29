@@ -17,7 +17,7 @@ func CanMate(a, b *Entity) bool {
 	if !a.Alive || !b.Alive {
 		return false
 	}
-	if a.Pregnant || b.Pregnant {
+	if a.Reproduction.Pregnant || b.Reproduction.Pregnant {
 		return false
 	}
 
@@ -51,11 +51,13 @@ func SpawnBaby(parent1, parent2 *Entity, id, babyName string, rng func(int) int)
 		baby.Gender = parent2.Gender
 	}
 
-	// Mark the female parent as pregnant
+	// Mark the female parent as pregnant and record the father
 	if parent1.Gender == GenderFemale {
-		parent1.Pregnant = true
+		parent1.Reproduction.Pregnant = true
+		parent1.Reproduction.FatherID = parent2.ID
 	} else if parent2.Gender == GenderFemale {
-		parent2.Pregnant = true
+		parent2.Reproduction.Pregnant = true
+		parent2.Reproduction.FatherID = parent1.ID
 	}
 
 	return baby
