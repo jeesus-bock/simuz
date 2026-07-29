@@ -264,16 +264,20 @@ func buildFactionRelationNotes(factions []string) []string {
 	notes := make([]string, 0, len(factions))
 	for i := range factions {
 		for j := i + 1; j < len(factions); j++ {
-			rel, ok := entity.GetFactionByID(factions[i])
+			fac, ok := entity.GetFactionByID(factions[i])
 			if !ok {
 				continue
 			}
-			rel.
-				rel.Hostilities.FactionRelation(factions[j])
-
-			notes = append(notes, factions[i]+" + "+factions[j]+" ("+relationLabel(rel)+")")
+			// get the relation value (as int) between the two factions
+			relVal := 0
+			if r, ok2 := fac.Hostilities.FactionRelation[factions[j]]; ok2 {
+				relVal = r.Int()
+			}
+			notes = append(notes, factions[i]+" + "+factions[j]+" ("+fmt.Sprintf("%d", relVal)+")")
 		}
+
 	}
+
 	sortStringsByFoldAndRaw(notes)
 	return notes
 }
