@@ -55,10 +55,10 @@ func setFactionHostility(factionA, factionB string, relation entity.HostilityRel
 		return
 	}
 	if fac, ok := entity.GetFactionByID(factionA); ok {
-		fac.Hostilities.SetFactionRelation(factionB, relation)
+		fac.Relation.SetFactionRelation(factionB, relation)
 	}
 	if fac, ok := entity.GetFactionByID(factionB); ok {
-		fac.Hostilities.SetFactionRelation(factionA, relation)
+		fac.Relation.SetFactionRelation(factionA, relation)
 	}
 }
 
@@ -70,10 +70,10 @@ func factionHostility(factionA, factionB string) entity.HostilityRelation {
 	}
 	var combined entity.HostilityRelation
 	if fac, ok := entity.GetFactionByID(factionA); ok {
-		combined += fac.Hostilities.GetFactionRelation(factionB)
+		combined += fac.Relation.GetFactionRelation(factionB)
 	}
 	if fac, ok := entity.GetFactionByID(factionB); ok {
-		combined += fac.Hostilities.GetFactionRelation(factionA)
+		combined += fac.Relation.GetFactionRelation(factionA)
 	}
 	return combined
 }
@@ -575,8 +575,8 @@ func nearbyCombatSitesLua(w *world.World, em *entity.Manager, ent *entity.Entity
 			if !ok {
 				continue
 			}
-			fac1h := fac1.Hostilities.FactionRelation[other.Faction].Int()
-			fac2h := fac2.Hostilities.FactionRelation[ent.Faction].Int()
+			fac1h := fac1.Relation.FactionRelation[other.Faction].Int()
+			fac2h := fac2.Relation.FactionRelation[ent.Faction].Int()
 			combined := fac1h + fac2h
 			if combined > 5 {
 				site.Hostiles++
@@ -764,10 +764,10 @@ func scriptCombatAttack(w *world.World, em *entity.Manager, qm *quest.Manager, r
 		target.ChangeEntityRelation(attacker.ID, -2)
 		target.ChangeFactionRelation(attacker.Faction, -1)
 		if aFac, ok := entity.GetFactionByID(attacker.Faction); ok {
-			aFac.Hostilities.ChangeFactionRelation(target.Faction, -1)
+			aFac.Relation.ChangeFactionRelation(target.Faction, -1)
 		}
 		if tFac, ok := entity.GetFactionByID(target.Faction); ok {
-			tFac.Hostilities.ChangeFactionRelation(attacker.Faction, -1)
+			tFac.Relation.ChangeFactionRelation(attacker.Faction, -1)
 		}
 	}
 	if !target.Alive {
@@ -776,10 +776,10 @@ func scriptCombatAttack(w *world.World, em *entity.Manager, qm *quest.Manager, r
 			target.ChangeEntityRelation(attacker.ID, -10)
 			target.ChangeFactionRelation(attacker.Faction, -7)
 			if aFac, ok := entity.GetFactionByID(attacker.Faction); ok {
-				aFac.Hostilities.ChangeFactionRelation(target.Faction, -7)
+				aFac.Relation.ChangeFactionRelation(target.Faction, -7)
 			}
 			if tFac, ok := entity.GetFactionByID(target.Faction); ok {
-				tFac.Hostilities.ChangeFactionRelation(attacker.Faction, -7)
+				tFac.Relation.ChangeFactionRelation(attacker.Faction, -7)
 			}
 		}
 		species, ok := entity.GetSpeciesByID(attacker.Species)
@@ -1106,7 +1106,7 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 			return 0
 		}
 
-		rel := att.Hostilities.Relation(def)
+		rel := att.Relation.Relation(def)
 		L.Push(lua.LBool(rel < 0))
 		return 1
 	}))
@@ -1202,7 +1202,7 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 			if other == nil || other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if ent.Hostilities.Relation(other) >= 0 {
+			if ent.Relation.Relation(other) >= 0 {
 				continue
 			}
 			hostiles = append(hostiles, other)
@@ -1517,7 +1517,7 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 			if other.ID == attacker.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if attacker.Hostilities.Relation(other) >= 0 {
+			if attacker.Relation.Relation(other) >= 0 {
 				continue
 			}
 			other.TakeDamage(amount)

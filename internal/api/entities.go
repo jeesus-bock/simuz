@@ -77,7 +77,7 @@ func (h *Handler) CreateEntity(c *gin.Context) {
 	}
 
 	attrs := entity.RandomAttributes(func(n int) int { return h.Sim.RNG.Intn(n) })
-	ent := entity.NewEntity(req.ID, req.Name, req.Species, attrs, req.Level, entity.CivilianHostilities)
+	ent := entity.NewEntity(req.ID, req.Name, req.Species, attrs, req.Level, entity.CivilianRelation)
 	if req.LocationID != "" {
 		ent.LocationID = req.LocationID
 	}

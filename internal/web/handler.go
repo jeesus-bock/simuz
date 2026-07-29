@@ -240,7 +240,7 @@ func hostileFactionMixExists(factions map[string]int) bool {
 			continue
 		}
 		for _, fac2 := range keys {
-			if fac.Hostilities.FactionRelation[fac2].String() == "hostile" {
+			if fac.Relation.FactionRelation[fac2].String() == "hostile" {
 				return true
 			}
 		}
@@ -270,7 +270,7 @@ func buildFactionRelationNotes(factions []string) []string {
 			}
 			// get the relation value (as int) between the two factions
 			relVal := 0
-			if r, ok2 := fac.Hostilities.FactionRelation[factions[j]]; ok2 {
+			if r, ok2 := fac.Relation.FactionRelation[factions[j]]; ok2 {
 				relVal = r.Int()
 			}
 			notes = append(notes, factions[i]+" + "+factions[j]+" ("+fmt.Sprintf("%d", relVal)+")")

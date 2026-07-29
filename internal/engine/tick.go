@@ -389,7 +389,7 @@ func processReproduction(s *Simulation) {
 		childName := generateName(mother.Species, s.RNG)
 		childID := fmt.Sprintf("%s_child_%s_%d", mother.Species, mother.ID, s.Tick)
 
-		child := entity.NewEntity(childID, childName, mother.Species, childAttrs, 1, entity.CombineHostilities(mother.Hostilities, father.Hostilities))
+		child := entity.NewEntity(childID, childName, mother.Species, childAttrs, 1, entity.CombineRelation(mother.Relation, father.Relation))
 		if s.RNG.Intn(2) == 0 {
 			child.Gender = "male"
 		} else {

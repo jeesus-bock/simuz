@@ -19,7 +19,7 @@ type Species struct {
 	MaleNames           []string
 	FemaleNames         []string
 	BaseAttrs           Attributes
-	Hostilities         Hostilities
+	Relation            Relation
 }
 
 // GetSpeciesByID returns the Species definition for a given ID.
@@ -52,7 +52,7 @@ var SpeciesRegistry = map[string]Species{
 		MaleNames:           []string{"Aldric", "Brenna", "Cedric", "Delara", "Eamon", "Fiona", "Gareth", "Hilda", "Ivan", "Jenna", "Kol", "Lyssa", "Maren", "Nolan", "Opal", "Petra", "Quinn", "Rhea", "Soren", "Tessa"},
 		FemaleNames:         []string{"Aldrica", "Brenna", "Cedrica", "Delara", "Eamon", "Fiona", "Gareth", "Hilda", "Ivan", "Jenna", "Kol", "Lyssa", "Maren", "Nolan", "Opal", "Petra", "Quinn", "Rhea", "Soren", "Tessa"},
 		BaseAttrs:           Attributes{STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10},
-		Hostilities:         HumanHostilities,
+		Relation:            HumanRelation,
 	},
 	"elf": {
 		ID:                  "elf",
@@ -102,8 +102,8 @@ var SpeciesRegistry = map[string]Species{
 			"Õiesilm",
 			"Härmatis",
 		},
-		BaseAttrs:   Attributes{STR: 10, DEX: 12, CON: 10, INT: 12, WIS: 12, CHA: 10},
-		Hostilities: ElfHostilities,
+		BaseAttrs: Attributes{STR: 10, DEX: 12, CON: 10, INT: 12, WIS: 12, CHA: 10},
+		Relation:  ElfRelation,
 	},
 	"orc": {
 		ID:                  "orc",
@@ -153,8 +153,8 @@ var SpeciesRegistry = map[string]Species{
 			"Raudnõges",
 			"Põlendik",
 		},
-		BaseAttrs:   Attributes{STR: 14, DEX: 10, CON: 13, INT: 6, WIS: 6, CHA: 5},
-		Hostilities: OrcHostilities,
+		BaseAttrs: Attributes{STR: 14, DEX: 10, CON: 13, INT: 6, WIS: 6, CHA: 5},
+		Relation:  OrcRelation,
 	},
 	"goblin": {
 		ID:                  "goblin",
@@ -173,7 +173,7 @@ var SpeciesRegistry = map[string]Species{
 		MaleNames:           []string{"Göz", "Snag", "Grib", "Nog", "Blink", "Mug"},
 		FemaleNames:         []string{"Snag", "Grib", "Nog", "Blink", "Mug"},
 		BaseAttrs:           Attributes{STR: 8, DEX: 12, CON: 10, INT: 8, WIS: 6, CHA: 6},
-		Hostilities:         GoblinHostilities,
+		Relation:            GoblinRelation,
 	},
 	"kobold": {
 		ID:                  "kobold",
@@ -192,7 +192,7 @@ var SpeciesRegistry = map[string]Species{
 		MaleNames:           []string{"Andres", "Margus", "Toomas", "Kristjan", "Martin", "Priit", "Sander", "Indrek", "Jaan", "Markus", "Rasmus", "Tanel", "Kaurits", "Kalle"},
 		FemaleNames:         []string{"Mari", "Katriin", "Triin", "Pille", "Kadri", "Tiina", "Laura", "Eveli", "Sirje", "Kristel", "Anu", "Katrin"},
 		BaseAttrs:           Attributes{STR: 8, DEX: 14, CON: 9, INT: 8, WIS: 7, CHA: 6},
-		Hostilities:         KoboldHostilities,
+		Relation:            KoboldRelation,
 	},
 	"fey": {
 		ID:                  "fey",
@@ -242,7 +242,7 @@ var SpeciesRegistry = map[string]Species{
 			"Kirgas",
 			"Tuuleiil",
 		},
-		BaseAttrs:   Attributes{STR: 10, DEX: 12, CON: 10, INT: 12, WIS: 12, CHA: 10},
-		Hostilities: FeyHostilities,
+		BaseAttrs: Attributes{STR: 10, DEX: 12, CON: 10, INT: 12, WIS: 12, CHA: 10},
+		Relation:  FeyRelation,
 	},
 }

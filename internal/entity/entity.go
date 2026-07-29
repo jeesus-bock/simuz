@@ -118,10 +118,10 @@ type Entity struct {
 	Relationships        map[string]EntityRelationship `json:"relationships,omitempty"`
 	LastReproductionTick uint64                        `json:"last_reproduction_tick,omitempty"`
 	TimeOfDeath          uint64                        `json:"timeOfDeath"`
-	Hostilities
+	Relation
 }
 
-func NewEntity(id, name, species string, attrs Attributes, level int, hostilities Hostilities) *Entity {
+func NewEntity(id, name, species string, attrs Attributes, level int, Relation Relation) *Entity {
 	maxHP := attrs.CON*2 + level*2
 	maxFP := attrs.CON + attrs.STR/2
 	if maxHP < 1 {
@@ -159,7 +159,7 @@ func NewEntity(id, name, species string, attrs Attributes, level int, hostilitie
 		AI: EntityAI{
 			Type: "passive",
 		},
-		Hostilities: hostilities,
+		Relation: Relation,
 	}
 }
 func GetEntityByID(id string) (*Entity, bool) {
