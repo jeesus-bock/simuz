@@ -7,6 +7,7 @@ import (
 
 	"simuz/internal/entity"
 	"simuz/internal/events"
+	"simuz/internal/species"
 )
 
 func processAging(ent *entity.Entity, sim *Simulation) {
@@ -25,7 +26,7 @@ func processAging(ent *entity.Entity, sim *Simulation) {
 		return
 	}
 
-	if species, ok := entity.GetSpeciesByID(ent.Species); ok && species.AutoFeed {
+	if sp, ok := species.GetByID(ent.Species); ok && sp.AutoFeed {
 		ent.LastMealTick = int(sim.Tick)
 		return
 	}
@@ -34,19 +35,19 @@ func processAging(ent *entity.Entity, sim *Simulation) {
 }
 
 func starvationCheck(ent *entity.Entity, sim *Simulation) {
-	species, ok := entity.GetSpeciesByID(ent.Species)
+	sp, ok := species.GetByID(ent.Species)
 
 	if ok {
-		if threshold := species.StarvationThreshold; threshold <= 0 {
+		if threshold := sp.StarvationThreshold; threshold <= 0 {
 			return
 		}
 	}
 
 	ticksSinceMeal := int(sim.Tick) - ent.LastMealTick
-	if ticksSinceMeal > species.StarvationThreshold {
-		interval := entity.StarvationDamageInterval
-		if (ticksSinceMeal-int(species.StarvationThreshold))%interval == 0 {
-			dmg := rand.Intn(entity.StarvationDamageMax-entity.StarvationDamageMin+1) + entity.StarvationDamageMin
+	if ticksSinceMeal > sp.StarvationThreshold {
+		interval := species.StarvationDamageInterval
+		if (ticksSinceMeal-int(sp.StarvationThreshold))%interval == 0 {
+			dmg := rand.Intn(species.StarvationDamageMax-species.StarvationDamageMin+1) + species.StarvationDamageMin
 			ent.TakeDamage(dmg)
 			sim.Emit(events.SimEvent{
 				Type:   events.EventTypeStarvation,

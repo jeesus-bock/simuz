@@ -16,6 +16,7 @@ import (
 	"simuz/internal/items"
 	"simuz/internal/quest"
 	"simuz/internal/relation"
+	"simuz/internal/species"
 	"simuz/internal/world"
 
 	lua "github.com/yuin/gopher-lua"
@@ -447,7 +448,7 @@ func bindEntity(L *lua.LState, e *entity.Entity, tick uint64) {
 }
 
 func computeHunger(e *entity.Entity, tick uint64) float64 {
-	species, ok := entity.GetSpeciesByID(e.Species)
+	species, ok := species.GetByID(e.Species)
 	if !ok {
 		return 0
 	}
@@ -784,7 +785,7 @@ func scriptCombatAttack(w *world.World, em *entity.Manager, qm *quest.Manager, r
 				tFac.Relation.ChangeFactionRelation(attacker.Faction, -7)
 			}
 		}
-		species, ok := entity.GetSpeciesByID(attacker.Species)
+		species, ok := species.GetByID(attacker.Species)
 		if !ok {
 			return false
 		}
@@ -1529,7 +1530,7 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 				if attacker.Faction != other.Faction {
 					other.ChangeFactionRelation(attacker.Faction, -10)
 				}
-				species, ok := entity.GetSpeciesByID(attacker.Species)
+				species, ok := species.GetByID(attacker.Species)
 				if !ok {
 					continue
 				}

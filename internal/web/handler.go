@@ -18,6 +18,7 @@ import (
 	"simuz/internal/events"
 	"simuz/internal/items"
 	"simuz/internal/quest"
+	"simuz/internal/species"
 	"simuz/internal/world"
 
 	"github.com/gin-gonic/gin"
@@ -1099,7 +1100,7 @@ func (h *Handler) EntityDetailPage(c *gin.Context) {
 	xpForNext := ent.Level * 100
 	xpPercent := 0
 	canLevelUp := false
-	species, ok := entity.GetSpeciesByID(ent.Species)
+	species, ok := species.GetByID(ent.Species)
 	if !ok {
 		return
 	}
@@ -1189,7 +1190,7 @@ func (h *Handler) EntityDetailFragment(c *gin.Context) {
 	xpForNext := ent.Level * 100
 	xpPercent := 0
 	canLevelUp := false
-	species, ok := entity.GetSpeciesByID(ent.Species)
+	species, ok := species.GetByID(ent.Species)
 	if !ok {
 		return
 	}

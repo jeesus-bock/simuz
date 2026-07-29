@@ -11,6 +11,7 @@ import (
 	"simuz/internal/entity"
 	"simuz/internal/relation"
 	"simuz/internal/items"
+	"simuz/internal/species"
 	"simuz/internal/world"
 )
 
@@ -116,7 +117,7 @@ func spawnEntity(rule *SpawnRule, em *entity.Manager, tick, idx int, rng *rand.R
 	ent.LocationID = rule.LocationID
 	ent.Faction = rule.Faction
 	ent.Profession = rule.Profession
-	if species, exists := entity.GetSpeciesByID(rule.Species); exists && species.CanReproduce {
+	if species, exists := species.GetByID(rule.Species); exists && species.CanReproduce {
 		ent.Gender = entity.GetRndGender()
 	}
 	ent.AI = entity.EntityAI{
@@ -658,7 +659,7 @@ func seedFamilyAtLocation(em *entity.Manager, locID string, rng *rand.Rand) {
 }
 
 func pickFamilySpecies(rng *rand.Rand) string {
-	species := slices.Collect(maps.Keys(entity.SpeciesRegistry))
+	species := slices.Collect(maps.Keys(species.Registry))
 	return species[rng.Intn(len(species))]
 }
 

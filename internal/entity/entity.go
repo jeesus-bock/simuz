@@ -6,6 +6,7 @@ import (
 
 	"simuz/internal/items"
 	"simuz/internal/relation"
+	"simuz/internal/species"
 )
 
 type Position struct {
@@ -122,7 +123,7 @@ type Entity struct {
 	relation.Relation
 }
 
-func NewEntity(id, name, species string, attrs Attributes, level int, rel relation.Relation) *Entity {
+func NewEntity(id, name, speciesID string, attrs Attributes, level int, rel relation.Relation) *Entity {
 	maxHP := attrs.CON*2 + level*2
 	maxFP := attrs.CON + attrs.STR/2
 	if maxHP < 1 {
@@ -132,13 +133,13 @@ func NewEntity(id, name, species string, attrs Attributes, level int, rel relati
 		maxFP = 1
 	}
 	maxAge := 0
-	if species, exists := GetSpeciesByID(species); exists {
-		maxAge = species.MaxAge
+	if sp, exists := species.GetByID(speciesID); exists {
+		maxAge = sp.MaxAge
 	}
 	return &Entity{
 		ID:            id,
 		Name:          name,
-		Species:       species,
+		Species:       speciesID,
 		Gender:        GetRndGender(),
 		Profession:    "",
 		Level:         level,
@@ -181,8 +182,8 @@ func GetRndGender() string {
 
 // IsAdult returns true if the entity is old enough to reproduce.
 func (e *Entity) IsAdult() bool {
-	if species, exists := GetSpeciesByID(e.Species); exists {
-		return e.Age >= species.AdultAge || e.Level >= 3
+	if sp, exists := species.GetByID(e.Species); exists {
+		return e.Age >= sp.AdultAge || e.Level >= 3
 	}
 	return false
 }

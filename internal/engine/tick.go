@@ -16,6 +16,7 @@ import (
 	"simuz/internal/events"
 	"simuz/internal/items"
 	"simuz/internal/quest"
+	"simuz/internal/species"
 	"simuz/internal/world"
 )
 
@@ -67,7 +68,7 @@ func NewSimulation(w *world.World) *Simulation {
 			return
 		}
 
-		species, ok := entity.GetSpeciesByID(ent.Species)
+		species, ok := species.GetByID(ent.Species)
 		if rewards.Experience > 0 && ok && species.CanLevelUp {
 			sim.Emit(events.SimEvent{
 				Type:   events.EventTypeQuestComplete,
@@ -331,7 +332,7 @@ func processReproduction(s *Simulation) {
 		if !ent.IsAdult() {
 			continue
 		}
-		if species, ok := entity.GetSpeciesByID(ent.Species); !ok || !species.CanReproduce {
+		if species, ok := species.GetByID(ent.Species); !ok || !species.CanReproduce {
 			continue
 		}
 		key := groupKey{locID: ent.LocationID, species: ent.Species}
@@ -362,7 +363,7 @@ func processReproduction(s *Simulation) {
 		}
 
 		reproChance := 1 // 0.1% base chance per tick
-		if species, ok := entity.GetSpeciesByID(key.species); ok && species.IsCaveman {
+		if species, ok := species.GetByID(key.species); ok && species.IsCaveman {
 			reproChance = 3 // 0.3% per tick for caveman species
 		}
 		if s.RNG.Intn(1000) >= reproChance {
@@ -423,7 +424,7 @@ func processReproduction(s *Simulation) {
 		child.AddRelationship(father.ID, entity.RelationshipParent, s.Tick)
 
 		// Caveman species do not form mate bonds or partner up.
-		if species, ok := entity.GetSpeciesByID(mother.Species); !ok || !species.IsCaveman {
+		if species, ok := species.GetByID(mother.Species); !ok || !species.IsCaveman {
 			mother.AddRelationship(father.ID, entity.RelationshipMate, s.Tick)
 			father.AddRelationship(mother.ID, entity.RelationshipMate, s.Tick)
 		}
@@ -1389,7 +1390,7 @@ func simpleAttackAt(sim *Simulation, attacker, defender *entity.Entity) bool {
 }
 
 func rewardXP(sim *Simulation, killer, target *entity.Entity) {
-	species, ok := entity.GetSpeciesByID(killer.Species)
+	species, ok := species.GetByID(killer.Species)
 	if !ok || !species.CanLevelUp {
 		return
 	}

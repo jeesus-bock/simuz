@@ -3,6 +3,8 @@ package entity
 
 import (
 	"log"
+
+	"simuz/internal/species"
 )
 
 func (e *Entity) LevelUpThreshold() int {
@@ -10,8 +12,8 @@ func (e *Entity) LevelUpThreshold() int {
 }
 
 func (e *Entity) CheckLevelUp() bool {
-	if species, exists := GetSpeciesByID(e.Species); exists {
-		if !species.CanLevelUp || e.XP < e.LevelUpThreshold() {
+	if sp, exists := species.GetByID(e.Species); exists {
+		if !sp.CanLevelUp || e.XP < e.LevelUpThreshold() {
 			return false
 		}
 	} else {
