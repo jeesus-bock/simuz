@@ -1464,9 +1464,13 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 			if !other.Alive {
 				combat.LootCorpse(attacker, other)
 				if attacker.Faction != other.Faction {
-					combat.ShiftRelation(attacker.Faction, other.Faction, -1)
+					other.ChangeFactionRelation(attacker.Faction, -10)
 				}
-				if entity.GetSpecies(attacker.Species).CanLevelUp {
+				species, ok := entity.GetSpeciesByID(attacker.Species)
+				if !ok {
+					continue
+				}
+				if species.CanLevelUp {
 					xp := 5 + other.Level*3 + other.MaxHP/10
 					if xp < 1 {
 						xp = 1
