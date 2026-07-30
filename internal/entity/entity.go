@@ -119,7 +119,8 @@ type Entity struct {
 	LastReproductionTick uint64                        `json:"last_reproduction_tick,omitempty"`
 	TimeOfDeath          uint64                        `json:"timeOfDeath"`
 	relation.Relation
-	Memory map[string]string `json:"memory,omitempty"`
+	Memory     map[string]string `json:"memory,omitempty"`
+	BioProfile *species.Species  `json:"bioProfile"`
 }
 
 func NewEntity(id, name, speciesID string, attrs Attributes, level int, rel relation.Relation) *Entity {

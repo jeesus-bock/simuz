@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
+	"math"
 	"math/rand"
 
 	"simuz/internal/entity"
@@ -28,74 +29,186 @@ func NewGenerator(seed string) *Generator {
 	}
 }
 
+// Structural blueprint for generating randomized geographic profiles
+type biomeProfile struct {
+	namePrefixes []string
+	nameSuffixes []string
+	baseClimate  world.Season // Assuming world.Season dictates initial climate arrays
+}
+
+// Global data matrix providing vocabulary seeds for unique, varied world regions
+var biomeMatrix = map[string]biomeProfile{
+	"highlands": {
+		namePrefixes: []string{"Northern", "Frost", "Iron", "Craggy", "Bleak"},
+		nameSuffixes: []string{"Highlands", "Peaks", "Ridges", "Crags"},
+		baseClimate:  world.Winter,
+	},
+	"swamp": {
+		namePrefixes: []string{"Sunken", "Mire", "Rotting", "Murky", "Gloom"},
+		nameSuffixes: []string{"Marches", "Bogs", "Fens", "Wetlands"},
+		baseClimate:  world.Autumn,
+	},
+	"plains": {
+		namePrefixes: []string{"Golden", "Whispering", "Sun-Drenched", "Vast"},
+		nameSuffixes: []string{"Plains", "Meadows", "Steppes", "Prairies"},
+		baseClimate:  world.Spring,
+	},
+	"forest": {
+		namePrefixes: []string{"Crystal", "Ancient", "Shadow", "Nettle", "Whisper"},
+		nameSuffixes: []string{"Forest", "Woods", "Thickets", "Groves"},
+		baseClimate:  world.Spring,
+	},
+	"waste": {
+		namePrefixes: []string{"Ash", "Scorched", "Barren", "Sulfur", "Bleak"},
+		nameSuffixes: []string{"Desert", "Wastes", "Barrens", "Flats"},
+		baseClimate:  world.Summer,
+	},
+}
+
+// Generate procedurally creates a unique, scaled layout of the entire world simulation.
 func (g *Generator) Generate() (*world.World, []*entity.Entity) {
+	// 1. Establish the master cosmic meta-node container
 	worldLoc := world.NewLocation("aetheria", "Aetheria", world.LocWorld, "", world.Position{})
 	worldLoc.Weather = world.NewWeather(world.Clear, 15)
 	g.World.AddLocation(worldLoc)
 
-	regions := []struct {
-		id   string
-		name string
-		x, y float64
-	}{
-		{"northern_highlands", "Northern Highlands", 100, 200},
-		{"sunken_marches", "Sunken Marches", 400, 600},
-		{"golden_plains", "Golden Plains", 300, 300},
-		{"crystal_forest", "Crystal Forest", 500, 100},
-		{"ash_desert", "Ash Desert", 600, 500},
-	}
+	// 2. Procedurally determine how many regions this specific world pass will contain (e.g., 4 to 8)
+	numRegions := 4 + g.RNG.Intn(5)
 
-	for _, r := range regions {
-		loc := world.NewLocation(r.id, r.name, world.LocRegion, "aetheria", world.Position{X: r.x, Y: r.y})
-		loc.Weather = world.GenerateWeatherFor(world.Spring, r.id, g.RNG)
+	// Create an index tracker slice to shuffle biome types so we get diverse variations
+	biomeTypes := []string{"highlands", "swamp", "plains", "forest", "waste"}
+
+	for i := 0; i < numRegions; i++ {
+		// Pick a random biome profile archetype from the matrix map
+		bType := biomeTypes[g.RNG.Intn(len(biomeTypes))]
+		profile := biomeMatrix[bType]
+
+		// 3. Procedural Language Mixing: Assemble a completely unique geographic name descriptor
+		rID := fmt.Sprintf("region_%s_%d", bType, i)
+		pfx := profile.namePrefixes[g.RNG.Intn(len(profile.namePrefixes))]
+		sfx := profile.nameSuffixes[g.RNG.Intn(len(profile.nameSuffixes))]
+		rName := fmt.Sprintf("%s %s", pfx, sfx)
+
+		// 4. Circle-Packing Position Fix: Distribute coordinates organically in expanding spirals
+		// This mathematically guarantees layout zones never perfectly mirror each other or clump safely
+		angle := float64(i)*(2*math.Pi/float64(numRegions)) + (g.RNG.Float64() * 0.4)
+		distance := 300.0 + (g.RNG.Float64() * 250.0) // Varied spatial radius boundaries
+		rx := math.Round(400.0 + distance*math.Cos(angle))
+		ry := math.Round(400.0 + distance*math.Sin(angle))
+
+		// 5. Generate and register the concrete region context node
+		loc := world.NewLocation(rID, rName, world.LocRegion, "aetheria", world.Position{X: rx, Y: ry})
+
+		// Feed the weather generator the specific seasonal preference of the generated biome type
+		loc.Weather = world.GenerateWeatherFor(profile.baseClimate, rID, g.RNG)
 		g.World.AddLocation(loc)
 	}
 
+	// 6. Execute systemic connection passes based on the newly generated variable layout
 	g.generateWildSites()
 	g.generateRegionExits()
 
+	// 7. Populate towns and entities dynamically
 	entities := g.generateSettlements()
 
 	return g.World, entities
 }
 
-func (g *Generator) generateWildSites() {
-	sites := []struct {
-		id, name, parent string
-		x, y             float64
-		tags             []string
-		outside          bool
-	}{
-		{"orc_camp", "Orc Camp", "crystal_forest", 520, 120, []string{"camp", "hostile"}, true},
-		{"wolf_den", "Wolf Den", "crystal_forest", 480, 90, []string{"den", "beast"}, true},
-		{"spider_grove", "Spider Grove", "crystal_forest", 540, 80, []string{"den", "beast"}, true},
-		{"kobold_warren", "Kobold Warren", "crystal_forest", 510, 110, []string{"camp", "hostile"}, true},
-		{"fey_glade", "Fey Glade", "crystal_forest", 490, 130, []string{"glade", "fey"}, true},
-		{"bandit_camp", "Bandit Camp", "golden_plains", 320, 280, []string{"camp", "hostile"}, true},
-		{"bear_den", "Bear Den", "northern_highlands", 120, 220, []string{"den", "beast"}, true},
-		{"goblin_hollow", "Goblin Hollow", "northern_highlands", 90, 180, []string{"camp", "hostile"}, true},
-		{"boar_wallow", "Boar Wallow", "sunken_marches", 420, 620, []string{"den", "beast"}, true},
-		{"ash_ruins", "Ash Ruins", "ash_desert", 610, 510, []string{"ruins", "hostile"}, true},
-		{"scorpion_dunes", "Scorpion Dunes", "ash_desert", 630, 480, []string{"den", "beast"}, true},
-	}
-	for _, s := range sites {
-		loc := world.NewLocation(s.id, s.name, world.LocBuilding, s.parent, world.Position{X: s.x, Y: s.y})
-		loc.IsOutside = s.outside
-		loc.Tags = append([]string{}, s.tags...)
-		g.World.AddLocation(loc)
-	}
-}
-
+// generateRegionExits automatically scans the 2D grid layout, finds the closest
+// geographic neighbors, and builds a logically sound bidirectional traversal mesh.
 func (g *Generator) generateRegionExits() {
-	g.World.AddBidirectionalExit("northern_highlands", "crystal_forest", "east", "west")
-	g.World.AddBidirectionalExit("northern_highlands", "golden_plains", "south", "north")
-	g.World.AddBidirectionalExit("golden_plains", "sunken_marches", "southeast", "northwest")
-	g.World.AddBidirectionalExit("golden_plains", "crystal_forest", "northeast", "southwest")
-	g.World.AddBidirectionalExit("golden_plains", "ash_desert", "east", "west")
-	g.World.AddBidirectionalExit("sunken_marches", "ash_desert", "northeast", "southwest")
-	g.World.AddBidirectionalExit("crystal_forest", "ash_desert", "southeast", "northwest")
+	// 1. Gather all procedurally generated regions from your active world registry
+	var regions []*world.Location
+	for _, loc := range g.World.AllLocations() {
+		if loc.Type == world.LocRegion {
+			regions = append(regions, loc)
+		}
+	}
+
+	// If there aren't enough sectors to form pairs, abort early to prevent compilation faults
+	if len(regions) < 2 {
+		return
+	}
+
+	// 2. Proximity Graph Loop: For every region, find its absolute closest neighbors
+	for i, rA := range regions {
+		// We track the two closest neighbor nodes to ensure every zone has at least two exit links,
+		// preventing isolated islands or dead-end map anomalies.
+		var firstClosest *world.Location
+		var secondClosest *world.Location
+
+		firstDist := math.MaxFloat64
+		secondDist := math.MaxFloat64
+
+		for j, rB := range regions {
+			if i == j {
+				continue // Skip evaluating a region against itself
+			}
+
+			// Calculate Euclidean straight-line grid distance: sqrt((x1-x2)^2 + (y1-y2)^2)
+			dx := rA.Position.X - rB.Position.X
+			dy := rA.Position.Y - rB.Position.Y
+			dist := math.Sqrt(dx*dx + dy*dy)
+
+			if dist < firstDist {
+				secondDist = firstDist
+				secondClosest = firstClosest
+				firstDist = dist
+				firstClosest = rB
+			} else if dist < secondDist {
+				secondDist = dist
+				secondClosest = rB
+			}
+		}
+
+		// 3. Connect the closest neighbor nodes dynamically using spatial directional tags
+		if firstClosest != nil {
+			dirA, dirB := calculateDirections(rA.Position, firstClosest.Position)
+			g.World.AddBidirectionalExit(rA.ID, firstClosest.ID, dirA, dirB)
+		}
+		if secondClosest != nil {
+			dirA, dirB := calculateDirections(rA.Position, secondClosest.Position)
+			g.World.AddBidirectionalExit(rA.ID, secondClosest.ID, dirA, dirB)
+		}
+	}
 }
 
+// calculateDirections maps trigonometry vector angles into intuitive compass strings.
+func calculateDirections(posA, posB world.Position) (string, string) {
+	dx := posB.X - posA.X
+	dy := posB.Y - posA.Y
+
+	// Calculate radiant vector arc angle (-Pi to +Pi)
+	angle := math.Atan2(dy, dx)
+	// Convert radians into standard degrees (0 to 360) for easy slicing
+	degrees := angle * (180.0 / math.Pi)
+	if degrees < 0 {
+		degrees += 360.0
+	}
+
+	// 4. Compass Matrix Partition: Divide 360 degrees into 8 clear directional wedges
+	var dirA, dirB string
+	switch {
+	case degrees >= 337.5 || degrees < 22.5:
+		dirA, dirB = "east", "west"
+	case degrees >= 22.5 && degrees < 67.5:
+		dirA, dirB = "southeast", "northwest"
+	case degrees >= 67.5 && degrees < 112.5:
+		dirA, dirB = "south", "north"
+	case degrees >= 112.5 && degrees < 157.5:
+		dirA, dirB = "southwest", "northeast"
+	case degrees >= 157.5 && degrees < 202.5:
+		dirA, dirB = "west", "east"
+	case degrees >= 202.5 && degrees < 247.5:
+		dirA, dirB = "northwest", "southeast"
+	case degrees >= 247.5 && degrees < 292.5:
+		dirA, dirB = "north", "south"
+	default:
+		dirA, dirB = "northeast", "southwest"
+	}
+
+	return dirA, dirB
+}
 func (g *Generator) generateSettlements() []*entity.Entity {
 	var all []*entity.Entity
 	all = append(all, g.generateTown("frosthold", "Frosthold", "northern_highlands", 50, 60)...)
@@ -310,7 +423,6 @@ func (g *Generator) generateTown(id, name, regionID string, x, y float64) []*ent
 		bx, by           float64
 	}{
 		{id + "_inn", "The Sleeping Dragon", "building", 0, 0},
-		{id + "_market", "Market Square", "district", 5, 5},
 		{id + "_temple", "Temple of Light", "building", -5, -3},
 		{id + "_guardhouse", "Guardhouse", "building", 2, -2},
 		{id + "_blacksmith", "The Iron Anvil", "building", -2, 4},
