@@ -252,11 +252,10 @@ func hostileFactionMixExists(factions map[string]int) bool {
 
 func relationLabel(factionID1 string, factionID2 string) string {
 	fac1, ok := faction.GetFactionByID(factionID1)
-	relation := fac1.GetFactionRelation(factionID2)
-	if ok {
-		return relation.String()
+	if !ok {
+		return "neutral"
 	}
-	return "neutral"
+	return fac1.GetFactionRelation(factionID2).String()
 }
 
 func buildFactionRelationNotes(factions []string) []string {
