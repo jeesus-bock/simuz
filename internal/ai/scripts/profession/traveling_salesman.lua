@@ -103,19 +103,19 @@ local function do_trade()
     end
 end
 
-local function do_tick()
+function do_tick()
     local tick = world.tick
     local phase = world.phase
 
     if world.defend_self and world.defend_self() then
-        return true
+        return {util.event("profession_action", {profession = "traveling_salesman"})}
     end
     if world.avoid_combat and world.avoid_combat() then
-        return true
+        return {util.event("profession_action", {profession = "traveling_salesman"})}
     end
 
     if world.is_traveling() then
-        return false
+        return {}
     end
 
     -- Sync index if we landed on a route stop (after travel or load)
@@ -127,7 +127,7 @@ local function do_tick()
     end
 
     if phase == "night" then
-        return false
+        return {}
     end
 
     if tick % 5 == 0 and phase ~= "dawn" and phase ~= "dusk" then
@@ -144,7 +144,7 @@ local function do_tick()
         end
     end
 
-    return false
+    return {}
 end
 
 return do_tick()

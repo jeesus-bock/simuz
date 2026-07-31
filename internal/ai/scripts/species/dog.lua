@@ -34,7 +34,7 @@ local function run_canine_alerts()
     end
 end
 
-local function do_tick()
+function do_tick()
     local acted = false
     if world.tick % 6 == 0 then
         run_canine_alerts()
@@ -55,7 +55,7 @@ local function do_tick()
             end
         end
     end
-    return acted
+    return acted and {util.event("species_action", {})} or {}
 end
 
 return do_tick()

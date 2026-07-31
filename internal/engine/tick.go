@@ -371,7 +371,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 				for _, event := range result.Events {
 					sim.Emit(*event)
 				}
-				if result.DidAct {
+				if len(result.Events) > 0 {
 					break
 				}
 			}

@@ -33,21 +33,21 @@ local function run_dark_assembly()
     end
 end
 
-local function do_tick()
+function do_tick()
     -- Necromancers perform their main spell-weaving routines inside their dark crypts at night
     if world.phase == "day" then
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
-            return true
+            return {util.event("profession_action", {profession = "necromancer"})}
         end
-        return false
+        return {}
     end
 
     if world.tick % 14 == 0 then
         run_dark_assembly()
     end
 
-    return false
+    return {}
 end
 
 return do_tick()

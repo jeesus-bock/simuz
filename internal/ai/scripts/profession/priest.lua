@@ -68,22 +68,22 @@ local function update_mood()
     end
 end
 
-local function do_tick()
+function do_tick()
     local phase = world.phase
 
     if world.defend_self and world.defend_self() then
-        return true
+        return {util.event("profession_action", {profession = "priest"})}
     end
     if world.avoid_combat and world.avoid_combat() then
-        return true
+        return {util.event("profession_action", {profession = "priest"})}
     end
 
     if phase == "dusk" or phase == "night" then
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
-            return true
+            return {util.event("profession_action", {profession = "priest"})}
         end
-        return false
+        return {}
     end
 
     if world.tick % 10 == 0 then
@@ -119,7 +119,7 @@ local function do_tick()
         update_mood()
     end
 
-    return false
+    return {}
 end
 
 return do_tick()

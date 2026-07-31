@@ -27,7 +27,7 @@ local function patrol_and_enforce()
     end
 end
 
-local function do_tick()
+function do_tick()
     local acted = false
 
     -- Guard rotations enforce rules 24/7 across both day and night cycles
@@ -47,7 +47,10 @@ local function do_tick()
         end
     end
 
-    return acted
+    if acted then
+        return {util.event("profession_action", {profession = "guard"})}
+    end
+    return {}
 end
 
 return do_tick()

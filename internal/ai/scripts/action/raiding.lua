@@ -57,20 +57,20 @@ function do_tick()
     local tick = world.tick
 
     if tick % RAID_INTERVAL ~= 0 then
-        return false
+        return {}
     end
 
     local corpse_id, corpse_info = find_lootable()
     if corpse_id then
         do_loot(corpse_id)
-        return true
+        return {util.event("loot", {target = corpse_id})}
     end
 
     local raid_dest = find_raid_target()
     if raid_dest then
         world.move_to(raid_dest)
         util.log(self.name .. " raided toward " .. raid_dest)
-        return true
+        return {util.event("raid", {target = raid_dest})}
     end
 
     if tick % 30 == 0 then
@@ -79,11 +79,11 @@ function do_tick()
             local dest = exits[util.rand_int(#exits) + 1]
             if dest ~= self.loc_id then
                 world.move_to(dest)
-                return true
+                return {util.event("wander", {})}
             end
         end
     end
-    return false
+    return {}
 end
 
 return do_tick()

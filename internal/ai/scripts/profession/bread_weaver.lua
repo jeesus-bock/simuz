@@ -87,7 +87,7 @@ local function manage_bakery_and_strikes()
     end
 end
 
-local function do_tick()
+function do_tick()
     local acted = false
 
     -- 1. Audit local area for tax men or raw grain buying every 10 ticks
@@ -122,7 +122,10 @@ local function do_tick()
         end
     end
 
-    return acted
+    if acted then
+        return {util.event("profession_action", {profession = "bread_weaver"})}
+    end
+    return {}
 end
 
 return do_tick()

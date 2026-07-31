@@ -4,19 +4,19 @@
 
 local WANDER_INTERVAL = 25
 
-local function do_tick()
+function do_tick()
     local phase = world.phase
 
     if phase == "night" then
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
-            return true
+            return {util.event("profession_action", {profession = "traveler"})}
         end
-        return false
+        return {}
     end
 
     if world.tick % WANDER_INTERVAL ~= 0 then
-        return false
+        return {}
     end
 
     if util.rand_int(100) < 40 then
@@ -25,11 +25,11 @@ local function do_tick()
             local dest = exits[util.rand_int(#exits) + 1]
             if dest ~= self.loc_id then
                 world.move_to(dest)
-                return true
+            return {util.event("profession_action", {profession = "traveler"})}
             end
         end
     end
-    return false
+    return {}
 end
 
 return do_tick()

@@ -46,14 +46,14 @@ local function rest()
     end
 end
 
-local function do_tick()
+function do_tick()
     local phase = world.phase
 
     -- Night: travel to next town.
     if phase == "night" then
         travel_to_next_town()
         rest()
-        return true
+        return {util.event("profession_action", {profession = "bard"})}
     end
 
     -- Day: look for an inn and play.
@@ -65,7 +65,7 @@ local function do_tick()
         rest()
     end
 
-    return false
+    return {}
 end
 
 return do_tick()

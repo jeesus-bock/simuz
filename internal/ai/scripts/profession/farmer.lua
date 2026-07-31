@@ -34,20 +34,20 @@ local function tend_crops()
     end
 end
 
-local function do_tick()
+function do_tick()
     if world.phase == "night" then
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
-            return true
+            return {util.event("profession_action", {profession = "farmer"})}
         end
-        return false
+        return {}
     end
 
     if world.tick % 15 == 0 then
         tend_crops()
     end
 
-    return false
+    return {}
 end
 
 return do_tick()

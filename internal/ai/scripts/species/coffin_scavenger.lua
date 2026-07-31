@@ -32,7 +32,7 @@ local function harvest_graveyard()
     return false
 end
 
-local function do_tick()
+function do_tick()
     -- Inverse routine: Sleep during day, active at night
     if world.phase == "day" then
         if self.home and self.loc_id ~= self.home then
@@ -50,9 +50,9 @@ local function do_tick()
                 -- Otherwise safely head back to sleep inside the crypt tombs
                 world.move_to(self.home)
             end
-            return true
+            return {util.event("move", {})}
         end
-        return false
+        return {}
     end
 
     -- Night Operations Loop
@@ -68,10 +68,10 @@ local function do_tick()
                 if exits and #exits > 0 then
                     local target_spot = exits[util.rand_int(#exits) + 1]
                     world.move_to(target_spot)
-                    return true
+                    return {util.event("move", {})}
                 end
             end
-            return found
+            return found and {util.event("hunt", {})} or {}
         end
     else
         -- We are dragging a body! Immediately path back to the home crypt
@@ -87,10 +87,10 @@ local function do_tick()
                 util.mem_set("hauling_target", nil)
                 util.set_mood("relaxed", 30)
             end
-            return true
+            return {util.event("species_action", {})}
         end
     end
-    return false
+    return {}
 end
 
 return do_tick()

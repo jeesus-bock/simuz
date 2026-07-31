@@ -22,7 +22,7 @@ local function feed_on_living()
     return false
 end
 
-local function do_tick()
+function do_tick()
     -- 1. Daylight survival emergency check: Fatal vulnerability
     if world.phase == "day" then
         util.log(self.name .. " is burning in the sun! Retreating to deep crypt catacombs!")
@@ -34,7 +34,7 @@ local function do_tick()
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
         end
-        return true
+        return {util.event("flee", {})}
     end
 
     -- 2. Night Hunting Operations Loop
@@ -46,12 +46,12 @@ local function do_tick()
             local exits = world.exits_from(self.loc_id)
             if exits and #exits > 0 then
                 world.move_to(exits[util.rand_int(#exits) + 1])
-                return true
+                return {util.event("move", {})}
             end
         end
-        return fed
+        return fed and {util.event("hunt", {})} or {}
     end
-    return false
+    return {}
 end
 
 return do_tick()

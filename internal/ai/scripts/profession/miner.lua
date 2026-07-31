@@ -51,22 +51,22 @@ local function sell_to_blacksmith()
     return false
 end
 
-local function do_tick()
+function do_tick()
     local phase = world.phase
     local tick = world.tick
 
     if world.defend_self and world.defend_self() then
-        return true
+        return {util.event("profession_action", {profession = "miner"})}
     end
     if world.avoid_combat and world.avoid_combat() then
-        return true
+        return {util.event("profession_action", {profession = "miner"})}
     end
 
     if phase == "night" then
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
             util.log(self.name .. " left the mine for the night")
-            return true
+            return {util.event("profession_action", {profession = "miner"})}
         end
         if tick % 30 == 0 then
             local drinks = {"beer", "ale"}
@@ -76,7 +76,7 @@ local function do_tick()
                 util.log(self.name .. " enjoyed a " .. drink .. " after work")
             end
         end
-        return false
+        return {}
     end
 
     if tick % MINE_INTERVAL == 0 then
@@ -95,7 +95,7 @@ local function do_tick()
         util.set_mood("tired")
     end
 
-    return false
+    return {}
 end
 
 return do_tick()

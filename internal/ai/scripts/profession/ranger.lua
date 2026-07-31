@@ -66,7 +66,7 @@ local function sell_goods()
                     local result = world.try_sell(target_id, good)
                     if result and result.done then
                         util.log(self.name .. " sold " .. good .. " to " .. info.name)
-                        return true
+        return {util.event("profession_action", {profession = "ranger"})}
                     end
                 end
             end
@@ -82,13 +82,13 @@ local function make_camp()
     end
 end
 
-local function do_tick()
+function do_tick()
     local phase = world.phase
     local tick = world.tick
 
     if phase == "night" then
         make_camp()
-        return true
+        return {util.event("profession_action", {profession = "ranger"})}
     end
 
     if tick % HUNT_INTERVAL == 0 then
@@ -118,7 +118,7 @@ local function do_tick()
         end
     end
 
-    return false
+    return {}
 end
 
 return do_tick()

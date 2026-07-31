@@ -103,13 +103,13 @@ end
 -- or wanders between locations when no target is present.
 -- Input: none (uses world.tick, world.attack, world.move_to, etc.)
 -- Output: none (side effects: attacks, movement, logging)
-local function do_tick()
+function do_tick()
     local tick = world.tick
     local rate = get_attack_rate()
 
     -- Rate-limit: skip this tick if it's not our attack interval
     if tick % rate ~= 0 then
-        return false
+        return {}
     end
 
     -- Find a hostile target in the same location
@@ -120,15 +120,15 @@ local function do_tick()
         if ok and info and info.hp <= 0 then
             util.log(self.name .. " killed " .. (info.name or target))
         end
-        return true
+        return {util.event("attack", {target = target})}
     end
 
     -- No target found: wander to a random adjacent location periodically
     if tick % 30 == 0 and util.rand_int(100) < 40 then
         wander()
-        return true
+        return {util.event("wander", {})}
     end
-    return false
+    return {}
 end
 
 return do_tick()

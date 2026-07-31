@@ -19,7 +19,7 @@ local function run_primal_hunt()
     end
 end
 
-local function do_tick()
+function do_tick()
     -- Day Phase: Act completely innocent to avoid town guards
     if world.phase == "day" then
         local was_transformed = util.mem_get("transformed")
@@ -34,7 +34,7 @@ local function do_tick()
             local exits = world.exits_from(self.loc_id)
             if exits and #exits > 0 then world.move_to(exits[util.rand_int(#exits) + 1]) end
         end
-        return false
+        return {}
     end
 
     -- Night Phase: Immediate transformation and bloodlust
@@ -46,10 +46,10 @@ local function do_tick()
 
         if world.tick % 6 == 0 then
             run_primal_hunt()
-            return true
+            return {util.event("attack", {})}
         end
     end
-    return false
+    return {}
 end
 
 return do_tick()

@@ -91,13 +91,12 @@ func IsHostile(factionA, factionB string) bool {
 
 // ScriptResult holds the outcome of a single script execution.
 type ScriptResult struct {
-	DidAct bool
 	Events []*events.SimEvent
 }
 
-// RunScript executes a loaded Lua AI script and returns whether the script
-// performed an action (didAct) along with any events it generated.
-// Scripts can return up to three values: didAct (bool), log messages, events (table).
+// RunScript executes a loaded Lua AI script and returns any events it generated.
+// Scripts return a single table of SimEvent structs. An empty/nil table means
+// no action was taken.
 func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.EntityManager, tm *world.GameTime, rng *rand.Rand, qm *quest.Manager) (ScriptResult, error) {
 	proto, ok := globalScripts.scripts[name]
 
@@ -115,7 +114,7 @@ func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Entit
 	closure := L.NewFunctionFromProto(proto)
 	err := L.CallByParam(lua.P{
 		Fn:      closure,
-		NRet:    3,
+		NRet:    1,
 		Protect: true,
 	})
 	if err != nil {
@@ -123,14 +122,6 @@ func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Entit
 	}
 
 	var result ScriptResult
-
-	// 1st return value: didAct (boolean)
-	didActVal := L.Get(-3)
-	if didActVal != lua.LNil {
-		result.DidAct = lua.LVAsBool(didActVal)
-	}
-
-	// 3rd return value: events (table)
 	val := L.Get(-1)
 	if tbl, ok := val.(*lua.LTable); ok {
 		result.Events = decodeSimEvents(tbl, tm.Tick)
@@ -141,6 +132,23 @@ func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Entit
 
 // decodeSimEvents converts a Lua table of event tables into []*events.SimEvent.
 // Each entry in the Lua table should have keys: type (int), tick (uint64), source (string), data (table).
+var eventTypeNames = map[string]events.EventType{
+	"entity_killed":     events.EventEntityKilled,
+	"entity_talked":     events.EventEntityTalked,
+	"location_entered":  events.EventLocationEntered,
+	"item_collected":    events.EventItemCollected,
+	"item_delivered":    events.EventItemDelivered,
+	"item_used":         events.EventItemUsed,
+	"craft_completed":   events.EventCraftCompleted,
+	"travel_completed":  events.EventTravelCompleted,
+	"tick":              events.EventTick,
+	"time_passed":       events.EventTimePassed,
+	"entity_born":       events.EventEntityBorn,
+	"quest_complete":    events.EventTypeQuestComplete,
+	"xp_gained":         events.EventXPGained,
+	"starvation":        events.EventTypeStarvation,
+}
+
 func decodeSimEvents(tbl *lua.LTable, defaultTick uint64) []*events.SimEvent {
 	var luaEvents []*events.SimEvent
 	tbl.ForEach(func(k, v lua.LValue) {
@@ -152,14 +160,14 @@ func decodeSimEvents(tbl *lua.LTable, defaultTick uint64) []*events.SimEvent {
 			Tick: defaultTick,
 		}
 
-		// type (EventType int)
+		// type: accept both int and string names
 		if typeVal := eventTbl.RawGetString("type"); typeVal != lua.LNil {
-			typeInt, err := strconv.Atoi(typeVal.String())
-			if err != nil {
-				log.Printf("Error converting type to int: %v", err)
-				return
+			typeStr := typeVal.String()
+			if named, ok := eventTypeNames[typeStr]; ok {
+				ev.Type = named
+			} else if typeInt, err := strconv.Atoi(typeStr); err == nil {
+				ev.Type = events.EventType(typeInt)
 			}
-			ev.Type = events.EventType(typeInt)
 		}
 
 		// tick (uint64)
@@ -2223,6 +2231,20 @@ func bindUtils(L *lua.LState, rng *rand.Rand, e *entity.Entity) {
 			return 2
 		}
 		goValueToLua(L, val)
+		return 1
+	}))
+
+	utilTbl.RawSetString("event", L.NewFunction(func(L *lua.LState) int {
+		eventType := L.ToString(1)
+		tbl := L.NewTable()
+		tbl.RawSetString("type", lua.LString(eventType))
+		tbl.RawSetString("source", lua.LString(e.ID))
+		if L.GetTop() >= 2 {
+			if data, ok := L.Get(2).(*lua.LTable); ok {
+				tbl.RawSetString("data", data)
+			}
+		}
+		L.Push(tbl)
 		return 1
 	}))
 

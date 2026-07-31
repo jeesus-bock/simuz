@@ -53,23 +53,23 @@ local function wander_town()
     end
 end
 
-local function do_tick()
+function do_tick()
     local phase = world.phase
     local tick = world.tick
 
     if phase == "night" then
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
-            return true
+            return {util.event("move", {})}
         end
-        return false
+        return {}
     end
 
     local hostile_id, hostile_info = find_hostile()
     if hostile_id then
         flee_home()
         util.set_mood("fearful")
-        return true
+        return {util.event("flee", {})}
     end
 
     local acted = false
@@ -90,7 +90,7 @@ local function do_tick()
             util.set_mood("inspired")
         end
     end
-    return acted
+    return acted and {util.event("species_action", {})} or {}
 end
 
 return do_tick()

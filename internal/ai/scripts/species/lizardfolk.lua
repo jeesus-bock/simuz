@@ -123,15 +123,15 @@ local function flee_home()
     return false
 end
 
-local function do_tick()
+function do_tick()
     local phase = world.phase
 
     if phase == "night" then
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
-            return true
+            return {util.event("move", {})}
         end
-        return false
+        return {}
     end
 
     if should_flee() then
@@ -140,27 +140,27 @@ local function do_tick()
             world.heal(self.id, 3)
             util.log(self.name .. " submerged in swamp waters to recuperate")
         end
-        return true
+        return {util.event("flee", {})}
     end
 
     local hostile_id, hostile_info = find_hostile()
     if hostile_id then
         do_attack(hostile_id, hostile_info)
-        return true
+        return {util.event("attack", {})}
     end
 
     if world.tick % HUNT_INTERVAL == 0 then
         local prey_id, prey_info = find_prey()
         if prey_id then
             do_attack(prey_id, prey_info)
-            return true
+            return {util.event("hunt", {})}
         end
     end
 
     if self.home and self.loc_id == self.home and self.hp < self.max_hp and world.tick % 10 == 0 then
         world.heal(self.id, 3)
         util.log(self.name .. " rested in the swamp shallows")
-        return true
+        return {util.event("heal", {})}
     end
 
     if world.tick % WANDER_INTERVAL == 0 then
@@ -169,11 +169,11 @@ local function do_tick()
             local dest = exits[util.rand_int(#exits) + 1]
             if dest ~= self.loc_id then
                 world.move_to(dest)
-                return true
+                return {util.event("move", {})}
             end
         end
     end
-    return false
+    return {}
 end
 
 return do_tick()

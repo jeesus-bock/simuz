@@ -39,29 +39,29 @@ local function do_heal()
     end
 end
 
-local function do_tick()
+function do_tick()
     local tick = world.tick
     local phase = world.phase
-    local acted = false
 
     if phase == "night" or phase == "dusk" then
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
-            return true
+            return {util.event("flee", {})}
         end
-        return false
+        return {}
     end
 
+    local events = {}
     if tick % HEAL_INTERVAL == 0 then
         do_heal()
-        acted = true
+        table.insert(events, util.event("heal", {}))
     end
 
     if self.home and self.loc_id ~= self.home and tick % 30 == 0 then
         world.move_to(self.home)
-        acted = true
+        table.insert(events, util.event("move", {}))
     end
-    return acted
+    return events
 end
 
 return do_tick()

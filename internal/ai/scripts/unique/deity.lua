@@ -62,11 +62,11 @@ local function do_zeus_intervention()
     end
 end
 
-local function do_tick()
-    if world.tick % 5 ~= 0 then return false end
+function do_tick()
+    if world.tick % 5 ~= 0 then return {} end
     do_divine_intervention()
     do_zeus_intervention()
-    return true
+    return {util.event("profession_action", {profession = "deity"})}
 end
 
 return do_tick()

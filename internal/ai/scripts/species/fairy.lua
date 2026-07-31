@@ -68,9 +68,9 @@ local function try_evade()
     return false
 end
 
-local function do_tick(self)
+function do_tick(self)
     -- 1. Fail-safe: Ensure the actor executing the tick actually exists
-    if not self then return false end
+    if not self then return {} end
 
     local phase = world.phase
 
@@ -78,9 +78,9 @@ local function do_tick(self)
         -- 2. Added safety check for self.home and self.loc_id
         if self.home and self.loc_id and self.loc_id ~= self.home then
             world.move_to(self.home)
-            return true
+            return {util.event("move", {})}
         end
-        return false
+        return {}
     end
 
     local target_id, target_info = find_hostile()
@@ -97,7 +97,7 @@ local function do_tick(self)
         if target_info.species == "human" then
             do_charm(target_id)
         end
-        return true
+        return {util.event("attack", {})}
     end
 
     -- 4. Added safe-navigation check for world.tick and WANDER_INTERVAL
@@ -110,12 +110,12 @@ local function do_tick(self)
                 -- 5. Added explicit nil check for the picked destination
                 if dest and dest ~= self.loc_id then
                     world.move_to(dest)
-                    return true
+                    return {util.event("move", {})}
                 end
             end
         end
     end
-    return false
+    return {}
 end
 
 -- When executing the tick, pass the current entity context

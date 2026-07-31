@@ -88,20 +88,17 @@ local function unleash_celestial_consequences()
     end
 end
 
-local function do_tick()
-    local acted = false
-    -- 1. Gods process their internal consumption or neglect pools every 20 ticks
+function do_tick()
+    local events = {}
     if world.tick % 20 == 0 then
         process_divine_neglect()
-        acted = true
+        table.insert(events, util.event("profession_action", {profession = "deity"}))
     end
 
-    -- 2. Unleash consequences if neglected for too long
     if world.tick % 40 == 0 then
         unleash_celestial_consequences()
     end
 
-    -- 3. High Hall Room Dynamics: Brawling gods will naturally scrap with each other if angry
     if world.tick % 15 == 0 and self.mood == "furious" then
         local nearby = world.nearby_entities()
         if nearby then
@@ -112,14 +109,14 @@ local function do_tick()
                         util.log(self.name ..
                         " blindly throws an object at " .. info.name .. " out of sheer petty frustration!")
                         world.attack(self.id, eid)
-                        acted = true
+                        table.insert(events, util.event("attack", {target = eid}))
                         break
                     end
                 end
             end
         end
     end
-    return acted
+    return events
 end
 
 return do_tick()

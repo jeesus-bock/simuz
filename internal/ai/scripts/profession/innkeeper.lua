@@ -98,24 +98,24 @@ local function clean_up()
     end
 end
 
-local function do_tick()
+function do_tick()
     local phase = world.phase
     local tick = world.tick
 
     if world.defend_self and world.defend_self() then
-        return true
+        return {util.event("profession_action", {profession = "innkeeper"})}
     end
     if world.avoid_combat and world.avoid_combat() then
-        return true
+        return {util.event("profession_action", {profession = "innkeeper"})}
     end
 
     if phase == "night" or phase == "dusk" then
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
             util.log(self.name .. " closed the inn for the night")
-            return true
+            return {util.event("profession_action", {profession = "innkeeper"})}
         end
-        return false
+        return {}
     end
 
     if tick % RESTOCK_INTERVAL == 0 then
@@ -133,7 +133,7 @@ local function do_tick()
 
     clean_up()
 
-    return false
+    return {}
 end
 
 return do_tick()

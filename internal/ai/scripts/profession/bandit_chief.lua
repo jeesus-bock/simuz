@@ -37,7 +37,7 @@ local function coordinate_raid()
     end
 end
 
-local function do_tick()
+function do_tick()
     local acted = false
 
     if world.tick % 8 == 0 then
@@ -54,7 +54,10 @@ local function do_tick()
         end
     end
 
-    return acted
+    if acted then
+        return {util.event("profession_action", {profession = "bandit_chief"})}
+    end
+    return {}
 end
 
 return do_tick()

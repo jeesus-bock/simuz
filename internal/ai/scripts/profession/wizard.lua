@@ -85,7 +85,7 @@ local function handle_academic_rivalry()
     end
 end
 
-local function do_tick()
+function do_tick()
     -- 1. Academic rivalries and extortion checks occur frequently
     if world.tick % 10 == 0 then
         handle_academic_rivalry()
@@ -113,7 +113,7 @@ local function do_tick()
         end
     end
 
-    return false
+    return {}
 end
 
 return do_tick()

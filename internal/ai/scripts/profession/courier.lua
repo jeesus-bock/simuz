@@ -24,7 +24,7 @@ local function attempt_delivery()
     return false
 end
 
-local function do_tick()
+function do_tick()
     if world.tick % 10 == 0 then
         local done = attempt_delivery()
 
@@ -38,10 +38,12 @@ local function do_tick()
             end
         end
 
-        return done
+        if done then
+            return {util.event("profession_action", {profession = "courier"})}
+        end
     end
 
-    return false
+    return {}
 end
 
 return do_tick()

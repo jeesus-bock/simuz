@@ -48,13 +48,13 @@ local function return_to_lair()
     end
 end
 
-local function do_tick()
+function do_tick()
     local tick = world.tick
 
     if self.hp / self.max_hp < FLEE_THRESHOLD then
         return_to_lair()
         do_heal()
-        return true
+        return {util.event("flee", {})}
     end
 
     local intruder, info = find_intruder()
@@ -68,12 +68,12 @@ local function do_tick()
                 util.log(self.name .. " clawed at " .. info.name)
             end
         end
-        return true
+        return {util.event("attack", {})}
     end
 
     if self.home and self.loc_id ~= self.home then
         return_to_lair()
-        return true
+        return {util.event("move", {})}
     end
 
     if tick % HEAL_INTERVAL == 0 then
@@ -86,10 +86,10 @@ local function do_tick()
             local dest = exits[util.rand_int(#exits) + 1]
             world.move_to(dest)
             util.log(self.name .. " stretched its wings and left the lair")
-            return true
+            return {util.event("move", {})}
         end
     end
-    return false
+    return {}
 end
 
 return do_tick()

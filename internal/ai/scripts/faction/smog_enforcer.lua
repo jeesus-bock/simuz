@@ -51,34 +51,31 @@ local function check_targets()
     end
 end
 
-local function do_tick()
-    -- Only act during daytime business hours
+function do_tick()
     if world.phase == "night" then
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
-            return true
+            return {util.event("flee", {})}
         end
-        return false
+        return {}
     end
 
-    local acted = false
-    -- Run patrols and protection sweeps every 12 ticks
+    local events = {}
     if world.tick % 12 == 0 then
         check_targets()
-        acted = true
+        table.insert(events, util.event("profession_action", {profession = "enforcer"}))
     end
 
-    -- Randomly march around adjacent mining/foundry lanes if empty
     if world.tick % 40 == 0 and util.rand_int(100) < 40 then
         local exits = world.exits_from(self.loc_id)
         if exits and #exits > 0 then
             local next_loc = exits[util.rand_int(#exits) + 1]
             world.move_to(next_loc)
             util.log(self.name .. " marched to patrol location: " .. next_loc)
-            acted = true
+            table.insert(events, util.event("move", {destination = next_loc}))
         end
     end
-    return acted
+    return events
 end
 
 return do_tick()

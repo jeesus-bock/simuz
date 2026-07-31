@@ -26,20 +26,20 @@ local function run_the_forge()
     end
 end
 
-local function do_tick()
+function do_tick()
     if world.phase == "night" then
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
-            return true
+            return {util.event("profession_action", {profession = "blacksmith"})}
         end
-        return false
+        return {}
     end
 
     if world.tick % 16 == 0 then
         run_the_forge()
     end
 
-    return false
+    return {}
 end
 
 return do_tick()

@@ -24,18 +24,16 @@ local function evaluate_threats()
     return false
 end
 
-local function do_tick()
-    -- Scan the local environment rapidly for nearby predators or hostiles
+function do_tick()
     if world.tick % 4 == 0 then
         local fled = evaluate_threats()
 
-        -- If completely safe, relax the agent's baseline status
         if not fled and world.tick % 30 == 0 then
             util.set_mood("relaxed", 20)
         end
-        return fled
+        return fled and {util.event("flee", {})} or {}
     end
-    return false
+    return {}
 end
 
 return do_tick()
