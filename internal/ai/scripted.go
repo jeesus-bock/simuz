@@ -1116,11 +1116,16 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.EntityManager, tm *worl
 		a := L.ToString(1)
 		b := L.ToString(2)
 		att := em.Get(a)
-
 		def := em.Get(b)
 
-		rel := att.Relation.Relation(def)
-		L.Push(lua.LBool(rel < 0))
+		// If both resolve as entities, use entity-level relation.
+		if att != nil && def != nil {
+			rel := att.Relation.Relation(def)
+			L.Push(lua.LBool(rel < 0))
+			return 1
+		}
+		// Otherwise treat as faction strings and use faction-level hostility.
+		L.Push(lua.LBool(IsHostile(a, b)))
 		return 1
 	}))
 
