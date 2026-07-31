@@ -227,6 +227,25 @@ func findRealmForDeity(deityID string) string {
 
 var deityIDs []string
 
+// Species-specific deity pools.
+// Elves and dwarves have separate pools with no overlap.
+// Greenskins (orcs, goblins, ogres, lizardmen, etc.) share a pool.
+// Humans/hobbits draw from the full list.
+var (
+	elfDeityPool = []string{
+		"amater_ashes", "snoozanoo", "raijin_the_rattler",
+		"ooh_huang", "groan_yin", "wukong_the_mangy",
+	}
+	dwarfDeityPool = []string{
+		"seus_crackbolt", "posse_eidon", "othena_the_pedantic", "oriz_the_bloodshot", "haydes_the_hoarder",
+		"odd_in", "thurn_the_thumper", "low_key", "froyda_the_thistle",
+	}
+	greenskinDeityPool = []string{
+		"tie_o_mat", "baa_hamut", "vaicna_the_unwashed",
+		"oriz_the_bloodshot", "haydes_the_hoarder",
+	}
+)
+
 func init() {
 	for _, d := range DeityDefs {
 		deityIDs = append(deityIDs, d.ID)
@@ -234,11 +253,13 @@ func init() {
 }
 
 // AssignWorship sets the Worship field on an entity based on its species.
-// Rules:
-//   - elf, dwarf: 1-2 deities
-//   - human, orc, hobbit: 0-4 deities
-//   - beasts, ogres, goblins, etc.: 0-1 deity
-//   - divine/deity: none (they ARE the gods)
+// Each species group draws from a themed deity pool:
+//   - elves: japanese + chinese pantheon (nature, balance)
+//   - dwarves: greek + norse pantheon (craft, war, thunder)
+//   - greenskins (orc, goblin, ogre, lizardfolk, hobgoblin, gnoll): dnd + brutal greek
+//   - human, hobbit: all deities
+//   - beasts, others: 0-1 from any
+//   - divine/deity: none
 func AssignWorship(e *entity.Entity, rng interface{ Intn(int) int }) {
 	if e.Species == "divine" || e.Species == "deity" {
 		return
@@ -247,23 +268,34 @@ func AssignWorship(e *entity.Entity, rng interface{ Intn(int) int }) {
 		return
 	}
 
+	var pool []string
 	var count int
+
 	switch e.Species {
-	case "elf", "dwarf":
+	case "elf":
+		pool = elfDeityPool
 		count = 1 + rng.Intn(2) // 1-2
-	case "human", "orc", "hobbit":
+	case "dwarf":
+		pool = dwarfDeityPool
+		count = 1 + rng.Intn(2) // 1-2
+	case "orc", "goblin", "ogre", "lizardfolk", "hobgoblin", "gnoll":
+		pool = greenskinDeityPool
+		count = rng.Intn(3) // 0-2
+	case "human", "hobbit":
+		pool = deityIDs
 		count = rng.Intn(5) // 0-4
 	default:
+		pool = deityIDs
 		count = rng.Intn(2) // 0-1
 	}
 
-	if count == 0 {
+	if count == 0 || len(pool) == 0 {
 		return
 	}
 
 	picked := make(map[string]bool)
 	for len(picked) < count {
-		d := deityIDs[rng.Intn(len(deityIDs))]
+		d := pool[rng.Intn(len(pool))]
 		if !picked[d] {
 			picked[d] = true
 			e.Worship = append(e.Worship, d)
