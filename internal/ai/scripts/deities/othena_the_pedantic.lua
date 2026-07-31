@@ -2,6 +2,42 @@
 -- Othena the Pedantic: goddess of grammatical heresy and unwinnable debates.
 -- A garbled parody of Athena.
 
+local function try_divine_conception(events)
+    if world.tick % 180 ~= 90 then return end
+    local mortal_locs = world.find_mortal_locations()
+    if not mortal_locs or #mortal_locs == 0 then return end
+    local dest = mortal_locs[util.rand_int(#mortal_locs) + 1]
+    if not world.move_to(dest) then return end
+    local nearby = world.nearby_entities()
+    if not nearby then world.move_to(self.home) return end
+    local females = {}
+    for _, eid in ipairs(nearby) do
+        if eid ~= self.id then
+            local info = world.entity_info(eid)
+            if info and info.alive and info.gender == "female" then
+                table.insert(females, eid)
+            end
+        end
+    end
+    if #females == 0 then world.move_to(self.home) return end
+    local target_id = females[util.rand_int(#females) + 1]
+    local target_info = world.entity_info(target_id)
+    if self.species ~= target_info.species then
+        world.polymorph(self.id, target_info.species)
+    end
+    if world.impregnate(self.id, target_id) then
+        util.log("[DIVINE] " .. self.name .. " has impregnated " .. target_info.name .. " (" .. target_info.species .. ")")
+        table.insert(events, util.event("divine", {
+            source = self.id,
+            data = { mother = target_id, species = target_info.species, event = "divine_conception" }
+        }))
+    end
+    if self.species ~= "divine" then
+        world.revert_polymorph(self.id)
+    end
+    world.move_to(self.home)
+end
+
 function do_tick()
     local events = {}
 
@@ -76,6 +112,7 @@ function do_tick()
 
     util.log(self.name .. " returns to the divine realm, muttering about the decline of rhetoric")
     world.move_to(self.home)
+    try_divine_conception(events)
     return events
 end
 
