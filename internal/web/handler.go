@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"io"
 	"io/fs"
+	"net/http"
 	"sort"
 	"strings"
 
@@ -663,6 +664,24 @@ func (h *Handler) questDetailData(questID string) (gin.H, bool) {
 		}
 	}
 
+	type eligibleEntity struct {
+		ID    string
+		Name  string
+		Level int
+	}
+	var eligible []eligibleEntity
+	for _, ent := range h.Sim.Entities.All() {
+		if !ent.Alive {
+			continue
+		}
+		if h.Sim.Quests.CanAccept(ent.ID, questID, ent.Level) {
+			eligible = append(eligible, eligibleEntity{ID: ent.ID, Name: ent.Name, Level: ent.Level})
+		}
+	}
+	sort.SliceStable(eligible, func(i, j int) bool {
+		return strings.ToLower(eligible[i].Name) < strings.ToLower(eligible[j].Name)
+	})
+
 	return gin.H{
 		"tick":            h.Sim.Tick,
 		"time":            h.Sim.Time.String(),
@@ -673,6 +692,7 @@ func (h *Handler) questDetailData(questID string) (gin.H, bool) {
 		"pursuer_count":   len(pursuers),
 		"source_name":     sourceName,
 		"source_loc_name": sourceLocName,
+		"eligible":        eligible,
 	}, true
 }
 
@@ -689,6 +709,32 @@ func stateOrder(s string) int {
 	default:
 		return 4
 	}
+}
+
+func (h *Handler) AcceptQuestPost(c *gin.Context) {
+	h.Sim.Lock()
+	defer h.Sim.RUnlock()
+
+	questID := c.Param("id")
+	entityID := c.PostForm("entity_id")
+	if entityID == "" {
+		c.String(400, "entity_id required")
+		return
+	}
+
+	ent := h.Sim.Entities.Get(entityID)
+	if ent == nil {
+		c.String(404, "entity not found")
+		return
+	}
+
+	if !h.Sim.Quests.CanAccept(entityID, questID, ent.Level) {
+		c.Redirect(http.StatusSeeOther, "/quest/"+questID)
+		return
+	}
+
+	h.Sim.Quests.Accept(entityID, questID, ent.Level, h.Sim.Tick)
+	c.Redirect(http.StatusSeeOther, "/quest/"+questID)
 }
 
 func (h *Handler) AIPage(c *gin.Context) {

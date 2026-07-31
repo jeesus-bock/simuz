@@ -66,6 +66,7 @@ func SetupRoutes(router *gin.Engine, sim *engine.Simulation) {
 	router.GET("/entity/:id", h.EntityDetailPage)
 	router.GET("/quests", h.QuestsPage)
 	router.GET("/quest/:id", h.QuestDetailPage)
+	router.POST("/quest/:id/accept", h.AcceptQuestPost)
 	router.GET("/events", h.EventsPage)
 	router.GET("/ai", h.AIPage)
 	router.GET("/pregnancies", h.PregnanciesPage)

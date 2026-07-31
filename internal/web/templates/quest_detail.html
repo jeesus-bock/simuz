@@ -210,6 +210,21 @@
             {{else}}
             <p style="color:var(--text-dim);font-size:0.9rem;">No entity is currently pursuing this quest.</p>
             {{end}}
+
+            {{if .eligible}}
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08);">
+                <div style="color:#888;font-size:0.8rem;margin-bottom:6px;">ASSIGN TO ENTITY</div>
+                <form method="POST" action="/quest/{{.quest_id}}/accept" style="display:flex;gap:8px;align-items:center;">
+                    <select name="entity_id" required
+                        style="flex:1;padding:6px 10px;background:#0f1a2e;border:1px solid #333;border-radius:4px;color:var(--text);font-size:0.85rem;">
+                        {{range .eligible}}
+                        <option value="{{.ID}}">{{.Name}} (Lvl {{.Level}})</option>
+                        {{end}}
+                    </select>
+                    <button type="submit" style="padding:6px 14px;background:#2d6a2d;color:#b3ffb3;border:1px solid #4caf50;border-radius:4px;cursor:pointer;font-size:0.85rem;">Accept</button>
+                </form>
+            </div>
+            {{end}}
         </div>
     </div>
 </div>
