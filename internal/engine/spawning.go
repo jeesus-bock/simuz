@@ -540,12 +540,12 @@ func GestationTicksForSpecies(species string) int {
 	return 200
 }
 
-// StartPregnancy marks a female entity as pregnant with a given father and start tick.
+// StartPregnancy marks an entity as pregnant with a given father and start tick.
 func StartPregnancy(mother, father *entity.Entity, tick uint64) {
 	if mother == nil || father == nil {
 		return
 	}
-	if mother.Gender != entity.GenderFemale {
+	if !mother.CanGetPregnant() {
 		return
 	}
 	if mother.Reproduction.Pregnant {

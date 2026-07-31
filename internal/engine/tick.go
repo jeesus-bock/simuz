@@ -113,16 +113,16 @@ func processReproduction(s *Simulation) {
 			continue
 		}
 
-		var males, females []*entity.Entity
+		var sires, carriers []*entity.Entity
 		for _, ent := range members {
-			switch ent.Gender {
-			case "male":
-				males = append(males, ent)
-			case "female":
-				females = append(females, ent)
+			if ent.CanSire() {
+				sires = append(sires, ent)
+			}
+			if ent.CanGetPregnant() {
+				carriers = append(carriers, ent)
 			}
 		}
-		if len(males) == 0 || len(females) == 0 {
+		if len(sires) == 0 || len(carriers) == 0 {
 			continue
 		}
 
@@ -137,8 +137,11 @@ func processReproduction(s *Simulation) {
 		// Find a pair that hasn't reproduced recently
 		var mother, father *entity.Entity
 		for i := 0; i < 10; i++ {
-			candidateMother := females[s.RNG.Intn(len(females))]
-			candidateFather := males[s.RNG.Intn(len(males))]
+			candidateMother := carriers[s.RNG.Intn(len(carriers))]
+			candidateFather := sires[s.RNG.Intn(len(sires))]
+			if candidateMother.ID == candidateFather.ID {
+				continue
+			}
 			cooldown := uint64(1000)
 			if s.Tick-candidateMother.LastReproductionTick >= cooldown &&
 				s.Tick-candidateFather.LastReproductionTick >= cooldown {
@@ -282,15 +285,15 @@ func processCrossbreeding(s *Simulation) {
 			if _, ok := cB.GetPartner(); ok {
 				continue
 			}
-			// Assign mother (female) and father (male) by gender
-			if cA.Gender == entity.GenderFemale && cB.Gender == entity.GenderMale {
+			// Assign mother (carrier) and father (sire) by reproductive role
+			if cA.CanGetPregnant() && cB.CanSire() {
 				mother = cA
 				father = cB
-			} else if cA.Gender == entity.GenderMale && cB.Gender == entity.GenderFemale {
+			} else if cB.CanGetPregnant() && cA.CanSire() {
 				mother = cB
 				father = cA
 			} else {
-				continue // incompatible gender pairing
+				continue // incompatible pairing (neither can sire+carry)
 			}
 			break
 		}
