@@ -31,15 +31,16 @@ local function do_explore()
     end
 end
 
-local function do_tick()
+function do_tick()
     local tick = world.tick
     local phase = world.phase
 
     if phase == "night" then
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
+            return {util.event("flee", {})}
         end
-        return
+        return {}
     end
 
     -- Flee from hostiles immediately
@@ -49,23 +50,27 @@ local function do_tick()
             if self.home and self.loc_id ~= self.home then
                 world.move_to(self.home)
                 util.log(self.name .. " fled home from threat")
+                return {util.event("flee", {})}
             end
-            return
         end
         -- Avoid combat, just stay alert
         util.log(self.name .. " spotted hostile, avoiding contact")
-        return
+        return {util.event("scout", {})}
     end
 
+    local events = {}
     -- Explore periodically
     if tick % EXPLORE_INTERVAL == 0 then
         do_explore()
+        table.insert(events, util.event("explore", {}))
     end
 
     -- Return home periodically
     if tick % RETURN_HOME_INTERVAL == 0 and self.home and self.loc_id ~= self.home then
         world.move_to(self.home)
+        table.insert(events, util.event("move", {}))
     end
+    return events
 end
 
-do_tick()
+return do_tick()

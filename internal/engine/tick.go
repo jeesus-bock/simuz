@@ -4,19 +4,16 @@ package engine
 import (
 	"fmt"
 	"log"
-	"math/rand"
-	"sort"
-	"strings"
-	"sync"
-	"time"
-
 	"simuz/internal/ai"
 	"simuz/internal/combat"
 	"simuz/internal/entity"
 	"simuz/internal/events"
-	"simuz/internal/items"
 	"simuz/internal/quest"
+	"simuz/internal/relation"
+	"simuz/internal/species"
 	"simuz/internal/world"
+	"sort"
+	"strings"
 )
 
 const saveInterval = 300
@@ -25,24 +22,6 @@ type Storage interface {
 	Save(sim *Simulation) error
 	Load() (*Simulation, error)
 	Enabled() bool
-}
-
-type Simulation struct {
-	mu           sync.RWMutex
-	Tick         uint64
-	Scheduler    *Scheduler
-	World        *world.World
-	Entities     *entity.Manager
-	Quests       *quest.Manager
-	Events       *events.Manager
-	Time         world.GameTime
-	Storage      Storage
-	RNG          *rand.Rand
-	running      bool
-	events       []events.SimEvent
-	listeners    []func(events.SimEvent)
-	SpawnManager *SpawnManager
-	Traveling    map[string]*world.TravelState
 }
 
 type nearbyCombatSite struct {
@@ -54,243 +33,13 @@ type nearbyCombatSite struct {
 	ControlStrength    int
 }
 
-func (s *Simulation) RLock()   { s.mu.RLock() }
-func (s *Simulation) RUnlock() { s.mu.RUnlock() }
-func (s *Simulation) Lock()    { s.mu.Lock() }
-func (s *Simulation) Unlock()  { s.mu.Unlock() }
+var GlobalEntityManager *entity.EntityManager
 
-func NewSimulation(w *world.World) *Simulation {
-	qm := quest.NewManager()
-	sim := &Simulation{
-		Tick:         0,
-		Scheduler:    NewScheduler(),
-		World:        w,
-		Entities:     entity.NewManager(),
-		Quests:       qm,
-		Events:       events.NewManager(),
-		Time:         world.NewGameTime(24),
-		RNG:          rand.New(rand.NewSource(time.Now().UnixNano())),
-		running:      false,
-		events:       make([]events.SimEvent, 0),
-		listeners:    make([]func(events.SimEvent), 0),
-		SpawnManager: NewSpawnManager(),
-		Traveling:    make(map[string]*world.TravelState),
-	}
-	qm.OnQuestComplete = func(entityID, questID string, rewards *quest.Rewards) {
-		if rewards == nil {
-			return
-		}
-		ent := globalEntityManagerGet(entityID)
-		if ent == nil || !ent.Alive {
-			return
-		}
-		if rewards.Experience > 0 && entity.GetSpecies(ent.Species).CanLevelUp {
-			sim.Emit(events.SimEvent{
-				Type:   events.EventTypeQuestComplete,
-				Source: ent.ID,
-				Data: map[string]interface{}{
-					"quest_id":   questID,
-					"experience": rewards.Experience,
-					"gold":       rewards.Gold,
-				},
-			})
-			ent.AddXP(rewards.Experience)
-			log.Printf("[quest] %s earned %d XP from quest '%s'", ent.Name, rewards.Experience, questID)
-		}
-		if rewards.Gold > 0 {
-			for i := 0; i < rewards.Gold; i++ {
-				ent.AddItem(items.NewItemInstance("gold_"+questID+fmt.Sprint(i), "gp", items.GetDef("gp"), 1))
-			}
-		}
-
-	}
-
-	globalEntityManager = sim.Entities
-	ai.MoveRequest = sim.RequestMove
-	ai.IsEntityTraveling = sim.IsTraveling
-	return sim
-}
-
-var globalEntityManager *entity.Manager
-
-func globalEntityManagerGet(id string) *entity.Entity {
-	if globalEntityManager == nil {
+func GlobalEntityManagerGet(id string) *entity.Entity {
+	if GlobalEntityManager == nil {
 		return nil
 	}
-	return globalEntityManager.Get(id)
-}
-
-func (s *Simulation) OnEvent(fn func(events.SimEvent)) {
-	s.listeners = append(s.listeners, fn)
-}
-
-func (s *Simulation) Emit(event events.SimEvent) {
-	s.events = append(s.events, event)
-	for _, fn := range s.listeners {
-		fn(event)
-	}
-}
-
-func (s *Simulation) DrainEvents() []events.SimEvent {
-	events := s.events
-	s.events = nil
-	return events
-}
-
-func (s *Simulation) EventsCopy() []events.SimEvent {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	out := make([]events.SimEvent, len(s.events))
-	copy(out, s.events)
-	return out
-}
-
-func (s *Simulation) Start() {
-	s.running = true
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
-
-	log.Printf("Simulation started at tick 0")
-	for range ticker.C {
-		if !s.running {
-			return
-		}
-		s.TickOnce()
-	}
-}
-
-func (s *Simulation) Stop() {
-	s.running = false
-}
-
-func (s *Simulation) TickOnce() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	s.Tick++
-	s.Quests.SetTick(s.Tick)
-
-	s.Scheduler.ProcessDue(s.Tick)
-
-	s.Time.Advance()
-
-	for _, loc := range s.World.AllLocations() {
-		if loc.IsOutside && loc.Weather != nil {
-			if s.Tick%240 == 0 {
-				loc.Weather = world.GenerateWeatherFor(s.Time.Season(), loc.ID, s.RNG)
-			}
-		}
-	}
-
-	processTravel(s)
-	processTerritory(s)
-
-	for _, ent := range s.Entities.All() {
-		if ent.Alive {
-			processAging(ent, s)
-		}
-	}
-
-	for _, ent := range s.Entities.All() {
-		if !ent.Alive || !ent.Conscious {
-			continue
-		}
-		if s.IsTraveling(ent.ID) {
-			continue
-		}
-		processEntityAI(ent, s)
-	}
-
-	// Quest definitions describe offers made by source NPCs. Once an entity
-	// reaches the source's location, make the offer part of the simulation so
-	// quest ownership and subsequent activity are observable in the UI.
-	offerQuestsAtSources(s)
-
-	for _, ent := range s.Entities.All() {
-		if ent.Alive {
-			ent.TickEffects()
-		}
-	}
-
-	for _, ent := range s.Entities.All() {
-		if ent.Alive {
-			ent.TickMoods(s.Tick)
-		}
-	}
-
-	for _, ent := range s.Entities.All() {
-		if !ent.Alive || ent.MaxHP <= 0 {
-			continue
-		}
-		// Skip passive regen if hostiles are nearby
-		nearby := s.Entities.ByLocation(ent.LocationID)
-		hasHostile := false
-		for _, other := range nearby {
-			if other.ID != ent.ID && other.Alive && combat.Relation(ent.Faction, other.Faction) == combat.Hostile {
-				hasHostile = true
-				break
-			}
-		}
-		if hasHostile {
-			continue
-		}
-		// Harsh outdoor weather slows regen and stresses civilians
-		loc := s.World.Location(ent.LocationID)
-		outdoorHarsh := false
-		if loc != nil && loc.IsOutside {
-			if wth := s.World.EffectiveWeather(ent.LocationID); wth != nil && wth.IsHarsh() {
-				outdoorHarsh = true
-				if s.Tick%60 == 0 && (ent.Faction == "civilian" || ent.Faction == "merchant") {
-					ent.AddMoodModifier("weather", "stressed", 30)
-				}
-			}
-		}
-		switch ent.Activity.Type {
-		case entity.ActivitySleep:
-			if ent.HP < ent.MaxHP {
-				ent.Heal(1)
-			}
-			if ent.FP < ent.MaxFP {
-				ent.RestFP(1)
-			}
-		case entity.ActivityIdle, entity.ActivityMeditate:
-			interval := uint64(3)
-			if outdoorHarsh {
-				interval = 6
-			}
-			if s.Tick%interval == 0 && ent.HP < ent.MaxHP {
-				ent.Heal(1)
-			}
-			if s.Tick%2 == 0 && ent.FP < ent.MaxFP {
-				ent.RestFP(1)
-			}
-		}
-	}
-
-	processTimeLimitQuests(s)
-
-	// Natural reproduction: adult male/female pairs of the same species
-	// at the same location have a small chance to produce offspring each tick.
-	processReproduction(s)
-
-	if s.SpawnManager != nil {
-		s.SpawnManager.ProcessSpawns(s.World, s.Entities, int(s.Tick), s.RNG)
-	}
-
-	if s.Events != nil {
-		s.Events.ProcessTick(s.Tick, s.World, s.RNG, s.Entities.All())
-	}
-
-	s.Emit(events.SimEvent{
-		Type: events.EventTick,
-		Tick: s.Tick,
-	})
-
-	if s.Tick%saveInterval == 0 && s.Storage != nil && s.Storage.Enabled() {
-		if err := s.Storage.Save(s); err != nil {
-			log.Printf("Save error: %v", err)
-		}
-	}
+	return GlobalEntityManager.Get(id)
 }
 
 func offerQuestsAtSources(sim *Simulation) {
@@ -347,7 +96,7 @@ func processReproduction(s *Simulation) {
 		if !ent.IsAdult() {
 			continue
 		}
-		if !entity.GetSpecies(ent.Species).CanReproduce {
+		if species, ok := species.GetByID(ent.Species); !ok || !species.CanReproduce {
 			continue
 		}
 		key := groupKey{locID: ent.LocationID, species: ent.Species}
@@ -364,21 +113,21 @@ func processReproduction(s *Simulation) {
 			continue
 		}
 
-		var males, females []*entity.Entity
+		var sires, carriers []*entity.Entity
 		for _, ent := range members {
-			switch ent.Gender {
-			case "male":
-				males = append(males, ent)
-			case "female":
-				females = append(females, ent)
+			if ent.CanSire() {
+				sires = append(sires, ent)
+			}
+			if ent.CanGetPregnant() {
+				carriers = append(carriers, ent)
 			}
 		}
-		if len(males) == 0 || len(females) == 0 {
+		if len(sires) == 0 || len(carriers) == 0 {
 			continue
 		}
 
 		reproChance := 1 // 0.1% base chance per tick
-		if entity.GetSpecies(key.species).IsCaveman {
+		if species, ok := species.GetByID(key.species); ok && species.IsCaveman {
 			reproChance = 3 // 0.3% per tick for caveman species
 		}
 		if s.RNG.Intn(1000) >= reproChance {
@@ -388,8 +137,11 @@ func processReproduction(s *Simulation) {
 		// Find a pair that hasn't reproduced recently
 		var mother, father *entity.Entity
 		for i := 0; i < 10; i++ {
-			candidateMother := females[s.RNG.Intn(len(females))]
-			candidateFather := males[s.RNG.Intn(len(males))]
+			candidateMother := carriers[s.RNG.Intn(len(carriers))]
+			candidateFather := sires[s.RNG.Intn(len(sires))]
+			if candidateMother.ID == candidateFather.ID {
+				continue
+			}
 			cooldown := uint64(1000)
 			if s.Tick-candidateMother.LastReproductionTick >= cooldown &&
 				s.Tick-candidateFather.LastReproductionTick >= cooldown {
@@ -406,7 +158,7 @@ func processReproduction(s *Simulation) {
 		childName := generateName(mother.Species, s.RNG)
 		childID := fmt.Sprintf("%s_child_%s_%d", mother.Species, mother.ID, s.Tick)
 
-		child := entity.NewEntity(childID, childName, mother.Species, childAttrs, 1)
+		child := entity.NewEntity(childID, childName, mother.Species, childAttrs, 1, relation.CombineRelation(mother.Relation, father.Relation))
 		if s.RNG.Intn(2) == 0 {
 			child.Gender = "male"
 		} else {
@@ -439,7 +191,7 @@ func processReproduction(s *Simulation) {
 		child.AddRelationship(father.ID, entity.RelationshipParent, s.Tick)
 
 		// Caveman species do not form mate bonds or partner up.
-		if !entity.GetSpecies(mother.Species).IsCaveman {
+		if species, ok := species.GetByID(mother.Species); !ok || !species.IsCaveman {
 			mother.AddRelationship(father.ID, entity.RelationshipMate, s.Tick)
 			father.AddRelationship(mother.ID, entity.RelationshipMate, s.Tick)
 		}
@@ -466,6 +218,139 @@ func processReproduction(s *Simulation) {
 	}
 }
 
+// processCrossbreeding handles cross-species reproduction between compatible
+// races. Different-faction pairs at the same location have a small chance
+// to produce a half-species child (e.g., human + orc → half_orc).
+func processCrossbreeding(s *Simulation) {
+	// Global entity cap to prevent runaway growth
+	const maxEntities = 5000
+	if len(s.Entities.All()) >= maxEntities {
+		return
+	}
+
+	type locKey struct {
+		locID string
+	}
+	groups := make(map[locKey][]*entity.Entity)
+
+	for _, ent := range s.Entities.All() {
+		if !ent.Alive || !ent.Conscious {
+			continue
+		}
+		if !ent.IsAdult() {
+			continue
+		}
+		sp, ok := species.GetByID(ent.Species)
+		if !ok || !sp.CanReproduce {
+			continue
+		}
+		key := locKey{locID: ent.LocationID}
+		groups[key] = append(groups[key], ent)
+	}
+
+	for key, members := range groups {
+		if len(members) < 2 {
+			continue
+		}
+
+		// Only 0.05% per tick for crossbreeding (much rarer than same-species)
+		if s.RNG.Intn(10000) >= 5 {
+			continue
+		}
+
+		var mother, father *entity.Entity
+		for i := 0; i < 20; i++ {
+			cA := members[s.RNG.Intn(len(members))]
+			cB := members[s.RNG.Intn(len(members))]
+			if cA.ID == cB.ID {
+				continue
+			}
+			childSpecies := species.GetHalfSpecies(cA.Species, cB.Species)
+			if childSpecies == "" {
+				continue
+			}
+			// Check pregnancy
+			if cA.Reproduction.Pregnant || cB.Reproduction.Pregnant {
+				continue
+			}
+			// Check cooldown (1000 ticks, same as same-species)
+			const cooldown = uint64(1000)
+			if s.Tick-cA.LastReproductionTick < cooldown || s.Tick-cB.LastReproductionTick < cooldown {
+				continue
+			}
+			// Check existing mate bonds — skip if either already has a mate
+			if _, ok := cA.GetPartner(); ok {
+				continue
+			}
+			if _, ok := cB.GetPartner(); ok {
+				continue
+			}
+			// Assign mother (carrier) and father (sire) by reproductive role
+			if cA.CanGetPregnant() && cB.CanSire() {
+				mother = cA
+				father = cB
+			} else if cB.CanGetPregnant() && cA.CanSire() {
+				mother = cB
+				father = cA
+			} else {
+				continue // incompatible pairing (neither can sire+carry)
+			}
+			break
+		}
+		if mother == nil || father == nil {
+			continue
+		}
+
+		childSpecies := species.GetHalfSpecies(mother.Species, father.Species)
+		childAttrs := averageAttrs(mother.Attributes, father.Attributes, s.RNG)
+		childName := generateName(childSpecies, s.RNG)
+		childID := fmt.Sprintf("%s_child_%s_%d", childSpecies, mother.ID, s.Tick)
+
+		child := entity.NewEntity(childID, childName, childSpecies, childAttrs, 1, relation.CombineRelation(mother.Relation, father.Relation))
+		if s.RNG.Intn(2) == 0 {
+			child.Gender = "male"
+		} else {
+			child.Gender = "female"
+		}
+		child.LocationID = key.locID
+		child.Faction = mother.Faction
+		if child.Faction == "" {
+			child.Faction = father.Faction
+		}
+		child.Profession = mother.Profession
+		if child.Profession == "" {
+			child.Profession = father.Profession
+		}
+		child.AI = entity.EntityAI{
+			Type:         "passive",
+			SleepCycle:   defaultSleepCycle(childSpecies),
+			HomeLocation: key.locID,
+		}
+
+		child.XP = randomXPForLevel(1, s.RNG.Intn)
+
+		s.Entities.Add(child)
+
+		mother.AddRelationship(child.ID, entity.RelationshipChild, s.Tick)
+		father.AddRelationship(child.ID, entity.RelationshipChild, s.Tick)
+		child.AddRelationship(mother.ID, entity.RelationshipParent, s.Tick)
+		child.AddRelationship(father.ID, entity.RelationshipParent, s.Tick)
+
+		mother.AddRelationship(father.ID, entity.RelationshipMate, s.Tick)
+		father.AddRelationship(mother.ID, entity.RelationshipMate, s.Tick)
+
+		mother.LastReproductionTick = s.Tick
+		father.LastReproductionTick = s.Tick
+		log.Printf("[birth] %s (half-species %s) born to %s (%s) and %s (%s) at %s", child.Name, childSpecies, mother.Name, mother.Species, father.Name, father.Species, key.locID)
+		s.Emit(events.SimEvent{
+			Type:   events.EventEntityBorn,
+			Tick:   s.Tick,
+			Source: child.ID,
+			Data:   map[string]any{"mother": mother.ID, "father": father.ID, "species": childSpecies, "location": key.locID},
+		})
+	}
+}
+
 func processEntityAI(ent *entity.Entity, sim *Simulation) {
 	phase := sim.Time.Phase()
 	combat.SetTick(sim.Tick)
@@ -478,18 +363,17 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 				if sid == "" {
 					continue
 				}
-				scriptEvents, err := ai.RunScript(sid, ent, sim.World, sim.Entities, &sim.Time, sim.RNG, sim.Quests)
+				result, err := ai.RunScript(sid, ent, sim.World, sim.Entities, &sim.Time, sim.RNG, sim.Quests)
 				if err != nil {
 					log.Printf("AI  script error for %s (%s): %v", ent.Name, sid, err)
 					continue
 				}
-				if scriptEvents == nil {
-					continue
-				}
-				for _, event := range scriptEvents {
+				for _, event := range result.Events {
 					sim.Emit(*event)
 				}
-				break // Only run the first valid script per tick
+				if len(result.Events) > 0 {
+					break
+				}
 			}
 		}
 		return
@@ -541,7 +425,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if combat.Relation(ent.Faction, other.Faction) == combat.Hostile {
+			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
 				target = other
 				break
 			}
@@ -577,7 +461,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if combat.Relation(ent.Faction, other.Faction) == combat.Hostile {
+			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
 				target = other
 				break
 			}
@@ -612,7 +496,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if combat.Relation(ent.Faction, other.Faction) == combat.Hostile {
+			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
 				target = other
 				break
 			}
@@ -639,7 +523,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			for _, loc := range nearbyLocs {
 				locEntities := sim.Entities.ByLocation(loc.ID)
 				for _, e := range locEntities {
-					if e.Alive && !e.Immortal && combat.Relation(ent.Faction, e.Faction) == combat.Hostile {
+					if e.Alive && !e.Immortal && ent.GetFactionRelation(e.Faction).String() == "hostile" {
 						moveEntityTo(sim, ent, loc.ID)
 						return
 					}
@@ -658,7 +542,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if combat.Relation(ent.Faction, other.Faction) == combat.Hostile {
+			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
 				if home != "" && ent.LocationID != home {
 					moveEntityTo(sim, ent, home)
 				} else {
@@ -691,7 +575,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if other.HP < other.MaxHP && combat.Relation(ent.Faction, other.Faction) != combat.Hostile {
+			if other.HP < other.MaxHP && ent.GetFactionRelation(other.Faction).String() != "hostile" {
 				healAmt := 2 + ent.Level
 				other.Heal(healAmt)
 				log.Printf("[ai] %s healed %s for %d HP", ent.Name, other.Name, healAmt)
@@ -713,7 +597,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if combat.Relation(ent.Faction, other.Faction) == combat.Hostile {
+			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
 				hasHostile = true
 				break
 			}
@@ -757,7 +641,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if combat.Relation(ent.Faction, other.Faction) == combat.Hostile {
+			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
 				target = other
 				break
 			}
@@ -818,7 +702,7 @@ func nearbyCombatSites(sim *Simulation, ent *entity.Entity) []nearbyCombatSite {
 				continue
 			}
 			factions[other.Faction] = struct{}{}
-			if combat.Relation(ent.Faction, other.Faction) == combat.Hostile {
+			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
 				site.Hostiles++
 			} else {
 				site.Allies++
@@ -1166,7 +1050,7 @@ func defendPassiveSelf(ent *entity.Entity, sim *Simulation) bool {
 		if other == nil || other.ID == ent.ID || !other.Alive || other.Immortal {
 			continue
 		}
-		if combat.Relation(ent.Faction, other.Faction) == combat.Hostile {
+		if ent.GetFactionRelation(other.Faction).String() == "hostile" {
 			hostiles = append(hostiles, other)
 		}
 	}
@@ -1405,7 +1289,8 @@ func simpleAttackAt(sim *Simulation, attacker, defender *entity.Entity) bool {
 }
 
 func rewardXP(sim *Simulation, killer, target *entity.Entity) {
-	if !entity.GetSpecies(killer.Species).CanLevelUp {
+	species, ok := species.GetByID(killer.Species)
+	if !ok || !species.CanLevelUp {
 		return
 	}
 	xp := 5 + target.Level*3 + target.MaxHP/10
@@ -1421,7 +1306,7 @@ func rewardXP(sim *Simulation, killer, target *entity.Entity) {
 		Data: map[string]interface{}{"EntityID": killer.ID, "XP": xp},
 	})
 	if killer.Faction != target.Faction {
-		combat.ShiftRelation(killer.Faction, target.Faction, -1)
+		killer.ChangeFactionRelation(target.Faction, sim.RNG.Intn(-20))
 	}
 }
 

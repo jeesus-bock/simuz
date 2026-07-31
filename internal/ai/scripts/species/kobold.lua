@@ -85,14 +85,15 @@ local function do_trap_damage(attacker_id)
     return false
 end
 
-local function do_tick()
+function do_tick()
     local phase = world.phase
 
     if phase == "night" or phase == "dusk" then
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
+            return {util.event("move", {})}
         end
-        return
+        return {}
     end
 
     if should_flee() then
@@ -101,14 +102,15 @@ local function do_tick()
             local dest = exits[util.rand_int(#exits) + 1]
             world.move_to(dest)
             util.log(self.name .. " fled from overwhelming odds")
+            return {util.event("flee", {})}
         end
-        return
+        return {}
     end
 
     local target_id, target_info = find_hostile()
     if target_id then
         do_attack(target_id)
-        return
+        return {util.event("attack", {})}
     end
 
     if world.tick % WANDER_INTERVAL == 0 then
@@ -117,9 +119,11 @@ local function do_tick()
             local dest = exits[util.rand_int(#exits) + 1]
             if dest ~= self.loc_id then
                 world.move_to(dest)
+                return {util.event("move", {})}
             end
         end
     end
+    return {}
 end
 
-do_tick()
+return do_tick()

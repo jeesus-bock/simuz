@@ -77,7 +77,7 @@ local function tip_bard(bard_id)
     return false
 end
 
-local function do_tick()
+function do_tick()
     local phase = world.phase
     local tick = world.tick
 
@@ -85,8 +85,9 @@ local function do_tick()
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
             util.log(self.name .. " went home from the tavern")
+            return {util.event("profession_action", {profession = "bar_patron"})}
         end
-        return
+        return {}
     end
 
     if tick % 10 == 0 then
@@ -121,6 +122,8 @@ local function do_tick()
             util.set_mood("relaxed")
         end
     end
+
+    return {}
 end
 
-do_tick()
+return do_tick()

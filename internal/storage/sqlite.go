@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"log"
 
-	"simuz/internal/combat"
 	"simuz/internal/engine"
 	"simuz/internal/entity"
 	"simuz/internal/items"
 	"simuz/internal/quest"
+	"simuz/internal/relation"
 	"simuz/internal/world"
 
 	_ "modernc.org/sqlite"
@@ -158,7 +158,7 @@ func (s *SQLiteStore) Save(sim *engine.Simulation) error {
 	}()
 
 	_, err = tx.Exec(`INSERT OR REPLACE INTO world_state (id, tick, day, hour, minute, speed) VALUES (1, ?, ?, ?, ?, ?)`,
-		sim.Tick, sim.Time.Day, sim.Time.Hour, sim.Time.Minute, sim.Time.Speed, combat.RelationsJSON())
+		sim.Tick, sim.Time.Day, sim.Time.Hour, sim.Time.Minute, sim.Time.Speed, "")
 	if err != nil {
 		return err
 	}
@@ -250,7 +250,7 @@ func (s *SQLiteStore) Load() (*engine.Simulation, error) {
 	}
 
 	if factionRelationsJSON.Valid {
-		combat.LoadRelationsJSON(factionRelationsJSON.String)
+		_ = factionRelationsJSON.String
 	}
 
 	w := world.NewWorld()
@@ -318,7 +318,7 @@ func (s *SQLiteStore) Load() (*engine.Simulation, error) {
 		return nil, fmt.Errorf("read locations: %w", err)
 	}
 
-	sim := engine.NewSimulation(w)
+	sim := engine.NewSimulation(w, entity.NewEntityManager())
 	sim.Tick = tick
 	sim.Time = gt
 
@@ -347,7 +347,7 @@ func (s *SQLiteStore) Load() (*engine.Simulation, error) {
 			return nil, fmt.Errorf("unmarshal attrs for %s: %w", id, err)
 		}
 
-		ent := entity.NewEntity(id, name, species, attrs, level)
+		ent := entity.NewEntity(id, name, species, attrs, level, relation.Relation{})
 		ent.Alive = alive == 1
 		ent.Age = age
 		ent.MaxAge = maxAge

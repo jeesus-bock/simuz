@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| LastUpdated | 2026-07-27 |
+| LastUpdated | 2026-07-31 |
 | Status | active |
 
 ## Scope
@@ -22,6 +22,7 @@ Simuz is a Go-based world simulation game with:
 - Traveler routes are tracked in travel state and should be shown in the UI when relevant.
 - The locations page keeps its tree/map view selection in browser storage so SSE swaps do not reset it.
 - Use markers, badges, or explicit labels for active-state UI instead of letting ordering imply state.
+- Half-species (half-orc, half-elf, half-dwarf, half-goblin, half-hobgoblin, half-gnoll, half-kobold, half-fey) are crossbreed offspring of compatible parent species. Crossbreeding is rarer (0.05%/tick) than same-species reproduction (0.1%/tick). Half-species are fertile (CanReproduce=true) and form mate bonds.
 
 ## Lua Scripting
 
@@ -49,8 +50,8 @@ Key points:
 - `NewEntity` assigns a random default gender (`male` or `female`) so spawned entities can mate.
 - `Entity` has a `LastReproductionTick` field for per-entity reproduction cooldown.
 - `IsAdult` returns true when entity level >= 3 (reproductive age).
-- `CanReproduce` returns true for species that can breed naturally (human, orc, elf, goblin, fey, rat_king, kobold, vampire, hag, ogre, giant).
-- `IsCavemanSpecies` returns true for species that reproduce without forming mate bonds (orc, ogre, giant, troll, cyclops).
+- `CanReproduce` returns true for species that can breed naturally (human, orc, elf, goblin, fey, rat_king, kobold, vampire, hag, ogre, giant, bugbear, hobgoblin, lizardfolk, gnoll, troll, hydra, basilisk, cockatrice, manticore, skeleton, zombie, ghoul, half_orc, half_elf, half_dwarf, half_goblin, half_hobgoblin, half_gnoll, half_kobold, half_fey).
+- `IsCavemanSpecies` returns true for species that reproduce without forming mate bonds (orc, ogre, giant, troll, cyclops, hydra, basilisk, cockatrice, manticore, skeleton, zombie, ghoul, medusa, floating_eye, beholder).
 - `Profession` is a string field on `Entity` for occupational identity (e.g., "bandit", "merchant", "farmer", "ranger", "bard", "fisherman"). It can be empty for entities with no specific profession.
 - `Faction` on `Entity` is narrow: it represents voluntary group membership only (cults, religions, political movements). Use `FactionCivilian`, `FactionCult`, `FactionDeity` constants. Species-based identities and occupational roles are stored in `Profession` or `FactionID` on the AI struct instead.
 - Reproduction logic (`processReproduction`) lives in `internal/engine/tick.go`.
@@ -75,3 +76,46 @@ Key points:
 - Avoid destructive git commands.
 - Do not add large static tables or full catalog dumps here; keep that data in code or generated docs.
 - Remove outdated or duplicated guidance instead of layering more on top.
+
+## Bestial Species & Generators
+
+The `internal/species/registry.go` contains all registered species. Bestial/monster species include:
+
+- **Bugbear** (`bugbear`): forests, highlands, waste — `IsCaveman: true`, nocturnal
+- **Hobgoblin** (`hobgoblin`): highlands, plains, waste — militaristic, diurnal
+- **Lizardfolk** (`lizardfolk`): swamps — amphibious, defensive
+- **Gnoll** (`gnoll`): plains, waste — nomadic, nocturnal
+- **Troll** (`troll`): forests, swamps — regenerative, no sleep cycle
+- **Ogre** (`ogre`): highlands, waste — gluttonous, diurnal
+- **Ettin** (`ettin`): highlands — two-headed, diurnal
+- **Cyclops** (`cyclops`): mountains, waste — solitary, diurnal
+- **Medusa** (`medusa`): caves, waste — immortal, petrifying gaze
+- **Griffin** (`griffin`): highlands, mountains — diurnal, can fly
+- **Wyvern** (`wyvern`): waste, highlands — nocturnal, venomous sting
+- **Hydra** (`hydra`): swamps — multi-headed, regenerating, no sleep
+- **Basilisk** (`basilisk`): waste, highlands — petrifying gaze, nocturnal
+- **Cockatrice** (`cockatrice`): plains, forests — petrifying beak, nocturnal
+- **Manticore** (`manticore`): forests, waste — venomous spikes, nocturnal
+- **Skeleton** (`skeleton`): any raised location — undead, no CON
+- **Zombie** (`zombie`): any raised location — undead, no CON
+- **Ghoul** (`ghoul`): underground, wastes — undead, nocturnal
+- **Lich** (`lich`): towers, dungeons — immortal undead, no sleep
+- **Wraith** (`wraith`): shadow, underground — incorporeal undead
+- **Mind Flayer** (`mind_flayer`): underdark — aberration, psionic
+- **Beholder** (`beholder`): caves, dungeons — aberration, eye rays
+- **Floating Eye** (`floating_eye`): swamps, caves — aberration, scouting
+
+Dedicated generator functions in `internal/gen/world.go`:
+- `generateHydras()` — swamps and lakes
+- `generateBasilisks()` — deserts and rocky wastes, with petrifying lair locations
+- `generateCockatrices()` — plains and forest farms, with nests
+- `generateManticores()` — forests and wastes, with den locations
+- `generateGriffins()` — highlands, with aeries
+- `generateWyverns()` — cliffs and mountains, with perches
+- `generateUndead()` — graveyard ruins, spawning skeletons/zombies/ghouls/lich/wraiths
+- `generateAberrations()` — underdark lairs, spawning mind flayers/beholders/floating eyes
+- `generateTrolls()` — forests and swamps
+- `generateOgres()` — highlands
+- `generateEttins()` — highlands
+- `generateCyclopses()` — mountains and wastes
+- `generateMedusas()` — caves and wastelands

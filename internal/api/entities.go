@@ -7,10 +7,13 @@ import (
 	"strings"
 
 	"simuz/internal/entity"
+	"simuz/internal/relation"
 
 	"github.com/gin-gonic/gin"
 )
 
+// ListEntities returns a sorted list of all entities in the simulation,
+// ordered by alive status, consciousness, and name.
 func (h *Handler) ListEntities(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
@@ -43,6 +46,8 @@ func (h *Handler) ListEntities(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+// GetEntity returns detailed information about a single entity by its ID.
+// Returns a 404 error if the entity is not found.
 func (h *Handler) GetEntity(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
@@ -57,6 +62,8 @@ func (h *Handler) GetEntity(c *gin.Context) {
 	c.JSON(http.StatusOK, entityToDetail(e))
 }
 
+// CreateEntity creates a new entity with the provided parameters and random
+// attributes. The entity is added to the simulation's entity manager.
 func (h *Handler) CreateEntity(c *gin.Context) {
 	var req struct {
 		ID         string `json:"id" binding:"required"`
@@ -71,7 +78,7 @@ func (h *Handler) CreateEntity(c *gin.Context) {
 	}
 
 	attrs := entity.RandomAttributes(func(n int) int { return h.Sim.RNG.Intn(n) })
-	ent := entity.NewEntity(req.ID, req.Name, req.Species, attrs, req.Level)
+	ent := entity.NewEntity(req.ID, req.Name, req.Species, attrs, req.Level, relation.CivilianRelation)
 	if req.LocationID != "" {
 		ent.LocationID = req.LocationID
 	}
@@ -81,6 +88,9 @@ func (h *Handler) CreateEntity(c *gin.Context) {
 	c.JSON(http.StatusCreated, entityToDetail(ent))
 }
 
+// EntityAction queues an action for a specific entity to be processed on
+// the next simulation tick. The action and optional target are specified in
+// the request body.
 func (h *Handler) EntityAction(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
@@ -109,6 +119,8 @@ func (h *Handler) EntityAction(c *gin.Context) {
 	})
 }
 
+// entityToSummary converts an Entity to a lightweight gin.H map containing
+// only the most essential fields for list views.
 func entityToSummary(e *entity.Entity) gin.H {
 	return gin.H{
 		"id":          e.ID,
@@ -126,6 +138,8 @@ func entityToSummary(e *entity.Entity) gin.H {
 	}
 }
 
+// entityToDetail converts an Entity to a comprehensive gin.H map containing
+// all fields including attributes, skills, equipment, inventory, and encumbrance.
 func entityToDetail(e *entity.Entity) gin.H {
 	skills := make(map[string]int)
 	if e.Skills != nil {

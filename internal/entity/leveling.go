@@ -1,14 +1,22 @@
 // Package entity defines the simulation entities, their attributes, and related behaviors.
 package entity
 
-import "log"
+import (
+	"log"
+
+	"simuz/internal/species"
+)
 
 func (e *Entity) LevelUpThreshold() int {
 	return e.Level * 100
 }
 
 func (e *Entity) CheckLevelUp() bool {
-	if !GetSpecies(e.Species).CanLevelUp || e.XP < e.LevelUpThreshold() {
+	if sp, exists := species.GetByID(e.Species); exists {
+		if !sp.CanLevelUp || e.XP < e.LevelUpThreshold() {
+			return false
+		}
+	} else {
 		return false
 	}
 

@@ -3,8 +3,8 @@ package engine
 
 import (
 	"log"
+	"math/rand"
 
-	"simuz/internal/combat"
 	"simuz/internal/entity"
 	"simuz/internal/world"
 )
@@ -145,7 +145,8 @@ func ApplyTerritoryKillHooks(s *Simulation, killer, victim *entity.Entity) {
 		return
 	}
 	NudgeTerritoryOnKill(s.World, victim.LocationID, killer.Faction)
+	var rng *rand.Rand
 	if killer.Faction != victim.Faction {
-		combat.ShiftRelation(killer.Faction, victim.Faction, -1)
+		killer.ChangeFactionRelation(victim.Faction, rng.Intn(6)+1) // Increase hostility toward victim's faction
 	}
 }

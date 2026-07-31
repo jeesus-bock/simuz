@@ -15,8 +15,10 @@ import (
 	"simuz/internal/engine"
 	"simuz/internal/entity"
 	"simuz/internal/events"
+	"simuz/internal/faction"
 	"simuz/internal/items"
 	"simuz/internal/quest"
+	"simuz/internal/species"
 	"simuz/internal/world"
 
 	"github.com/gin-gonic/gin"
@@ -232,13 +234,21 @@ func hostileFactionMixExists(factions map[string]int) bool {
 		return false
 	}
 	keys := make([]string, 0, len(factions))
-	for faction := range factions {
-		keys = append(keys, faction)
+	for fID := range factions {
+		keys = append(keys, fID)
 	}
+
 	sortStringsByFoldAndRaw(keys)
-	for i := range keys {
-		for j := i + 1; j < len(keys); j++ {
-			if combat.Relation(keys[i], keys[j]) == combat.Hostile {
+	for _, fID := range keys {
+		fac, ok := faction.GetFactionByID(fID)
+		if !ok {
+			continue
+		}
+		for _, fac2ID := range keys {
+			if fID == fac2ID {
+				continue
+			}
+			if fac.Relation.FactionRelation[fac2ID].String() == "hostile" {
 				return true
 			}
 		}
@@ -246,15 +256,12 @@ func hostileFactionMixExists(factions map[string]int) bool {
 	return false
 }
 
-func relationLabel(rel combat.FactionRelation) string {
-	switch rel {
-	case combat.Friendly:
-		return "friendly"
-	case combat.Hostile:
-		return "hostile"
-	default:
+func relationLabel(factionID1 string, factionID2 string) string {
+	fac1, ok := faction.GetFactionByID(factionID1)
+	if !ok {
 		return "neutral"
 	}
+	return fac1.GetFactionRelation(factionID2).String()
 }
 
 func buildFactionRelationNotes(factions []string) []string {
@@ -264,13 +271,20 @@ func buildFactionRelationNotes(factions []string) []string {
 	notes := make([]string, 0, len(factions))
 	for i := range factions {
 		for j := i + 1; j < len(factions); j++ {
-			rel := combat.Relation(factions[i], factions[j])
-			if rel == combat.Hostile {
+			fac, ok := faction.GetFactionByID(factions[i])
+			if !ok {
 				continue
 			}
-			notes = append(notes, factions[i]+" + "+factions[j]+" ("+relationLabel(rel)+")")
+			// get the relation value (as int) between the two factions
+			relVal := 0
+			if r, ok2 := fac.Relation.FactionRelation[factions[j]]; ok2 {
+				relVal = r.Int()
+			}
+			notes = append(notes, factions[i]+" + "+factions[j]+" ("+fmt.Sprintf("%d", relVal)+")")
 		}
+
 	}
+
 	sortStringsByFoldAndRaw(notes)
 	return notes
 }
@@ -459,7 +473,7 @@ func combatDetailData(h *Handler, locID string) gin.H {
 	}
 }
 
-func buildLocationTree(w *world.World, entities *entity.Manager) []locNode {
+func buildLocationTree(w *world.World, entities *entity.EntityManager) []locNode {
 	root := w.RootLocation()
 	if root == nil {
 		return nil
@@ -467,7 +481,7 @@ func buildLocationTree(w *world.World, entities *entity.Manager) []locNode {
 	return buildChildren(w, entities, root.ID, 0)
 }
 
-func buildChildren(w *world.World, entities *entity.Manager, parentID string, depth int) []locNode {
+func buildChildren(w *world.World, entities *entity.EntityManager, parentID string, depth int) []locNode {
 	children := w.ChildLocations(parentID)
 	sortLocationsForDisplay(children)
 	var nodes []locNode
@@ -1091,7 +1105,11 @@ func (h *Handler) EntityDetailPage(c *gin.Context) {
 	xpForNext := ent.Level * 100
 	xpPercent := 0
 	canLevelUp := false
-	if xpForNext > 0 && entity.GetSpecies(ent.Species).CanLevelUp {
+	species, ok := species.GetByID(ent.Species)
+	if !ok {
+		return
+	}
+	if xpForNext > 0 && species.CanLevelUp {
 		xpPercent = ent.XP * 100 / xpForNext
 		if ent.XP >= xpForNext {
 			canLevelUp = true
@@ -1177,7 +1195,11 @@ func (h *Handler) EntityDetailFragment(c *gin.Context) {
 	xpForNext := ent.Level * 100
 	xpPercent := 0
 	canLevelUp := false
-	if xpForNext > 0 && entity.GetSpecies(ent.Species).CanLevelUp {
+	species, ok := species.GetByID(ent.Species)
+	if !ok {
+		return
+	}
+	if xpForNext > 0 && species.CanLevelUp {
 		xpPercent = ent.XP * 100 / xpForNext
 		if ent.XP >= xpForNext {
 			canLevelUp = true
@@ -1666,7 +1688,7 @@ func (h *Handler) PregnanciesFragment(c *gin.Context) {
 func buildPregnantEntities(sim *engine.Simulation) []pregnantEntityView {
 	var out []pregnantEntityView
 	for _, e := range sim.Entities.All() {
-		if !e.Pregnant {
+		if !e.Reproduction.Pregnant {
 			continue
 		}
 		gestation := SpeciesGestationTicks(e.Species)

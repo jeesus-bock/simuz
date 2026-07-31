@@ -7,10 +7,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Handler holds references to the simulation and template engine needed
+// by all API route handlers.
 type Handler struct {
+	// Sim is a pointer to the active simulation instance, providing access
+	// to the world, entities, quests, and time state.
 	Sim *engine.Simulation
 }
 
+// RegisterRoutes registers all API endpoints under the provided gin RouterGroup.
+// Each route is bound to its corresponding handler method on the Handler struct.
 func RegisterRoutes(rg *gin.RouterGroup, sim *engine.Simulation) {
 	h := &Handler{Sim: sim}
 

@@ -9,6 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// GetWorld returns a summary of the current world state, including the
+// current tick, time of day, season, and entity counts.
 func (h *Handler) GetWorld(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
@@ -38,6 +40,8 @@ func (h *Handler) GetWorld(c *gin.Context) {
 	})
 }
 
+// GetLocation returns detailed information about a specific location,
+// including its children, entities present, and available exits.
 func (h *Handler) GetLocation(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
@@ -141,6 +145,8 @@ func (h *Handler) GetLocation(c *gin.Context) {
 	})
 }
 
+// PostTick advances the simulation by a given number of ticks (default 1, max 1000).
+// The request body may include a "count" field to specify how many ticks to run.
 func (h *Handler) PostTick(c *gin.Context) {
 	var req struct {
 		Count int `json:"count" form:"count"`

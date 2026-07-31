@@ -12,8 +12,11 @@ import (
 	"simuz/internal/economy"
 	"simuz/internal/entity"
 	"simuz/internal/events"
+	"simuz/internal/faction"
 	"simuz/internal/items"
 	"simuz/internal/quest"
+	"simuz/internal/relation"
+	"simuz/internal/species"
 	"simuz/internal/world"
 
 	lua "github.com/yuin/gopher-lua"
@@ -52,12 +55,53 @@ var MoveRequest func(ent *entity.Entity, destID string) bool
 // IsEntityTraveling is set by the engine.
 var IsEntityTraveling func(entityID string) bool
 
-// RunScript executes a loaded Lua AI script and returns the events it generated.
-func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manager, tm *world.GameTime, rng *rand.Rand, qm *quest.Manager) ([]*events.SimEvent, error) {
+// setFactionHostility sets the faction-level hostility relation between two factions bidirectionally.
+func setFactionHostility(factionA, factionB string, rel relation.HostilityRelation) {
+	if factionA == factionB {
+		return
+	}
+	if fac, ok := faction.GetFactionByID(factionA); ok {
+		fac.Relation.SetFactionRelation(factionB, rel)
+	}
+	if fac, ok := faction.GetFactionByID(factionB); ok {
+		fac.Relation.SetFactionRelation(factionA, rel)
+	}
+}
+
+// factionHostility returns the combined faction-level hostility between two factions.
+// Positive means friendly, negative means hostile, zero means neutral.
+func factionHostility(factionA, factionB string) relation.HostilityRelation {
+	if factionA == factionB {
+		return 1
+	}
+	var combined relation.HostilityRelation
+	if fac, ok := faction.GetFactionByID(factionA); ok {
+		combined += fac.Relation.GetFactionRelation(factionB)
+	}
+	if fac, ok := faction.GetFactionByID(factionB); ok {
+		combined += fac.Relation.GetFactionRelation(factionA)
+	}
+	return combined
+}
+
+// IsHostile checks whether factionA is hostile toward factionB.
+func IsHostile(factionA, factionB string) bool {
+	return factionHostility(factionA, factionB) < 0
+}
+
+// ScriptResult holds the outcome of a single script execution.
+type ScriptResult struct {
+	Events []*events.SimEvent
+}
+
+// RunScript executes a loaded Lua AI script and returns any events it generated.
+// Scripts return a single table of SimEvent structs. An empty/nil table means
+// no action was taken.
+func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.EntityManager, tm *world.GameTime, rng *rand.Rand, qm *quest.Manager) (ScriptResult, error) {
 	proto, ok := globalScripts.scripts[name]
 
 	if !ok {
-		return nil, fmt.Errorf("script not found: %s", name)
+		return ScriptResult{}, fmt.Errorf("script not found: %s", name)
 	}
 
 	L := lua.NewState()
@@ -70,25 +114,41 @@ func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Manag
 	closure := L.NewFunctionFromProto(proto)
 	err := L.CallByParam(lua.P{
 		Fn:      closure,
-		NRet:    3,
+		NRet:    1,
 		Protect: true,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("run script %s: %w", name, err)
+		return ScriptResult{}, fmt.Errorf("run script %s: %w", name, err)
 	}
 
-	var simEvents []*events.SimEvent
-
+	var result ScriptResult
 	val := L.Get(-1)
 	if tbl, ok := val.(*lua.LTable); ok {
-		simEvents = decodeSimEvents(tbl, tm.Tick)
+		result.Events = decodeSimEvents(tbl, tm.Tick)
 	}
 
-	return simEvents, nil
+	return result, nil
 }
 
 // decodeSimEvents converts a Lua table of event tables into []*events.SimEvent.
 // Each entry in the Lua table should have keys: type (int), tick (uint64), source (string), data (table).
+var eventTypeNames = map[string]events.EventType{
+	"entity_killed":     events.EventEntityKilled,
+	"entity_talked":     events.EventEntityTalked,
+	"location_entered":  events.EventLocationEntered,
+	"item_collected":    events.EventItemCollected,
+	"item_delivered":    events.EventItemDelivered,
+	"item_used":         events.EventItemUsed,
+	"craft_completed":   events.EventCraftCompleted,
+	"travel_completed":  events.EventTravelCompleted,
+	"tick":              events.EventTick,
+	"time_passed":       events.EventTimePassed,
+	"entity_born":       events.EventEntityBorn,
+	"quest_complete":    events.EventTypeQuestComplete,
+	"xp_gained":         events.EventXPGained,
+	"starvation":        events.EventTypeStarvation,
+}
+
 func decodeSimEvents(tbl *lua.LTable, defaultTick uint64) []*events.SimEvent {
 	var luaEvents []*events.SimEvent
 	tbl.ForEach(func(k, v lua.LValue) {
@@ -100,14 +160,14 @@ func decodeSimEvents(tbl *lua.LTable, defaultTick uint64) []*events.SimEvent {
 			Tick: defaultTick,
 		}
 
-		// type (EventType int)
+		// type: accept both int and string names
 		if typeVal := eventTbl.RawGetString("type"); typeVal != lua.LNil {
-			typeInt, err := strconv.Atoi(typeVal.String())
-			if err != nil {
-				log.Printf("Error converting type to int: %v", err)
-				return
+			typeStr := typeVal.String()
+			if named, ok := eventTypeNames[typeStr]; ok {
+				ev.Type = named
+			} else if typeInt, err := strconv.Atoi(typeStr); err == nil {
+				ev.Type = events.EventType(typeInt)
 			}
-			ev.Type = events.EventType(typeInt)
 		}
 
 		// tick (uint64)
@@ -411,8 +471,12 @@ func bindEntity(L *lua.LState, e *entity.Entity, tick uint64) {
 }
 
 func computeHunger(e *entity.Entity, tick uint64) float64 {
-	if !entity.GetSpecies(e.Species).AutoFeed && e.LastMealTick > 0 {
-		threshold := entity.GetSpecies(e.Species).StarvationThreshold
+	species, ok := species.GetByID(e.Species)
+	if !ok {
+		return 0
+	}
+	if !species.AutoFeed && e.LastMealTick > 0 {
+		threshold := species.StarvationThreshold
 		if threshold > 0 {
 			ticksSince := int(tick) - e.LastMealTick
 			if ticksSince >= threshold {
@@ -508,7 +572,7 @@ type luaNearbyCombatSite struct {
 	ControlStrength    int
 }
 
-func nearbyCombatSitesLua(w *world.World, em *entity.Manager, ent *entity.Entity) []luaNearbyCombatSite {
+func nearbyCombatSitesLua(w *world.World, em *entity.EntityManager, ent *entity.Entity) []luaNearbyCombatSite {
 	if w == nil || em == nil || ent == nil {
 		return nil
 	}
@@ -529,7 +593,18 @@ func nearbyCombatSitesLua(w *world.World, em *entity.Manager, ent *entity.Entity
 				continue
 			}
 			factions[other.Faction] = struct{}{}
-			if combat.Relation(ent.Faction, other.Faction) == combat.Hostile {
+			fac1, ok := faction.GetFactionByID(ent.Faction)
+			if !ok {
+				continue
+			}
+			fac2, ok := faction.GetFactionByID(other.Faction)
+			if !ok {
+				continue
+			}
+			fac1h := fac1.Relation.GetFactionRelation(other.Faction)
+			fac2h := fac2.Relation.GetFactionRelation(ent.Faction)
+			combined := fac1h + fac2h
+			if combined > 5 {
 				site.Hostiles++
 			} else {
 				site.Allies++
@@ -624,7 +699,7 @@ func shouldAssistNearbyCombatLua(rng *rand.Rand, ent *entity.Entity, site luaNea
 	return rng.Intn(chance) == 0
 }
 
-func passiveCombatResponseLua(w *world.World, em *entity.Manager, ent *entity.Entity, rng *rand.Rand) bool {
+func passiveCombatResponseLua(w *world.World, em *entity.EntityManager, ent *entity.Entity, rng *rand.Rand) bool {
 	if w == nil || em == nil || ent == nil {
 		return false
 	}
@@ -681,7 +756,7 @@ func retreatCatchChanceLua(attacker, defender *entity.Entity) int {
 	return chance
 }
 
-func scriptCombatAttack(w *world.World, em *entity.Manager, qm *quest.Manager, rng *rand.Rand, tick uint64, attacker, target *entity.Entity) bool {
+func scriptCombatAttack(w *world.World, em *entity.EntityManager, qm *quest.Manager, rng *rand.Rand, tick uint64, attacker, target *entity.Entity) bool {
 	if attacker == nil || target == nil || !attacker.Alive || !attacker.Conscious || !target.Alive {
 		return false
 	}
@@ -694,12 +769,9 @@ func scriptCombatAttack(w *world.World, em *entity.Manager, qm *quest.Manager, r
 	}
 	hit := combat.SimpleAttack(attacker, target, rng)
 	combat.ResetWeatherVisibility()
-	if !target.Alive {
-		combat.LootCorpse(attacker, target)
-		if attacker.Faction != target.Faction {
-			combat.ShiftRelation(attacker.Faction, target.Faction, -1)
-		}
-		if loc := w.Location(target.LocationID); loc != nil && attacker.Faction != "" && attacker.Faction != "civilian" && attacker.Faction != "deity" {
+	if attacker.Faction != "" && attacker.Faction != "civilian" && attacker.Faction != "deity" &&
+		target.Faction != "" && target.Faction != "civilian" && target.Faction != "deity" {
+		if loc := w.Location(target.LocationID); loc != nil {
 			if loc.ControllingFaction == attacker.Faction {
 				loc.ControlStrength += 3
 				if loc.ControlStrength > 100 {
@@ -713,7 +785,34 @@ func scriptCombatAttack(w *world.World, em *entity.Manager, qm *quest.Manager, r
 				}
 			}
 		}
-		if entity.GetSpecies(attacker.Species).CanLevelUp {
+	}
+	if hit {
+		target.ChangeEntityRelation(attacker.ID, -2)
+		target.ChangeFactionRelation(attacker.Faction, -1)
+		if aFac, ok := faction.GetFactionByID(attacker.Faction); ok {
+			aFac.Relation.ChangeFactionRelation(target.Faction, -1)
+		}
+		if tFac, ok := faction.GetFactionByID(target.Faction); ok {
+			tFac.Relation.ChangeFactionRelation(attacker.Faction, -1)
+		}
+	}
+	if !target.Alive {
+		combat.LootCorpse(attacker, target)
+		if attacker.Faction != target.Faction {
+			target.ChangeEntityRelation(attacker.ID, -10)
+			target.ChangeFactionRelation(attacker.Faction, -7)
+			if aFac, ok := faction.GetFactionByID(attacker.Faction); ok {
+				aFac.Relation.ChangeFactionRelation(target.Faction, -7)
+			}
+			if tFac, ok := faction.GetFactionByID(target.Faction); ok {
+				tFac.Relation.ChangeFactionRelation(attacker.Faction, -7)
+			}
+		}
+		species, ok := species.GetByID(attacker.Species)
+		if !ok {
+			return false
+		}
+		if species.CanLevelUp {
 			xp := 5 + target.Level*3 + target.MaxHP/10
 			if xp < 1 {
 				xp = 1
@@ -725,7 +824,7 @@ func scriptCombatAttack(w *world.World, em *entity.Manager, qm *quest.Manager, r
 	return hit
 }
 
-func scriptRetreatOpportunityAttack(w *world.World, em *entity.Manager, qm *quest.Manager, rng *rand.Rand, tick uint64, attacker, defender *entity.Entity) bool {
+func scriptRetreatOpportunityAttack(w *world.World, em *entity.EntityManager, qm *quest.Manager, rng *rand.Rand, tick uint64, attacker, defender *entity.Entity) bool {
 	if w == nil || attacker == nil || defender == nil || !attacker.Alive || !defender.Alive {
 		return false
 	}
@@ -736,7 +835,7 @@ func scriptRetreatOpportunityAttack(w *world.World, em *entity.Manager, qm *ques
 	return scriptCombatAttack(w, em, qm, rng, tick, attacker, defender)
 }
 
-func scriptFleeCombat(w *world.World, em *entity.Manager, qm *quest.Manager, rng *rand.Rand, tick uint64, ent *entity.Entity, hostiles []*entity.Entity) bool {
+func scriptFleeCombat(w *world.World, em *entity.EntityManager, qm *quest.Manager, rng *rand.Rand, tick uint64, ent *entity.Entity, hostiles []*entity.Entity) bool {
 	if w == nil || ent == nil || len(hostiles) == 0 {
 		return false
 	}
@@ -783,7 +882,7 @@ func scriptFleeCombat(w *world.World, em *entity.Manager, qm *quest.Manager, rng
 	return true
 }
 
-func questKilledLua(qm *quest.Manager, em *entity.Manager, target *entity.Entity) {
+func questKilledLua(qm *quest.Manager, em *entity.EntityManager, target *entity.Entity) {
 	if qm == nil || em == nil || target == nil {
 		return
 	}
@@ -818,7 +917,7 @@ func questKilledLua(qm *quest.Manager, em *entity.Manager, target *entity.Entity
 	}
 }
 
-func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.GameTime, rng *rand.Rand, ent *entity.Entity, qm *quest.Manager) {
+func bindWorld(L *lua.LState, w *world.World, em *entity.EntityManager, tm *world.GameTime, rng *rand.Rand, ent *entity.Entity, qm *quest.Manager) {
 	worldTbl := L.NewTable()
 	worldTbl.RawSetString("time", lua.LString(tm.String()))
 	worldTbl.RawSetString("tick", lua.LNumber(tm.Tick))
@@ -1024,7 +1123,17 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 	worldTbl.RawSetString("is_hostile", L.NewFunction(func(L *lua.LState) int {
 		a := L.ToString(1)
 		b := L.ToString(2)
-		L.Push(lua.LBool(combat.Relation(a, b) == combat.Hostile))
+		att := em.Get(a)
+		def := em.Get(b)
+
+		// If both resolve as entities, use entity-level relation.
+		if att != nil && def != nil {
+			rel := att.Relation.Relation(def)
+			L.Push(lua.LBool(rel < 0))
+			return 1
+		}
+		// Otherwise treat as faction strings and use faction-level hostility.
+		L.Push(lua.LBool(IsHostile(a, b)))
 		return 1
 	}))
 
@@ -1081,8 +1190,16 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 	worldTbl.RawSetString("get_relation", L.NewFunction(func(L *lua.LState) int {
 		factionA := L.ToString(1)
 		factionB := L.ToString(2)
-		rel := combat.Relation(factionA, factionB)
-		L.Push(lua.LString(rel.String()))
+		rel := factionHostility(factionA, factionB)
+		var relStr string
+		if rel < 0 {
+			relStr = "hostile"
+		} else if rel > 0 {
+			relStr = "friendly"
+		} else {
+			relStr = "neutral"
+		}
+		L.Push(lua.LString(relStr))
 		return 1
 	}))
 
@@ -1090,16 +1207,16 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 		a := L.ToString(1)
 		b := L.ToString(2)
 		rel := L.ToString(3)
-		var r combat.FactionRelation
+		var r relation.HostilityRelation
 		switch rel {
 		case "hostile":
-			r = combat.Hostile
+			r = -5
 		case "friendly":
-			r = combat.Friendly
+			r = 5
 		default:
-			r = combat.Neutral
+			r = 0
 		}
-		combat.SetRelation(a, b, r)
+		setFactionHostility(a, b, r)
 		log.Printf("[lua] %s set relation %s <-> %s = %s", ent.Name, a, b, rel)
 		return 0
 	}))
@@ -1111,7 +1228,7 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 			if other == nil || other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if combat.Relation(ent.Faction, other.Faction) != combat.Hostile {
+			if ent.Relation.Relation(other) >= 0 {
 				continue
 			}
 			hostiles = append(hostiles, other)
@@ -1410,6 +1527,27 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 		return 1
 	}))
 
+	worldTbl.RawSetString("loot_item", L.NewFunction(func(L *lua.LState) int {
+		sourceID := L.ToString(1)
+		itemDefID := L.ToString(2)
+		source := em.Get(sourceID)
+		if source == nil {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		idx, found := economy.HasItem(source, itemDefID)
+		if !found {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		ok := economy.TransferItem(source, ent, idx)
+		if ok {
+			log.Printf("[lua] %s looted %s from %s", ent.Name, itemDefID, source.Name)
+		}
+		L.Push(lua.LBool(ok))
+		return 1
+	}))
+
 	worldTbl.RawSetString("damage_location", L.NewFunction(func(L *lua.LState) int {
 		attackerID := L.ToString(1)
 		amount := L.ToInt(2)
@@ -1426,7 +1564,7 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 			if other.ID == attacker.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if combat.Relation(attacker.Faction, other.Faction) == combat.Friendly {
+			if attacker.Relation.Relation(other) >= 0 {
 				continue
 			}
 			other.TakeDamage(amount)
@@ -1434,9 +1572,13 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 			if !other.Alive {
 				combat.LootCorpse(attacker, other)
 				if attacker.Faction != other.Faction {
-					combat.ShiftRelation(attacker.Faction, other.Faction, -1)
+					other.ChangeFactionRelation(attacker.Faction, -10)
 				}
-				if entity.GetSpecies(attacker.Species).CanLevelUp {
+				species, ok := species.GetByID(attacker.Species)
+				if !ok {
+					continue
+				}
+				if species.CanLevelUp {
 					xp := 5 + other.Level*3 + other.MaxHP/10
 					if xp < 1 {
 						xp = 1
@@ -1970,6 +2112,47 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.Manager, tm *world.Game
 		L.Push(lua.LBool(family))
 		return 1
 	}))
+	// Drop this directly into your existing bindWorld(L, w, em, tm, rng, ent, qm) function
+	L.SetField(worldTbl, "damage_location", L.NewFunction(func(L *lua.LState) int {
+		// 1. Parse arguments passed down from the Lua script execution layer
+		attackerID := L.CheckString(1)
+		rawAmount := L.CheckNumber(2)
+		damageAmount := int(rawAmount)
+
+		// 2. Fetch the current location of the executing entity
+		// (Assuming your entity or manager has a clean spatial map registry)
+		currentLocationID := ent.LocationID
+
+		// 3. Scan all live entities in the exact same location node map sector
+		// Use your em (*entity.EntityManager) to safely query the world registry
+		allEntities := em.GetEntitiesInLocation(currentLocationID)
+
+		// 4. Iterate over the group and apply damage vectors cleanly
+		for _, target := range allEntities {
+			// Guard: Do not let an explosion damage deceased entities or the attacker themselves!
+			if target.ID == attackerID || !target.Alive {
+				continue
+			}
+
+			// Subtract health points directly on the target struct model memory layer
+			target.HP -= damageAmount
+
+			// Handle sudden fatality checks
+			if target.HP <= 0 {
+				target.HP = 0
+				target.Alive = false
+				target.TimeOfDeath = uint64(tm.Tick) // Log history timestamps accurately
+
+				// Set their mood modifier context to dead state
+				target.Mood = "dead"
+
+				// Optional: Trigger your event system return pipeline array
+				// simEvents = append(simEvents, events.NewDeathEvent(target.ID, attackerID))
+			}
+		}
+
+		return 0 // Returns nothing back to the Lua script execution stack
+	}))
 
 	L.SetGlobal("world", worldTbl)
 }
@@ -2048,6 +2231,20 @@ func bindUtils(L *lua.LState, rng *rand.Rand, e *entity.Entity) {
 			return 2
 		}
 		goValueToLua(L, val)
+		return 1
+	}))
+
+	utilTbl.RawSetString("event", L.NewFunction(func(L *lua.LState) int {
+		eventType := L.ToString(1)
+		tbl := L.NewTable()
+		tbl.RawSetString("type", lua.LString(eventType))
+		tbl.RawSetString("source", lua.LString(e.ID))
+		if L.GetTop() >= 2 {
+			if data, ok := L.Get(2).(*lua.LTable); ok {
+				tbl.RawSetString("data", data)
+			}
+		}
+		L.Push(tbl)
 		return 1
 	}))
 

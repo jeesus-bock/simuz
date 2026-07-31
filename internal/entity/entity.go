@@ -2,9 +2,12 @@
 package entity
 
 import (
+	"hash/fnv"
 	"math/rand"
 
 	"simuz/internal/items"
+	"simuz/internal/relation"
+	"simuz/internal/species"
 )
 
 type Position struct {
@@ -97,6 +100,7 @@ type Entity struct {
 	MaxFP                int                           `json:"max_fp"`
 	FP                   int                           `json:"fp"`
 	XP                   int                           `json:"xp"`
+	SkillProgressXP      map[string]int                `json:"skillProgressXP"`
 	LocationID           string                        `json:"location_id"`
 	Position             Position                      `json:"position"`
 	Equipment            Equipment                     `json:"equipment"`
@@ -111,14 +115,17 @@ type Entity struct {
 	MoodModifiers        []MoodModifier                `json:"mood_modifiers,omitempty"`
 	LeashedBy            string                        `json:"leashed_by,omitempty"`
 	RescueState          string                        `json:"rescue_state,omitempty"`
-	Pregnant             bool                          `json:"pregnant,omitempty"`
-	PregnantSinceTick    uint64                        `json:"pregnant_since_tick,omitempty"`
-	FatherID             string                        `json:"father_id,omitempty"`
+	Reproduction         Reproduction                  `json:"reproduction,omitempty"`
 	Relationships        map[string]EntityRelationship `json:"relationships,omitempty"`
 	LastReproductionTick uint64                        `json:"last_reproduction_tick,omitempty"`
+	KnockedOutTick       uint64                        `json:"knocked_out_tick,omitempty"`
+	TimeOfDeath          uint64                        `json:"timeOfDeath"`
+	relation.Relation
+	Memory     map[string]string `json:"memory,omitempty"`
+	BioProfile *species.Species  `json:"bioProfile"`
 }
 
-func NewEntity(id, name, species string, attrs Attributes, level int) *Entity {
+func NewEntity(id, name, speciesID string, attrs Attributes, level int, rel relation.Relation) *Entity {
 	maxHP := attrs.CON*2 + level*2
 	maxFP := attrs.CON + attrs.STR/2
 	if maxHP < 1 {
@@ -127,15 +134,19 @@ func NewEntity(id, name, species string, attrs Attributes, level int) *Entity {
 	if maxFP < 1 {
 		maxFP = 1
 	}
+	maxAge := 0
+	if sp, exists := species.GetByID(speciesID); exists {
+		maxAge = sp.MaxAge
+	}
 	return &Entity{
 		ID:            id,
 		Name:          name,
-		Species:       species,
-		Gender:        randomGender(),
+		Species:       speciesID,
+		Gender:        GetRndGender(),
 		Profession:    "",
 		Level:         level,
 		Age:           0,
-		MaxAge:        GetSpecies(species).MaxAge,
+		MaxAge:        maxAge,
 		LastMealTick:  0,
 		Alive:         true,
 		Conscious:     true,
@@ -152,21 +163,55 @@ func NewEntity(id, name, species string, attrs Attributes, level int) *Entity {
 		AI: EntityAI{
 			Type: "passive",
 		},
+		Relation: rel,
+	}
+}
+
+func (e *Entity) GetID() string         { return e.ID }
+func (e *Entity) GetFaction() string    { return e.Faction }
+func (e *Entity) GetSpecies() string    { return e.Species }
+func (e *Entity) GetProfession() string { return e.Profession }
+func GetRndGender() string {
+	choices := []string{GenderMale, GenderFemale, GenderOther}
+	return choices[rand.Intn(len(choices))]
+}
+
+// fertilityKey returns a deterministic 0-99 value derived from the entity ID.
+// Uses FNV-1a so it is stable across ticks, saves, and process restarts.
+func fertilityKey(id string) uint32 {
+	h := fnv.New32a()
+	h.Write([]byte(id))
+	return h.Sum32() % 100
+}
+
+// CanSire returns true when the entity can father/get another entity pregnant.
+// Males always can; "other" can; females cannot.
+func (e *Entity) CanSire() bool {
+	return e.Gender == GenderMale || e.Gender == GenderOther
+}
+
+// CanGetPregnant returns true when the entity can carry a pregnancy.
+// Females: 95% fertile (5% infertile, deterministic per entity ID).
+// Other:   50% can carry (deterministic per entity ID).
+// Males:   never.
+func (e *Entity) CanGetPregnant() bool {
+	switch e.Gender {
+	case GenderFemale:
+		return fertilityKey(e.ID) < 95
+	case GenderOther:
+		return fertilityKey(e.ID) < 50
+	default:
+		return false
 	}
 }
 
 // IsAdult returns true if the entity is old enough to reproduce.
 func (e *Entity) IsAdult() bool {
-	return e.Level >= 3
-}
-
-func randomGender() string {
-	if rand.Intn(2) == 0 {
-		return GenderMale
+	if sp, exists := species.GetByID(e.Species); exists {
+		return e.Age >= sp.AdultAge || e.Level >= 3
 	}
-	return GenderFemale
+	return false
 }
-
 func (e *Entity) TakeDamage(amount int) {
 	if amount < 0 {
 		return

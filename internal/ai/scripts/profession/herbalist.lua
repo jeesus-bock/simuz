@@ -91,23 +91,24 @@ local function sell_remedies()
     return false
 end
 
-local function do_tick()
+function do_tick()
     local phase = world.phase
     local tick = world.tick
 
     if world.defend_self and world.defend_self() then
-        return
+        return {util.event("profession_action", {profession = "herbalist"})}
     end
     if world.avoid_combat and world.avoid_combat() then
-        return
+        return {util.event("profession_action", {profession = "herbalist"})}
     end
 
     if phase == "night" or phase == "dusk" then
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
             util.log(self.name .. " returned to the hut for the night")
+            return {util.event("profession_action", {profession = "herbalist"})}
         end
-        return
+        return {}
     end
 
     if tick % GATHER_INTERVAL == 0 then
@@ -129,6 +130,8 @@ local function do_tick()
     if tick % 45 == 0 then
         util.set_mood("relaxed")
     end
+
+    return {}
 end
 
-do_tick()
+return do_tick()

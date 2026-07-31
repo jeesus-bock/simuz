@@ -1,78 +1,64 @@
 package main
 
 import (
-	"flag"
 	"log"
+	"math/rand"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
-	"simuz/internal/ai"
-	"simuz/internal/api"
 	"simuz/internal/engine"
-	"simuz/internal/gen"
-	"simuz/internal/storage"
+	"simuz/internal/entity"
 	"simuz/internal/web"
+	"simuz/internal/world"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	seed := flag.String("seed", "default", "World generation seed")
-	dbPath := flag.String("db", "", "Path to SQLite database (empty = no persistence)")
-	port := flag.String("port", "8080", "HTTP server port")
-	flag.Parse()
+	log.Println("Initializing Simuz Simulation Engine...")
 
-	ai.InitScripts()
+	// 1. Setup global runtime foundations
+	seed := "estonian_gloom_2026"
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	g := gen.New(*seed)
-	w, entities := g.Generate()
+	// 2. Instantiate your concrete managers natively
+	w := world.NewWorld()
+	em := entity.NewEntityManager()
 
-	deities, _ := gen.GenerateDeities(w)
+	// 3. Instantiate the builder orchestrator
+	builder := engine.NewWorldBuilder(seed, rng)
 
-	sim := engine.NewSimulation(w)
-	for _, e := range entities {
-		sim.Entities.Add(e)
-	}
-	for _, d := range deities {
-		sim.Entities.Add(d)
-	}
-	// Quests are defined as Lua scripts in internal/quest/scripts/*.lua
-	for _, q := range gen.SeedQuests() {
-		sim.Quests.Register(q)
+	// 4. Build the simulation context by feeding it the managers
+	sim, err := builder.BootstrapWorld(w, em)
+	if err != nil {
+		log.Fatalf("Critical Engine Boot Failure: %v", err)
 	}
 
-	if *dbPath != "" {
-		store := storage.NewSQLiteStore(*dbPath)
-		if err := store.Open(); err != nil {
-			log.Fatalf("Failed to open database: %v", err)
-		}
-		defer store.Close()
-		sim.Storage = store
-		log.Printf("Persistence enabled: %s", *dbPath)
-	} else {
-		log.Println("Running without persistence")
-	}
+	log.Println("Bootstrapping Complete. Engine running smoothly.")
 
+	// 5. Start the tick loop in a goroutine
 	go sim.Start()
 
-	router := gin.Default()
-
-	v1 := router.Group("/api/v1")
-	api.RegisterRoutes(v1, sim)
+	// 6. Start the web UI
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.New()
+	router.Use(gin.Recovery())
 	web.SetupRoutes(router, sim)
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-
 	go func() {
-		log.Printf("Simuz listening on :%s", *port)
-		if err := router.Run(":" + *port); err != nil {
-			log.Fatalf("Server failed: %v", err)
+		log.Printf("Web UI listening on http://localhost:8080")
+		if err := router.Run(":8080"); err != nil {
+			log.Fatalf("Web server failed: %v", err)
 		}
 	}()
 
-	<-quit
-	log.Println("Shutting down...")
+	// 7. Wait for interrupt signal to gracefully shut down
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	<-sigCh
+
+	log.Println("Shutting down simulation...")
 	sim.Stop()
 }

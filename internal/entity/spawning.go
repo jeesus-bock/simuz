@@ -1,6 +1,8 @@
 // Package entity defines the simulation entities, their attributes, and related behaviors.
 package entity
 
+import "simuz/internal/relation"
+
 // CanMate checks whether two entities are compatible for reproduction.
 func CanMate(a, b *Entity) bool {
 	if a == nil || b == nil {
@@ -15,11 +17,11 @@ func CanMate(a, b *Entity) bool {
 	if !a.Alive || !b.Alive {
 		return false
 	}
-	if a.Pregnant || b.Pregnant {
+	if a.Reproduction.Pregnant || b.Reproduction.Pregnant {
 		return false
 	}
-	// Immortal or undead species do not reproduce.
-	if a.Species == "deity" || a.Species == "vampire" {
+
+	if a.Species == "vampire" {
 		return false
 	}
 	return true
@@ -39,6 +41,7 @@ func SpawnBaby(parent1, parent2 *Entity, id, babyName string, rng func(int) int)
 		parent1.Species,
 		attrs,
 		1,
+		relation.Relation{},
 	)
 
 	// Inherit gender randomly from one of the parents
@@ -48,11 +51,13 @@ func SpawnBaby(parent1, parent2 *Entity, id, babyName string, rng func(int) int)
 		baby.Gender = parent2.Gender
 	}
 
-	// Mark the female parent as pregnant
-	if parent1.Gender == GenderFemale {
-		parent1.Pregnant = true
-	} else if parent2.Gender == GenderFemale {
-		parent2.Pregnant = true
+	// Mark whichever parent can get pregnant
+	if parent1.CanGetPregnant() {
+		parent1.Reproduction.Pregnant = true
+		parent1.Reproduction.FatherID = parent2.ID
+	} else if parent2.CanGetPregnant() {
+		parent2.Reproduction.Pregnant = true
+		parent2.Reproduction.FatherID = parent1.ID
 	}
 
 	return baby

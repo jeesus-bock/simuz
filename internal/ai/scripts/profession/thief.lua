@@ -122,13 +122,13 @@ local function flee()
     end
 end
 
-local function do_tick()
+function do_tick()
     local tick = world.tick
 
     if should_flee() then
         flee()
         util.set_mood("stressed")
-        return
+        return {util.event("profession_action", {profession = "thief"})}
     end
 
     if tick % 10 == 0 then
@@ -155,6 +155,8 @@ local function do_tick()
             util.set_mood("neutral")
         end
     end
+
+    return {}
 end
 
-do_tick()
+return do_tick()

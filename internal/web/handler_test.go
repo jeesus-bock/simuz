@@ -6,17 +6,18 @@ import (
 	"simuz/internal/engine"
 	"simuz/internal/entity"
 	"simuz/internal/events"
+	"simuz/internal/relation"
 )
 
 func TestBuildRecentBirthsUsesSimulationEventHistory(t *testing.T) {
-	sim := engine.NewSimulation(nil)
+	sim := engine.NewSimulation(nil, entity.NewEntityManager())
 
-	parent := entity.NewEntity("parent", "Parent", "human", entity.Attributes{}, 3)
+	parent := entity.NewEntity("parent", "Parent", "human", entity.Attributes{}, 3, relation.CivilianRelation)
 	parent.Gender = entity.GenderFemale
 	parent.Faction = "civilian"
 	sim.Entities.Add(parent)
 
-	offspring := entity.NewEntity("child", "Child", "human", entity.Attributes{}, 1)
+	offspring := entity.NewEntity("child", "Child", "human", entity.Attributes{}, 1, relation.CivilianRelation)
 	offspring.Gender = entity.GenderFemale
 	offspring.Faction = "civilian"
 	sim.Entities.Add(offspring)

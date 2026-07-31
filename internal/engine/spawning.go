@@ -4,10 +4,14 @@ package engine
 import (
 	"fmt"
 	"log"
+	"maps"
 	"math/rand"
+	"slices"
 
 	"simuz/internal/entity"
 	"simuz/internal/items"
+	"simuz/internal/relation"
+	"simuz/internal/species"
 	"simuz/internal/world"
 )
 
@@ -52,7 +56,7 @@ func NewSpawnManager() *SpawnManager {
 	}
 }
 
-func (sm *SpawnManager) ProcessSpawns(w *world.World, worldEntities *entity.Manager, tick int, rng *rand.Rand) {
+func (sm *SpawnManager) ProcessSpawns(w *world.World, worldEntities *entity.EntityManager, tick int, rng *rand.Rand) {
 	for i := range sm.Rules {
 		rule := &sm.Rules[i]
 		if rule.Interval < 0 {
@@ -90,7 +94,7 @@ func (sm *SpawnManager) ProcessSpawns(w *world.World, worldEntities *entity.Mana
 	}
 }
 
-func countAliveAtLocation(em *entity.Manager, locID, faction, species string) int {
+func countAliveAtLocation(em *entity.EntityManager, locID, faction, species string) int {
 	count := 0
 	for _, e := range em.All() {
 		if e.Alive && e.LocationID == locID && e.Faction == faction && e.Species == species {
@@ -100,7 +104,7 @@ func countAliveAtLocation(em *entity.Manager, locID, faction, species string) in
 	return count
 }
 
-func spawnEntity(rule *SpawnRule, em *entity.Manager, tick, idx int, rng *rand.Rand) *entity.Entity {
+func spawnEntity(rule *SpawnRule, em *entity.EntityManager, tick, idx int, rng *rand.Rand) *entity.Entity {
 	level := rule.MinLevel
 	if rule.MaxLevel > rule.MinLevel {
 		level += rng.Intn(rule.MaxLevel - rule.MinLevel + 1)
@@ -109,16 +113,12 @@ func spawnEntity(rule *SpawnRule, em *entity.Manager, tick, idx int, rng *rand.R
 	name := generateName(rule.Species, rng)
 	id := fmt.Sprintf("%s_spawn_%s_%s_%d_%d", rule.Species, name, rule.LocationID, tick, idx)
 
-	ent := entity.NewEntity(id, name, rule.Species, attrs, level)
+	ent := entity.NewEntity(id, name, rule.Species, attrs, level, relation.EmptyRelation)
 	ent.LocationID = rule.LocationID
 	ent.Faction = rule.Faction
 	ent.Profession = rule.Profession
-	if entity.GetSpecies(rule.Species).CanReproduce {
-		if rng.Intn(2) == 0 {
-			ent.Gender = "male"
-		} else {
-			ent.Gender = "female"
-		}
+	if species, exists := species.GetByID(rule.Species); exists && species.CanReproduce {
+		ent.Gender = entity.GetRndGender()
 	}
 	ent.AI = entity.EntityAI{
 		Type:         "scripted",
@@ -254,10 +254,21 @@ func generateName(species string, rng *rand.Rand) string {
 	goblinNames := []string{"Snag", "Grib", "Nog", "Blink", "Mug"}
 	koboldNames := []string{"Skrit", "Yip", "Klik", "Drak", "Snik"}
 	humanNames := []string{"Aldric", "Brenna", "Cedric", "Delara", "Eamon", "Fiona", "Gareth", "Hilda", "Ivan", "Jenna", "Kol", "Lyssa", "Maren", "Nolan", "Opal", "Petra", "Quinn", "Rhea", "Soren", "Tessa"}
+	halfOrcNames := []string{"Grolf", "Krom", "Thok", "Brak", "Drog", "Mog", "Urgal", "Garok", "Krelka", "Draga", "Shaka", "Greta", "Lara", "Orsha", "Bruna", "Hurga"}
+	halfElfNames := []string{"Aldric", "Cedric", "Eamon", "Gareth", "Thalor", "Elric", "Caelum", "Fenrik", "Aldrica", "Brenna", "Delara", "Fiona", "Thalyra", "Elyra", "Caelia", "Riven"}
+	halfDwarfNames := []string{"Dorn", "Brik", "Haldor", "Grund", "Torin", "Baldur", "Fjor", "Erik", "Dessa", "Brynn", "Hilda", "Greta", "Torva", "Barda", "Fjora", "Astrid"}
+	halfGoblinNames := []string{"Snag", "Grib", "Nog", "Blink", "Mog", "Rik", "Wix", "Zep", "Grix", "Nix", "Plix", "Wyna", "Bria", "Mika", "Trix", "Flick"}
+	halfHobgoblinNames := []string{"Durgath", "Skarrak", "Mograth", "Karg", "Brak", "Zol", "Vorn", "Ghrak", "Krel", "Shara", "Nixa", "Greta", "Velka", "Dasha", "Kira", "Zara"}
+	halfGnollNames := []string{"Ripper", "Bonepick", "Snapper", "Gorr", "Ashclaw", "Maw", "Vex", "Grak", "Ripsnout", "Mama", "Vexa", "Grix", "Bonea", "Snapa", "Graw", "Krela"}
+	halfKoboldNames := []string{"Skrit", "Yip", "Klik", "Drak", "Snik", "Rix", "Zik", "Vrik", "Skrix", "Yipa", "Klika", "Draka", "Snika", "Rika", "Zika", "Vrika"}
+	halfFeyNames := []string{"Thorn", "Bram", "Alder", "Rowan", "Briar", "Fenn", "Oaken", "Willow", "Thyra", "Briar", "Alda", "Rowan", "Nyx", "Luma", "Sylph", "Faye"}
 	names := map[string][]string{
 		"orc": orcNames, "wolf": wolfNames, "bear": bearNames,
 		"boar": boarNames, "rat": ratNames, "spider": spiderNames, "goblin": goblinNames,
 		"kobold": koboldNames, "human": humanNames,
+		"half_orc": halfOrcNames, "half_elf": halfElfNames, "half_dwarf": halfDwarfNames,
+		"half_goblin": halfGoblinNames, "half_hobgoblin": halfHobgoblinNames,
+		"half_gnoll": halfGnollNames, "half_kobold": halfKoboldNames, "half_fey": halfFeyNames,
 	}
 	pool, ok := names[species]
 	if !ok || len(pool) == 0 {
@@ -266,39 +277,97 @@ func generateName(species string, rng *rand.Rand) string {
 	return pool[rng.Intn(len(pool))]
 }
 
-func defaultScripts(species, profession string) []string {
-	switch species {
-	case "orc":
-		return []string{"aggressive"}
-	case "wolf":
-		return []string{"hunting"}
-	case "bear", "boar":
-		return []string{"aggressive"}
-	case "rat":
-		return []string{"defensive"}
-	case "spider":
-		return []string{"scouting"}
-	case "goblin":
-		return []string{"gathering"}
-	case "kobold":
-		return []string{"kobold"}
+// scriptPriority returns a lower number for scripts that should run first.
+// Survival/behavioral scripts run before profession scripts, which run before
+// species-specific scripts.
+func scriptPriority(name string) int {
+	switch name {
+	case "defensive", "aggressive", "hunting", "gathering", "scouting", "healing":
+		return 0
+	case "bard", "guard", "ranger", "priest", "farmer", "fisherman", "miner",
+		"blacksmith", "innkeeper", "herbalist", "courier", "thief", "cultist",
+		"traveling_salesman", "wizard", "bar_patron", "bandit_chief",
+		"bread_weaver", "necromancer", "bandit":
+		return 1
 	default:
-		switch profession {
-		case "bard":
-			return []string{"bard"}
-		case "priest":
-			return []string{"priest"}
-		case "bandit":
-			return []string{"bandit"}
-		case "ranger":
-			return []string{"ranger"}
-		case "merchant":
-			return []string{"merchant"}
-		case "cultist":
-			return []string{"cult_member"}
-		default:
-			return []string{"aggressive"}
+		return 2
+	}
+}
+
+func defaultScripts(sp, profession string) []string {
+	var scripts []string
+	seen := map[string]bool{}
+
+	// 1. Start with species DefaultScripts from the registry.
+	if s, ok := species.GetByID(sp); ok {
+		scripts = append(scripts, s.DefaultScripts...)
+	}
+
+	// 2. Add profession script if one exists for this profession.
+	profScript := professionScript(profession)
+	if profScript != "" && !seen[profScript] {
+		scripts = append(scripts, profScript)
+	}
+
+	// 3. Deduplicate and add fallback.
+	if len(scripts) == 0 {
+		return []string{"aggressive"}
+	}
+	deduped := scripts[:0]
+	for _, s := range scripts {
+		if s != "" && !seen[s] {
+			seen[s] = true
+			deduped = append(deduped, s)
 		}
+	}
+	if len(deduped) == 0 {
+		return []string{"aggressive"}
+	}
+
+	// 4. Sort by priority: survival → profession → species.
+	slices.SortStableFunc(deduped, func(a, b string) int {
+		return scriptPriority(a) - scriptPriority(b)
+	})
+	return deduped
+}
+
+// professionScript maps a profession name to its Lua script ID.
+func professionScript(profession string) string {
+	switch profession {
+	case "bard":
+		return "bard"
+	case "guard":
+		return "guard"
+	case "ranger":
+		return "ranger"
+	case "priest":
+		return "priest"
+	case "farmer":
+		return "farmer"
+	case "fisherman":
+		return "fisherman"
+	case "miner":
+		return "miner"
+	case "blacksmith":
+		return "blacksmith"
+	case "innkeeper":
+		return "innkeeper"
+	case "herbalist":
+		return "herbalist"
+	case "courier":
+		return "courier"
+	case "thief":
+		return "thief"
+	case "cultist":
+		return "cultist"
+	case "merchant", "traveling_salesman":
+		return "traveling_salesman"
+	case "wizard":
+		return "wizard"
+	case "necromancer":
+		return "necromancer"
+	default:
+		return ""
 	}
 }
 
@@ -357,7 +426,7 @@ func CanMate(a, b *entity.Entity) bool {
 	if !a.Alive || !b.Alive {
 		return false
 	}
-	if a.Pregnant || b.Pregnant {
+	if a.Reproduction.Pregnant || b.Reproduction.Pregnant {
 		return false
 	}
 	// Immortal or undead species do not reproduce.
@@ -387,20 +456,30 @@ func SpawnBaby(parent1, parent2 *entity.Entity, id, babyName string, tick uint64
 		parent1.Species,
 		attrs,
 		1,
+		relation.EmptyRelation,
 	)
+	baby.LocationID = parent1.LocationID
+	baby.Faction = parent1.Faction
+	baby.Profession = ""
+	baby.AI = entity.EntityAI{
+		Type:         "scripted",
+		ScriptIDs:    defaultScripts(baby.Species, baby.Profession),
+		FactionID:    parent1.Faction,
+		SleepCycle:   defaultSleepCycle(baby.Species),
+		HomeLocation: parent1.LocationID,
+	}
+	baby.XP = randomXPForLevel(1, rng)
 
 	// Inherit gender randomly from one of the parents
-	if rng(2) == 0 {
-		baby.Gender = parent1.Gender
-	} else {
-		baby.Gender = parent2.Gender
-	}
+	baby.Gender = entity.GetRndGender()
 
-	// Mark the female parent as pregnant
+	// Mark the female parent as pregnant and record the father
 	if parent1.Gender == entity.GenderFemale {
-		parent1.Pregnant = true
+		parent1.Reproduction.Pregnant = true
+		parent1.Reproduction.FatherID = parent2.ID
 	} else if parent2.Gender == entity.GenderFemale {
-		parent2.Pregnant = true
+		parent2.Reproduction.Pregnant = true
+		parent2.Reproduction.FatherID = parent1.ID
 	}
 
 	// Establish relationships: mate bond and parent-child links
@@ -461,57 +540,57 @@ func GestationTicksForSpecies(species string) int {
 	return 200
 }
 
-// StartPregnancy marks a female entity as pregnant with a given father and start tick.
+// StartPregnancy marks an entity as pregnant with a given father and start tick.
 func StartPregnancy(mother, father *entity.Entity, tick uint64) {
 	if mother == nil || father == nil {
 		return
 	}
-	if mother.Gender != entity.GenderFemale {
+	if !mother.CanGetPregnant() {
 		return
 	}
-	if mother.Pregnant {
+	if mother.Reproduction.Pregnant {
 		return
 	}
-	mother.Pregnant = true
-	mother.PregnantSinceTick = tick
-	mother.FatherID = father.ID
+	mother.Reproduction.Pregnant = true
+	mother.Reproduction.PregnantSinceTick = tick
+	mother.Reproduction.FatherID = father.ID
 }
 
 // ProcessPregnancy checks all entities for completed pregnancies and spawns babies.
-func ProcessPregnancy(em *entity.Manager, tick uint64, rng *rand.Rand) {
+func ProcessPregnancy(em *entity.EntityManager, tick uint64, rng *rand.Rand) {
 	for _, e := range em.All() {
-		if !e.Pregnant {
+		if !e.Reproduction.Pregnant {
 			continue
 		}
-		if tick < e.PregnantSinceTick {
+		if tick < e.Reproduction.PregnantSinceTick {
 			continue
 		}
 		gestation := GestationTicksForSpecies(e.Species)
-		if tick-e.PregnantSinceTick < uint64(gestation) {
+		if tick-e.Reproduction.PregnantSinceTick < uint64(gestation) {
 			continue
 		}
 		// Find father entity
 		var father *entity.Entity
 		for _, cand := range em.All() {
-			if cand.ID == e.FatherID {
+			if cand.ID == e.Reproduction.FatherID {
 				father = cand
 				break
 			}
 		}
 		if father == nil {
 			// father not found, clear pregnancy
-			e.Pregnant = false
-			e.PregnantSinceTick = 0
-			e.FatherID = ""
+			e.Reproduction.Pregnant = false
+			e.Reproduction.PregnantSinceTick = 0
+			e.Reproduction.FatherID = ""
 			continue
 		}
 		// Generate baby ID and name
 		babyName := generateName(e.Species, rng)
 		babyID := fmt.Sprintf("%s_baby_%s_%s_%d", e.Species, babyName, e.LocationID, tick)
-		// Clear pregnancy before spawning so SpawnBaby/CanMate won't reject the pair.
-		e.Pregnant = false
-		e.PregnantSinceTick = 0
-		e.FatherID = ""
+		// Clear pregnancy before spawning so CanMate won't reject the pair.
+		e.Reproduction.Pregnant = false
+		e.Reproduction.PregnantSinceTick = 0
+		e.Reproduction.FatherID = ""
 		baby := SpawnBaby(e, father, babyID, babyName, tick, func(n int) int { return rng.Intn(n) })
 		if baby != nil {
 			em.Add(baby)
@@ -521,7 +600,7 @@ func ProcessPregnancy(em *entity.Manager, tick uint64, rng *rand.Rand) {
 
 // SeedFamilies creates multi-generational family groups at simulation start.
 // It places 2–5 families across civilian (indoor) locations in the world.
-func SeedFamilies(em *entity.Manager, w *world.World, rng *rand.Rand) {
+func SeedFamilies(em *entity.EntityManager, w *world.World, rng *rand.Rand) {
 	const maxFamilies = 5
 
 	var candidates []*world.Location
@@ -545,7 +624,7 @@ func SeedFamilies(em *entity.Manager, w *world.World, rng *rand.Rand) {
 	}
 }
 
-func seedFamilyAtLocation(em *entity.Manager, locID string, rng *rand.Rand) {
+func seedFamilyAtLocation(em *entity.EntityManager, locID string, rng *rand.Rand) {
 	species := pickFamilySpecies(rng)
 	tick := uint64(0) // relationships start at tick 0 for seeded families
 
@@ -652,7 +731,7 @@ func seedFamilyAtLocation(em *entity.Manager, locID string, rng *rand.Rand) {
 }
 
 func pickFamilySpecies(rng *rand.Rand) string {
-	species := []string{"human", "elf", "orc", "goblin", "kobold", "hobit", "dwarf"}
+	species := slices.Collect(maps.Keys(species.Registry))
 	return species[rng.Intn(len(species))]
 }
 
@@ -661,7 +740,7 @@ func createSeededEntity(species, gender string, level int, locID string, rng *ra
 	name := generateName(species, rng)
 	id := fmt.Sprintf("%s_seed_%s_%s_%d", species, gender, name, rng.Intn(100000))
 
-	ent := entity.NewEntity(id, name, species, attrs, level)
+	ent := entity.NewEntity(id, name, species, attrs, level, relation.EmptyRelation)
 	ent.Gender = gender
 	ent.LocationID = locID
 	ent.Faction = "civilian"

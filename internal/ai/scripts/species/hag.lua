@@ -57,15 +57,16 @@ local function should_flee()
     return self.hp < self.max_hp * FLEE_THRESHOLD
 end
 
-local function do_tick()
+function do_tick()
     local phase = world.phase
 
     if should_flee() then
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
             util.log(self.name .. " fled to safety at low HP")
+            return {util.event("flee", {})}
         end
-        return
+        return {}
     end
 
     local target_id, target_info = find_hostile()
@@ -76,7 +77,7 @@ local function do_tick()
         do_curse(target_id)
         do_memory_steal(target_id)
         summon_minions()
-        return
+        return {util.event("attack", {})}
     end
 
     if world.tick % 25 == 0 then
@@ -85,9 +86,11 @@ local function do_tick()
             local dest = exits[util.rand_int(#exits) + 1]
             if dest ~= self.loc_id then
                 world.move_to(dest)
+                return {util.event("move", {})}
             end
         end
     end
+    return {}
 end
 
-do_tick()
+return do_tick()
