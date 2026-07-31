@@ -1519,6 +1519,36 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.EntityManager, tm *worl
 		return 1
 	}))
 
+	worldTbl.RawSetString("loot_item", L.NewFunction(func(L *lua.LState) int {
+		targetID := L.ToString(1)
+		itemDefID := L.ToString(2)
+		target := em.Get(targetID)
+		if target == nil {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		idx, found := economy.HasItem(target, itemDefID)
+		if !found {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		inst := target.Inventory[idx]
+		if inst.Def == nil {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		if inst.Count > 1 {
+			target.Inventory[idx].Count--
+		} else {
+			target.Inventory = append(target.Inventory[:idx], target.Inventory[idx+1:]...)
+		}
+		newInst := items.NewItemInstance(itemDefID+"_"+ent.ID+"_"+strconv.Itoa(len(ent.Inventory)), itemDefID, inst.Def, 1)
+		ent.AddItem(newInst)
+		log.Printf("[lua] %s looted %s from %s", ent.Name, itemDefID, target.Name)
+		L.Push(lua.LTrue)
+		return 1
+	}))
+
 	worldTbl.RawSetString("damage_location", L.NewFunction(func(L *lua.LState) int {
 		attackerID := L.ToString(1)
 		amount := L.ToInt(2)

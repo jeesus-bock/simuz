@@ -32,7 +32,10 @@ local function do_loot(target_id)
         return false
     end
     local item = items[util.rand_int(#items) + 1]
-    world.add_item(item)
+    -- transfer off the corpse instead of minting a duplicate
+    if not world.loot_item(target_id, item) then
+        return false
+    end
     util.log(self.name .. " looted " .. item .. " from the carnage")
     return true
 end
