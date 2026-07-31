@@ -24,6 +24,9 @@ local function do_divine_intervention()
             local result = world.divine_intervention(self.id, eid, "heal")
             if result and result.done then
                 util.log(self.name .. " blessed " .. (info.name or eid) .. " with healing")
+                if self.cause and self.cause ~= "" then
+                    world.set_cause(eid, self.cause)
+                end
             end
             goto continue
         end
@@ -32,6 +35,9 @@ local function do_divine_intervention()
             local result = world.divine_intervention(self.id, eid, "bless")
             if result and result.done then
                 util.log(self.name .. " blessed " .. (info.name or eid))
+                if self.cause and self.cause ~= "" then
+                    world.set_cause(eid, self.cause)
+                end
             end
         end
 
@@ -54,6 +60,9 @@ local function do_zeus_intervention()
             local result = world.divine_intervention(self.id, eid, "quest", "zeus_crazy_task")
             if result and result.done then
                 util.log(self.name .. " compelled " .. (info.name or eid) .. " to perform a crazy task!")
+                if self.cause and self.cause ~= "" then
+                    world.set_cause(eid, self.cause)
+                end
             end
             goto continue
         end

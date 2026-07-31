@@ -261,6 +261,7 @@ func bindEntity(L *lua.LState, e *entity.Entity, tick uint64) {
 	entTbl.RawSetString("mood", lua.LString(e.Mood))
 	entTbl.RawSetString("gender", lua.LString(e.Gender))
 	entTbl.RawSetString("hunger", lua.LNumber(computeHunger(e, tick)))
+	entTbl.RawSetString("cause", lua.LString(e.Cause))
 	skillsTbl := L.NewTable()
 	for _, sname := range entity.SkillNames {
 		skillsTbl.RawSetString(sname, lua.LNumber(e.SkillLevel(sname)))
@@ -469,6 +470,18 @@ func bindEntity(L *lua.LState, e *entity.Entity, tick uint64) {
 	entTbl.RawSetString("set_profession", L.NewFunction(func(L *lua.LState) int {
 		newProfession := L.ToString(1)
 		e.Profession = newProfession
+		L.Push(lua.LTrue)
+		return 1
+	}))
+
+	entTbl.RawSetString("get_cause", L.NewFunction(func(L *lua.LState) int {
+		L.Push(lua.LString(e.Cause))
+		return 1
+	}))
+
+	entTbl.RawSetString("set_cause", L.NewFunction(func(L *lua.LState) int {
+		newCause := L.ToString(1)
+		e.Cause = newCause
 		L.Push(lua.LTrue)
 		return 1
 	}))
@@ -1128,6 +1141,7 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.EntityManager, tm *worl
 			worshipTbl.Append(lua.LString(d))
 		}
 		tbl.RawSetString("worship", worshipTbl)
+		tbl.RawSetString("cause", lua.LString(e.Cause))
 		L.Push(tbl)
 		return 1
 	}))
@@ -1195,6 +1209,31 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.EntityManager, tm *worl
 		}
 		e.Profession = newProfession
 		log.Printf("[lua] %s set profession of %s to %s", ent.Name, id, newProfession)
+		L.Push(lua.LTrue)
+		return 1
+	}))
+
+	worldTbl.RawSetString("get_cause", L.NewFunction(func(L *lua.LState) int {
+		id := L.ToString(1)
+		e := em.Get(id)
+		if e == nil {
+			L.Push(lua.LNil)
+			return 1
+		}
+		L.Push(lua.LString(e.Cause))
+		return 1
+	}))
+
+	worldTbl.RawSetString("set_cause", L.NewFunction(func(L *lua.LState) int {
+		id := L.ToString(1)
+		newCause := L.ToString(2)
+		e := em.Get(id)
+		if e == nil {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		e.Cause = newCause
+		log.Printf("[lua] %s set cause of %s to %s", ent.Name, id, newCause)
 		L.Push(lua.LTrue)
 		return 1
 	}))

@@ -317,6 +317,15 @@ func AssignWorship(e *entity.Entity, rng interface{ Intn(int) int }) {
 			e.Worship = append(e.Worship, d)
 		}
 	}
+
+	if len(e.Worship) > 0 && e.Cause == "" {
+		for _, dd := range DeityDefs {
+			if dd.ID == e.Worship[0] {
+				e.Cause = dd.Domain
+				break
+			}
+		}
+	}
 }
 
 func equipDeity(e *entity.Entity, id string) {
