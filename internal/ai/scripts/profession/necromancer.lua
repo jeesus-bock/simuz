@@ -36,13 +36,18 @@ end
 local function do_tick()
     -- Necromancers perform their main spell-weaving routines inside their dark crypts at night
     if world.phase == "day" then
-        if self.home and self.loc_id ~= self.home then world.move_to(self.home) end
-        return
+        if self.home and self.loc_id ~= self.home then
+            world.move_to(self.home)
+            return true
+        end
+        return false
     end
 
     if world.tick % 14 == 0 then
         run_dark_assembly()
     end
+
+    return false
 end
 
-do_tick()
+return do_tick()

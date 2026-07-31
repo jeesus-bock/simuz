@@ -34,7 +34,7 @@ local function do_tick()
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
         end
-        return
+        return true
     end
 
     -- 2. Night Hunting Operations Loop
@@ -46,9 +46,12 @@ local function do_tick()
             local exits = world.exits_from(self.loc_id)
             if exits and #exits > 0 then
                 world.move_to(exits[util.rand_int(#exits) + 1])
+                return true
             end
         end
+        return fed
     end
+    return false
 end
 
-do_tick()
+return do_tick()

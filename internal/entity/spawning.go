@@ -51,11 +51,11 @@ func SpawnBaby(parent1, parent2 *Entity, id, babyName string, rng func(int) int)
 		baby.Gender = parent2.Gender
 	}
 
-	// Mark the female parent as pregnant and record the father
-	if parent1.Gender == GenderFemale {
+	// Mark whichever parent can get pregnant
+	if parent1.CanGetPregnant() {
 		parent1.Reproduction.Pregnant = true
 		parent1.Reproduction.FatherID = parent2.ID
-	} else if parent2.Gender == GenderFemale {
+	} else if parent2.CanGetPregnant() {
 		parent2.Reproduction.Pregnant = true
 		parent2.Reproduction.FatherID = parent1.ID
 	}

@@ -88,7 +88,7 @@ local function do_tick()
 
     if phase == "night" then
         make_camp()
-        return
+        return true
     end
 
     if tick % HUNT_INTERVAL == 0 then
@@ -117,6 +117,8 @@ local function do_tick()
             util.set_mood("relaxed")
         end
     end
+
+    return false
 end
 
-do_tick()
+return do_tick()

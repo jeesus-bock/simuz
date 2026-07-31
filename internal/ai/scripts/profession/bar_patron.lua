@@ -85,8 +85,9 @@ local function do_tick()
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
             util.log(self.name .. " went home from the tavern")
+            return true
         end
-        return
+        return false
     end
 
     if tick % 10 == 0 then
@@ -121,6 +122,8 @@ local function do_tick()
             util.set_mood("relaxed")
         end
     end
+
+    return false
 end
 
-do_tick()
+return do_tick()

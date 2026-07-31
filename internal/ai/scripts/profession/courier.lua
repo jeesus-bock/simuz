@@ -37,7 +37,11 @@ local function do_tick()
                 util.log(self.name .. " is traveling down route to sector: " .. next_hop)
             end
         end
+
+        return done
     end
+
+    return false
 end
 
-do_tick()
+return do_tick()

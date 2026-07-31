@@ -104,8 +104,9 @@ local function do_tick()
             local dest = exits[util.rand_int(#exits) + 1]
             world.move_to(dest)
             util.log(self.name .. " fled from danger")
+            return true
         end
-        return
+        return false
     end
 
     local target_id, target_info = find_hostile()
@@ -123,7 +124,7 @@ local function do_tick()
                 do_steal_loot(target_id)
             end
         end
-        return
+        return true
     end
 
     if world.tick % 20 == 0 then
@@ -132,9 +133,11 @@ local function do_tick()
             local dest = exits[util.rand_int(#exits) + 1]
             if dest ~= self.loc_id then
                 world.move_to(dest)
+                return true
             end
         end
     end
+    return false
 end
 
-do_tick()
+return do_tick()

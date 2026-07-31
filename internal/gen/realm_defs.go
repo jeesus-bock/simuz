@@ -87,12 +87,3 @@ var RealmDefs = []RealmRoomDef{
 		DeityIDs:    []string{"othena_the_pedantic", "baa_hamut"},
 	},
 }
-
-type Location struct {
-	ID          string
-	Name        string
-	Description string
-	Exits       []string
-	Type        string
-	DeityIDs    []string // <-- Ensure this exists if your engine copies rd.DeityIDs into it!
-}

@@ -33,7 +33,9 @@ local function do_tick()
         if not fled and world.tick % 30 == 0 then
             util.set_mood("relaxed", 20)
         end
+        return fled
     end
+    return false
 end
 
-do_tick()
+return do_tick()

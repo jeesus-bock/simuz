@@ -28,13 +28,18 @@ end
 
 local function do_tick()
     if world.phase == "night" then
-        if self.home and self.loc_id ~= self.home then world.move_to(self.home) end
-        return
+        if self.home and self.loc_id ~= self.home then
+            world.move_to(self.home)
+            return true
+        end
+        return false
     end
 
     if world.tick % 16 == 0 then
         run_the_forge()
     end
+
+    return false
 end
 
-do_tick()
+return do_tick()

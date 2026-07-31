@@ -10,7 +10,7 @@ import (
 )
 
 func TestBuildRecentBirthsUsesSimulationEventHistory(t *testing.T) {
-	sim := engine.NewSimulation(nil)
+	sim := engine.NewSimulation(nil, entity.NewEntityManager())
 
 	parent := entity.NewEntity("parent", "Parent", "human", entity.Attributes{}, 3, relation.CivilianRelation)
 	parent.Gender = entity.GenderFemale

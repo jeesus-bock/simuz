@@ -2,6 +2,8 @@
 package gen
 
 import (
+	"log"
+
 	"simuz/internal/entity"
 )
 
@@ -226,77 +228,100 @@ func findRealmForDeity(deityID string) string {
 			}
 		}
 	}
+	log.Printf("[gen] findRealmForDeity: no realm found for deity %s", deityID)
 	return ""
 }
 
 func equipDeity(e *entity.Entity, id string) {
 	switch id {
 	case "zeus":
+		log.Printf("[gen] equipDeity: %s -> toga, lightning_bolt, aegis_shield", id)
 		equipItem(e, lookup("toga"))
 		equipItem(e, lookup("lightning_bolt"))
 		equipItem(e, lookup("aegis_shield"))
 	case "hades":
+		log.Printf("[gen] equipDeity: %s -> dark_robe, bident, helm_of_darkness", id)
 		equipItem(e, lookup("dark_robe"))
 		equipItem(e, lookup("bident"))
 		equipItem(e, lookup("helm_of_darkness"))
 	case "poseidon":
+		log.Printf("[gen] equipDeity: %s -> toga, trident", id)
 		equipItem(e, lookup("toga"))
 		equipItem(e, lookup("trident"))
 	case "athena":
+		log.Printf("[gen] equipDeity: %s -> scale_armor, iron_helmet, aegis_shield, iron_spear", id)
 		equipItem(e, lookup("scale_armor"))
 		equipItem(e, lookup("iron_helmet"))
 		equipItem(e, lookup("aegis_shield"))
 		equipItem(e, lookup("iron_spear"))
 	case "ares":
+		log.Printf("[gen] equipDeity: %s -> chainmail, iron_helmet, iron_sword, iron_shield, iron_boots", id)
 		equipItem(e, lookup("chainmail"))
 		equipItem(e, lookup("iron_helmet"))
 		equipItem(e, lookup("iron_sword"))
 		equipItem(e, lookup("iron_shield"))
 		equipItem(e, lookup("iron_boots"))
 	case "odin":
+		log.Printf("[gen] equipDeity: %s -> fine_clothes, gungnir", id)
 		equipItem(e, lookup("fine_clothes"))
 		equipItem(e, lookup("gungnir"))
 	case "thor":
+		log.Printf("[gen] equipDeity: %s -> megingjord, iron_gauntlets, mjolnir", id)
 		equipItem(e, lookup("megingjord"))
 		equipItem(e, lookup("iron_gauntlets"))
 		equipItem(e, lookup("mjolnir"))
 	case "loki":
+		log.Printf("[gen] equipDeity: %s -> fine_clothes", id)
 		equipItem(e, lookup("fine_clothes"))
 	case "freya":
+		log.Printf("[gen] equipDeity: %s -> feather_cloak, brisingamen", id)
 		equipItem(e, lookup("feather_cloak"))
 		equipItem(e, lookup("brisingamen"))
 	case "kukulkan":
+		log.Printf("[gen] equipDeity: %s -> feather_cloak, golden_circlet", id)
 		equipItem(e, lookup("feather_cloak"))
 		equipItem(e, lookup("golden_circlet"))
 	case "chaac":
+		log.Printf("[gen] equipDeity: %s -> golden_circlet, iron_axe", id)
 		equipItem(e, lookup("golden_circlet"))
 		equipItem(e, lookup("iron_axe"))
 	case "yu_huang":
+		log.Printf("[gen] equipDeity: %s -> imperial_robe, jade_scepter", id)
 		equipItem(e, lookup("imperial_robe"))
 		equipItem(e, lookup("jade_scepter"))
 	case "guan_yin":
+		log.Printf("[gen] equipDeity: %s -> imperial_robe, willow_branch", id)
 		equipItem(e, lookup("imperial_robe"))
 		equipItem(e, lookup("willow_branch"))
 	case "sun_wukong":
+		log.Printf("[gen] equipDeity: %s -> golden_circlet, ruyi_bang, leather_boots", id)
 		equipItem(e, lookup("golden_circlet"))
 		equipItem(e, lookup("ruyi_bang"))
 		equipItem(e, lookup("leather_boots"))
 	case "amaterasu":
+		log.Printf("[gen] equipDeity: %s -> imperial_robe, jade_scepter", id)
 		equipItem(e, lookup("imperial_robe"))
-		equipItem(e, lookup("jade_scepter"))
+		equipItem(e,lookup("jade_scepter"))
 	case "susanoo":
+		log.Printf("[gen] equipDeity: %s -> common_clothes, kusanagi", id)
 		equipItem(e, lookup("common_clothes"))
 		equipItem(e, lookup("kusanagi"))
 	case "raijin":
+		log.Printf("[gen] equipDeity: %s -> common_clothes, raijin_drums", id)
 		equipItem(e, lookup("common_clothes"))
 		equipItem(e, lookup("raijin_drums"))
 	case "tiamat":
+		log.Printf("[gen] equipDeity: %s -> dragon_crown", id)
 		equipItem(e, lookup("dragon_crown"))
 	case "bahamut":
+		log.Printf("[gen] equipDeity: %s -> dragon_crown", id)
 		equipItem(e, lookup("dragon_crown"))
 	case "vecna":
+		log.Printf("[gen] equipDeity: %s -> dark_robe, eye_of_vecna, hand_of_vecna", id)
 		equipItem(e, lookup("dark_robe"))
 		equipItem(e, lookup("eye_of_vecna"))
 		equipItem(e, lookup("hand_of_vecna"))
+	default:
+		log.Printf("[gen] equipDeity: unknown deity id %s, no equipment assigned", id)
 	}
 }

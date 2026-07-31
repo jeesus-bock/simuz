@@ -28,9 +28,12 @@ local function patrol_and_enforce()
 end
 
 local function do_tick()
+    local acted = false
+
     -- Guard rotations enforce rules 24/7 across both day and night cycles
     if world.tick % 8 == 0 then
         patrol_and_enforce()
+        acted = true
     end
 
     -- Standard patrol route walk mechanics across city checkpoints
@@ -40,8 +43,11 @@ local function do_tick()
             local next_patrol_zone = exits[util.rand_int(#exits) + 1]
             world.move_to(next_patrol_zone)
             util.log(self.name .. " moved to keep security rotation at: " .. next_patrol_zone)
+            acted = true
         end
     end
+
+    return acted
 end
 
-do_tick()
+return do_tick()

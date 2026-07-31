@@ -2,6 +2,7 @@
 package entity
 
 import (
+	"hash/fnv"
 	"math/rand"
 
 	"simuz/internal/items"
@@ -172,6 +173,35 @@ func (e *Entity) GetProfession() string { return e.Profession }
 func GetRndGender() string {
 	choices := []string{GenderMale, GenderFemale, GenderOther}
 	return choices[rand.Intn(len(choices))]
+}
+
+// fertilityKey returns a deterministic 0-99 value derived from the entity ID.
+// Uses FNV-1a so it is stable across ticks, saves, and process restarts.
+func fertilityKey(id string) uint32 {
+	h := fnv.New32a()
+	h.Write([]byte(id))
+	return h.Sum32() % 100
+}
+
+// CanSire returns true when the entity can father/get another entity pregnant.
+// Males always can; "other" can; females cannot.
+func (e *Entity) CanSire() bool {
+	return e.Gender == GenderMale || e.Gender == GenderOther
+}
+
+// CanGetPregnant returns true when the entity can carry a pregnancy.
+// Females: 95% fertile (5% infertile, deterministic per entity ID).
+// Other:   50% can carry (deterministic per entity ID).
+// Males:   never.
+func (e *Entity) CanGetPregnant() bool {
+	switch e.Gender {
+	case GenderFemale:
+		return fertilityKey(e.ID) < 95
+	case GenderOther:
+		return fertilityKey(e.ID) < 50
+	default:
+		return false
+	}
 }
 
 // IsAdult returns true if the entity is old enough to reproduce.

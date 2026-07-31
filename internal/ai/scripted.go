@@ -89,12 +89,20 @@ func IsHostile(factionA, factionB string) bool {
 	return factionHostility(factionA, factionB) < 0
 }
 
-// RunScript executes a loaded Lua AI script and returns the events it generated.
-func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.EntityManager, tm *world.GameTime, rng *rand.Rand, qm *quest.Manager) ([]*events.SimEvent, error) {
+// ScriptResult holds the outcome of a single script execution.
+type ScriptResult struct {
+	DidAct bool
+	Events []*events.SimEvent
+}
+
+// RunScript executes a loaded Lua AI script and returns whether the script
+// performed an action (didAct) along with any events it generated.
+// Scripts can return up to three values: didAct (bool), log messages, events (table).
+func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.EntityManager, tm *world.GameTime, rng *rand.Rand, qm *quest.Manager) (ScriptResult, error) {
 	proto, ok := globalScripts.scripts[name]
 
 	if !ok {
-		return nil, fmt.Errorf("script not found: %s", name)
+		return ScriptResult{}, fmt.Errorf("script not found: %s", name)
 	}
 
 	L := lua.NewState()
@@ -111,17 +119,24 @@ func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Entit
 		Protect: true,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("run script %s: %w", name, err)
+		return ScriptResult{}, fmt.Errorf("run script %s: %w", name, err)
 	}
 
-	var simEvents []*events.SimEvent
+	var result ScriptResult
 
+	// 1st return value: didAct (boolean)
+	didActVal := L.Get(-3)
+	if didActVal != lua.LNil {
+		result.DidAct = lua.LVAsBool(didActVal)
+	}
+
+	// 3rd return value: events (table)
 	val := L.Get(-1)
 	if tbl, ok := val.(*lua.LTable); ok {
-		simEvents = decodeSimEvents(tbl, tm.Tick)
+		result.Events = decodeSimEvents(tbl, tm.Tick)
 	}
 
-	return simEvents, nil
+	return result, nil
 }
 
 // decodeSimEvents converts a Lua table of event tables into []*events.SimEvent.

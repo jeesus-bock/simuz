@@ -53,7 +53,7 @@ local function do_tick()
     if phase == "night" then
         travel_to_next_town()
         rest()
-        return
+        return true
     end
 
     -- Day: look for an inn and play.
@@ -64,6 +64,8 @@ local function do_tick()
         -- No inn nearby – just rest on the field.
         rest()
     end
+
+    return false
 end
 
-do_tick()
+return do_tick()

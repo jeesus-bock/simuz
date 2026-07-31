@@ -128,7 +128,7 @@ local function do_tick()
     if should_flee() then
         flee()
         util.set_mood("stressed")
-        return
+        return true
     end
 
     if tick % 10 == 0 then
@@ -155,6 +155,8 @@ local function do_tick()
             util.set_mood("neutral")
         end
     end
+
+    return false
 end
 
-do_tick()
+return do_tick()

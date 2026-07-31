@@ -109,7 +109,7 @@ local function do_tick()
 
     -- Rate-limit: skip this tick if it's not our attack interval
     if tick % rate ~= 0 then
-        return
+        return false
     end
 
     -- Find a hostile target in the same location
@@ -120,13 +120,15 @@ local function do_tick()
         if ok and info and info.hp <= 0 then
             util.log(self.name .. " killed " .. (info.name or target))
         end
-        return
+        return true
     end
 
     -- No target found: wander to a random adjacent location periodically
     if tick % 30 == 0 and util.rand_int(100) < 40 then
         wander()
+        return true
     end
+    return false
 end
 
-do_tick()
+return do_tick()

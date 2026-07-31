@@ -36,8 +36,11 @@ end
 local function do_tick()
     -- Cultists sleep during the day and run their operations in the night phase
     if world.phase == "day" then
-        if self.home and self.loc_id ~= self.home then world.move_to(self.home) end
-        return
+        if self.home and self.loc_id ~= self.home then
+            world.move_to(self.home)
+            return true
+        end
+        return false
     end
 
     if world.tick % 10 == 0 then
@@ -47,6 +50,8 @@ local function do_tick()
     if world.tick % 20 == 0 then
         perform_black_mass()
     end
+
+    return false
 end
 
-do_tick()
+return do_tick()

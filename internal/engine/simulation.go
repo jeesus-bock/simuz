@@ -42,13 +42,13 @@ func (s *Simulation) Unlock()  { s.mu.Unlock() }
 func (s *Simulation) GetAllEntities() []*entity.Entity {
 	return s.Entities.All()
 }
-func NewSimulation(w *world.World) *Simulation {
+func NewSimulation(w *world.World, em *entity.EntityManager) *Simulation {
 	qm := quest.NewManager()
 	sim := &Simulation{
 		Tick:         0,
 		Scheduler:    NewScheduler(),
 		World:        w,
-		Entities:     entity.NewEntityManager(),
+		Entities:     em,
 		Quests:       qm,
 		Events:       events.NewManager(),
 		Time:         world.NewGameTime(24),
@@ -248,6 +248,7 @@ func (s *Simulation) TickOnce() {
 	// Natural reproduction: adult male/female pairs of the same species
 	// at the same location have a small chance to produce offspring each tick.
 	processReproduction(s)
+	processCrossbreeding(s)
 
 	if s.SpawnManager != nil {
 		s.SpawnManager.ProcessSpawns(s.World, s.Entities, int(s.Tick), s.RNG)

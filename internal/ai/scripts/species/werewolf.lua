@@ -34,7 +34,7 @@ local function do_tick()
             local exits = world.exits_from(self.loc_id)
             if exits and #exits > 0 then world.move_to(exits[util.rand_int(#exits) + 1]) end
         end
-        return
+        return false
     end
 
     -- Night Phase: Immediate transformation and bloodlust
@@ -46,8 +46,10 @@ local function do_tick()
 
         if world.tick % 6 == 0 then
             run_primal_hunt()
+            return true
         end
     end
+    return false
 end
 
-do_tick()
+return do_tick()

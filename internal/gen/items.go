@@ -3,6 +3,7 @@ package gen
 
 import (
 	"fmt"
+	"log"
 
 	"simuz/internal/entity"
 	"simuz/internal/items"
@@ -258,6 +259,7 @@ func defineSubstance(id, name string, value int, weight float64, se *items.Subst
 }
 
 func init() {
+	log.Printf("[gen] items: registering %d item definitions", len(ItemDefs))
 	for _, d := range ItemDefs {
 		items.RegisterDef(d)
 	}

@@ -89,9 +89,11 @@ local function unleash_celestial_consequences()
 end
 
 local function do_tick()
+    local acted = false
     -- 1. Gods process their internal consumption or neglect pools every 20 ticks
     if world.tick % 20 == 0 then
         process_divine_neglect()
+        acted = true
     end
 
     -- 2. Unleash consequences if neglected for too long
@@ -110,12 +112,14 @@ local function do_tick()
                         util.log(self.name ..
                         " blindly throws an object at " .. info.name .. " out of sheer petty frustration!")
                         world.attack(self.id, eid)
+                        acted = true
                         break
                     end
                 end
             end
         end
     end
+    return acted
 end
 
-do_tick()
+return do_tick()
