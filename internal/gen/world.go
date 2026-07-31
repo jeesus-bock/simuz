@@ -209,25 +209,6 @@ func calculateDirections(posA, posB world.Position) (string, string) {
 
 	return dirA, dirB
 }
-func (g *Generator) generateSettlements() []*entity.Entity {
-	var all []*entity.Entity
-	all = append(all, g.generateTown("frosthold", "Frosthold", "northern_highlands", 50, 60)...)
-	all = append(all, g.generateTown("stillwater", "Stillwater", "sunken_marches", 20, 30)...)
-	all = append(all, g.generateTown("golden_gate", "Golden Gate", "golden_plains", 100, 80)...)
-	all = append(all, g.generateFisherman()...)
-	all = append(all, g.generateRatKingLair()...)
-	all = append(all, g.generateTravelingSalesmen()...)
-	all = append(all, g.generateBards()...)
-	all = append(all, g.generateFarms()...)
-	all = append(all, g.generateHostiles()...)
-	all = append(all, g.generateBeasts()...)
-	all = append(all, g.generateNewArchetypes()...)
-	all = append(all, g.generateNewCreatures()...)
-	all = append(all, g.generateTownExtras()...)
-	all = append(all, g.generateWildernessBosses()...)
-	all = append(all, g.generateGoblinAmbushers()...)
-	return all
-}
 
 func (g *Generator) generateHostiles() []*entity.Entity {
 	var all []*entity.Entity
