@@ -234,6 +234,9 @@ func hostileFactionMixExists(factions map[string]int) bool {
 		return false
 	}
 	keys := make([]string, 0, len(factions))
+	for fID := range factions {
+		keys = append(keys, fID)
+	}
 
 	sortStringsByFoldAndRaw(keys)
 	for _, fID := range keys {
@@ -242,6 +245,9 @@ func hostileFactionMixExists(factions map[string]int) bool {
 			continue
 		}
 		for _, fac2ID := range keys {
+			if fID == fac2ID {
+				continue
+			}
 			if fac.Relation.FactionRelation[fac2ID].String() == "hostile" {
 				return true
 			}
