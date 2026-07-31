@@ -32,9 +32,11 @@ local function do_loot(target_id)
         return false
     end
     local item = items[util.rand_int(#items) + 1]
-    world.add_item(item)
-    util.log(self.name .. " looted " .. item .. " from the carnage")
-    return true
+    local ok = world.loot_item(target_id, item)
+    if ok then
+        util.log(self.name .. " looted " .. item .. " from the carnage")
+    end
+    return ok
 end
 
 local function find_raid_target()
