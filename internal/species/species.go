@@ -7,20 +7,27 @@ import (
 
 // Species defines the base data for a creature species in the simulation.
 // It is the single source of truth for all species-related information.
+//
+// Time units in this struct:
+//   - MaxAge, AdultAge: game-days (converted to ticks at comparison time using game speed)
+//   - GestationTicks: simulation ticks (1 tick = 1 real second at 1 Hz)
+//   - StarvationThreshold: simulation ticks
+//
+// At the default speed of 24, one game-day = 1440/24 = 60 ticks.
 type Species struct {
 	ID                  string     `json:"id"`
 	Name                string     `json:"name"`
-	MaxAge              int        `json:"max_age"`
-	AdultAge            int        `json:"adult_age"`
+	MaxAge              int        `json:"max_age"`     // game-days: natural lifespan
+	AdultAge            int        `json:"adult_age"`   // game-days: age at which entity can reproduce
 	CanLevelUp          bool       `json:"can_level_up"`
 	CanReproduce        bool       `json:"can_reproduce"`
 	IsCaveman           bool       `json:"is_caveman"`
 	IsImmortal          bool       `json:"is_immortal"`
-	GestationTicks      int        `json:"gestation_ticks"`
+	GestationTicks      int        `json:"gestation_ticks"` // simulation ticks: pregnancy duration
 	DefaultScripts      []string   `json:"default_scripts,omitempty"`
 	DefaultSleepCycle   string     `json:"default_sleep_cycle"` // "diurnal", "nocturnal", "none"
 	AutoFeed            bool       `json:"auto_feed"`
-	StarvationThreshold int        `json:"starvation_threshold"` // ticks before starvation damage begins; 0 means immune
+	StarvationThreshold int        `json:"starvation_threshold"` // simulation ticks before starvation damage; 0 = immune
 	MaleNames           []string   `json:"male_names,omitempty"`
 	FemaleNames         []string   `json:"female_names,omitempty"`
 	BaseAttrs           Attributes `json:"base_attrs"`

@@ -23,6 +23,7 @@ func RegisterRoutes(rg *gin.RouterGroup, sim *engine.Simulation) {
 	rg.GET("/world", h.GetWorld)
 	rg.GET("/world/locations/:id", h.GetLocation)
 	rg.POST("/world/tick", h.PostTick)
+	rg.PUT("/world/speed", h.SetSpeed)
 
 	rg.GET("/entities", h.ListEntities)
 	rg.GET("/entities/:id", h.GetEntity)

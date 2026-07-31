@@ -58,6 +58,7 @@ func SetupRoutes(router *gin.Engine, sim *engine.Simulation) {
 	h := NewHandler(sim, tmpl, staticFS)
 
 	router.GET("/", h.Dashboard)
+	router.POST("/speed", h.SetSpeedPost)
 	router.GET("/entities", h.EntitiesPage)
 	router.GET("/locations", h.LocationsPage)
 	router.GET("/location/:id", h.LocationDetailPage)

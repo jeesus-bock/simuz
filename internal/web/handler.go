@@ -44,18 +44,32 @@ func (h *Handler) Dashboard(c *gin.Context) {
 	defer h.Sim.RUnlock()
 
 	if err := h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
-		"title":         "Simuz",
-		"page":          "dashboard",
-		"tick":          h.Sim.Tick,
-		"time":          h.Sim.Time.String(),
-		"phase":         h.Sim.Time.Phase().String(),
-		"season":        h.Sim.Time.Season().String(),
-		"entities":      len(h.Sim.Entities.All()),
-		"locations":     len(h.Sim.World.AllLocations()),
-		"active_quests": h.activeQuestViews(),
+		"title":           "Simuz",
+		"page":            "dashboard",
+		"tick":            h.Sim.Tick,
+		"time":            h.Sim.Time.String(),
+		"day":             h.Sim.Time.Day,
+		"year":            h.Sim.Time.Year(),
+		"phase":           h.Sim.Time.Phase().String(),
+		"season":          h.Sim.Time.Season().String(),
+		"speed":           h.Sim.Time.Speed,
+		"ticks_per_day":   h.Sim.Time.TicksPerGameDayFor(),
+		"entities":        len(h.Sim.Entities.All()),
+		"locations":       len(h.Sim.World.AllLocations()),
+		"active_quests":   h.activeQuestViews(),
 	}); err != nil {
 		_ = c.Error(err)
 	}
+}
+
+func (h *Handler) SetSpeedPost(c *gin.Context) {
+	speedStr := c.PostForm("speed")
+	speed := 24
+	fmt.Sscanf(speedStr, "%d", &speed)
+	h.Sim.Lock()
+	h.Sim.Time.SetSpeed(speed)
+	h.Sim.Unlock()
+	c.Redirect(http.StatusSeeOther, "/")
 }
 
 func (h *Handler) EntitiesPage(c *gin.Context) {
@@ -838,8 +852,12 @@ func (h *Handler) DashboardFragment(c *gin.Context) {
 	if err := h.Tmpls.ExecuteTemplate(c.Writer, "dashboard_stats", gin.H{
 		"tick":          h.Sim.Tick,
 		"time":          h.Sim.Time.String(),
+		"day":           h.Sim.Time.Day,
+		"year":          h.Sim.Time.Year(),
 		"phase":         h.Sim.Time.Phase().String(),
 		"season":        h.Sim.Time.Season().String(),
+		"speed":         h.Sim.Time.Speed,
+		"ticks_per_day": h.Sim.Time.TicksPerGameDayFor(),
 		"entities":      len(h.Sim.Entities.All()),
 		"locations":     len(h.Sim.World.AllLocations()),
 		"active_quests": h.activeQuestViews(),

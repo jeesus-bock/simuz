@@ -168,3 +168,25 @@ func (h *Handler) PostTick(c *gin.Context) {
 		"time":  h.Sim.Time.String(),
 	})
 }
+
+// SetSpeed changes the game speed (game-minutes per tick).
+// Accepts JSON body {"speed": N} where N is 1..1440.
+func (h *Handler) SetSpeed(c *gin.Context) {
+	var req struct {
+		Speed int `json:"speed" form:"speed" binding:"required"`
+	}
+	if err := c.ShouldBind(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "speed is required (1..1440)"})
+		return
+	}
+
+	h.Sim.Lock()
+	h.Sim.Time.SetSpeed(req.Speed)
+	h.Sim.Unlock()
+
+	c.JSON(http.StatusOK, gin.H{
+		"speed":           h.Sim.Time.Speed,
+		"ticks_per_day":   h.Sim.Time.TicksPerGameDayFor(),
+		"game_minutes_per_tick": h.Sim.Time.Speed,
+	})
+}

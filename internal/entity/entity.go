@@ -8,6 +8,7 @@ import (
 	"simuz/internal/items"
 	"simuz/internal/relation"
 	"simuz/internal/species"
+	"simuz/internal/world"
 )
 
 type Position struct {
@@ -88,9 +89,9 @@ type Entity struct {
 	Gender               string                        `json:"gender"`
 	Profession           string                        `json:"profession"`
 	Level                int                           `json:"level"`
-	Age                  int                           `json:"age"`
-	MaxAge               int                           `json:"max_age"`
-	LastMealTick         int                           `json:"last_meal"`
+	Age                  int                           `json:"age"`           // simulation ticks: increments by 1 per tick
+	MaxAge               int                           `json:"max_age"`       // game-days: natural lifespan (converted to ticks at comparison)
+	LastMealTick         int                           `json:"last_meal"`     // simulation tick of last meal
 	Alive                bool                          `json:"alive"`
 	Immortal             bool                          `json:"immortal"`
 	Attributes           Attributes                    `json:"attributes"`
@@ -117,9 +118,9 @@ type Entity struct {
 	RescueState          string                        `json:"rescue_state,omitempty"`
 	Reproduction         Reproduction                  `json:"reproduction,omitempty"`
 	Relationships        map[string]EntityRelationship `json:"relationships,omitempty"`
-	LastReproductionTick uint64                        `json:"last_reproduction_tick,omitempty"`
-	KnockedOutTick       uint64                        `json:"knocked_out_tick,omitempty"`
-	TimeOfDeath          uint64                        `json:"timeOfDeath"`
+	LastReproductionTick uint64                        `json:"last_reproduction_tick,omitempty"` // simulation tick
+	KnockedOutTick       uint64                        `json:"knocked_out_tick,omitempty"`       // simulation tick
+	TimeOfDeath          uint64                        `json:"timeOfDeath"`                      // simulation tick
 	relation.Relation
 	Memory     map[string]string `json:"memory,omitempty"`
 	BioProfile *species.Species  `json:"bioProfile"`
@@ -206,9 +207,14 @@ func (e *Entity) CanGetPregnant() bool {
 }
 
 // IsAdult returns true if the entity is old enough to reproduce.
-func (e *Entity) IsAdult() bool {
+// ticksPerGameDay is the number of simulation ticks in one game-day at the current speed.
+func (e *Entity) IsAdult(ticksPerGameDay int) bool {
 	if sp, exists := species.GetByID(e.Species); exists {
-		return e.Age >= sp.AdultAge || e.Level >= 3
+		if ticksPerGameDay < 1 {
+			ticksPerGameDay = 1
+		}
+		ageDays := e.Age / ticksPerGameDay
+		return ageDays >= sp.AdultAge*world.GameYearDays || e.Level >= 3
 	}
 	return false
 }
