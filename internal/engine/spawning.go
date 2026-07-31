@@ -254,10 +254,21 @@ func generateName(species string, rng *rand.Rand) string {
 	goblinNames := []string{"Snag", "Grib", "Nog", "Blink", "Mug"}
 	koboldNames := []string{"Skrit", "Yip", "Klik", "Drak", "Snik"}
 	humanNames := []string{"Aldric", "Brenna", "Cedric", "Delara", "Eamon", "Fiona", "Gareth", "Hilda", "Ivan", "Jenna", "Kol", "Lyssa", "Maren", "Nolan", "Opal", "Petra", "Quinn", "Rhea", "Soren", "Tessa"}
+	halfOrcNames := []string{"Grolf", "Krom", "Thok", "Brak", "Drog", "Mog", "Urgal", "Garok", "Krelka", "Draga", "Shaka", "Greta", "Lara", "Orsha", "Bruna", "Hurga"}
+	halfElfNames := []string{"Aldric", "Cedric", "Eamon", "Gareth", "Thalor", "Elric", "Caelum", "Fenrik", "Aldrica", "Brenna", "Delara", "Fiona", "Thalyra", "Elyra", "Caelia", "Riven"}
+	halfDwarfNames := []string{"Dorn", "Brik", "Haldor", "Grund", "Torin", "Baldur", "Fjor", "Erik", "Dessa", "Brynn", "Hilda", "Greta", "Torva", "Barda", "Fjora", "Astrid"}
+	halfGoblinNames := []string{"Snag", "Grib", "Nog", "Blink", "Mog", "Rik", "Wix", "Zep", "Grix", "Nix", "Plix", "Wyna", "Bria", "Mika", "Trix", "Flick"}
+	halfHobgoblinNames := []string{"Durgath", "Skarrak", "Mograth", "Karg", "Brak", "Zol", "Vorn", "Ghrak", "Krel", "Shara", "Nixa", "Greta", "Velka", "Dasha", "Kira", "Zara"}
+	halfGnollNames := []string{"Ripper", "Bonepick", "Snapper", "Gorr", "Ashclaw", "Maw", "Vex", "Grak", "Ripsnout", "Mama", "Vexa", "Grix", "Bonea", "Snapa", "Graw", "Krela"}
+	halfKoboldNames := []string{"Skrit", "Yip", "Klik", "Drak", "Snik", "Rix", "Zik", "Vrik", "Skrix", "Yipa", "Klika", "Draka", "Snika", "Rika", "Zika", "Vrika"}
+	halfFeyNames := []string{"Thorn", "Bram", "Alder", "Rowan", "Briar", "Fenn", "Oaken", "Willow", "Thyra", "Briar", "Alda", "Rowan", "Nyx", "Luma", "Sylph", "Faye"}
 	names := map[string][]string{
 		"orc": orcNames, "wolf": wolfNames, "bear": bearNames,
 		"boar": boarNames, "rat": ratNames, "spider": spiderNames, "goblin": goblinNames,
 		"kobold": koboldNames, "human": humanNames,
+		"half_orc": halfOrcNames, "half_elf": halfElfNames, "half_dwarf": halfDwarfNames,
+		"half_goblin": halfGoblinNames, "half_hobgoblin": halfHobgoblinNames,
+		"half_gnoll": halfGnollNames, "half_kobold": halfKoboldNames, "half_fey": halfFeyNames,
 	}
 	pool, ok := names[species]
 	if !ok || len(pool) == 0 {
@@ -266,39 +277,97 @@ func generateName(species string, rng *rand.Rand) string {
 	return pool[rng.Intn(len(pool))]
 }
 
-func defaultScripts(species, profession string) []string {
-	switch species {
-	case "orc":
-		return []string{"aggressive"}
-	case "wolf":
-		return []string{"hunting"}
-	case "bear", "boar":
-		return []string{"aggressive"}
-	case "rat":
-		return []string{"defensive"}
-	case "spider":
-		return []string{"scouting"}
-	case "goblin":
-		return []string{"gathering"}
-	case "kobold":
-		return []string{"kobold"}
+// scriptPriority returns a lower number for scripts that should run first.
+// Survival/behavioral scripts run before profession scripts, which run before
+// species-specific scripts.
+func scriptPriority(name string) int {
+	switch name {
+	case "defensive", "aggressive", "hunting", "gathering", "scouting", "healing":
+		return 0
+	case "bard", "guard", "ranger", "priest", "farmer", "fisherman", "miner",
+		"blacksmith", "innkeeper", "herbalist", "courier", "thief", "cultist",
+		"traveling_salesman", "wizard", "bar_patron", "bandit_chief",
+		"bread_weaver", "necromancer", "bandit":
+		return 1
 	default:
-		switch profession {
-		case "bard":
-			return []string{"bard"}
-		case "priest":
-			return []string{"priest"}
-		case "bandit":
-			return []string{"bandit"}
-		case "ranger":
-			return []string{"ranger"}
-		case "merchant":
-			return []string{"merchant"}
-		case "cultist":
-			return []string{"cult_member"}
-		default:
-			return []string{"aggressive"}
+		return 2
+	}
+}
+
+func defaultScripts(sp, profession string) []string {
+	var scripts []string
+	seen := map[string]bool{}
+
+	// 1. Start with species DefaultScripts from the registry.
+	if s, ok := species.GetByID(sp); ok {
+		scripts = append(scripts, s.DefaultScripts...)
+	}
+
+	// 2. Add profession script if one exists for this profession.
+	profScript := professionScript(profession)
+	if profScript != "" && !seen[profScript] {
+		scripts = append(scripts, profScript)
+	}
+
+	// 3. Deduplicate and add fallback.
+	if len(scripts) == 0 {
+		return []string{"aggressive"}
+	}
+	deduped := scripts[:0]
+	for _, s := range scripts {
+		if s != "" && !seen[s] {
+			seen[s] = true
+			deduped = append(deduped, s)
 		}
+	}
+	if len(deduped) == 0 {
+		return []string{"aggressive"}
+	}
+
+	// 4. Sort by priority: survival → profession → species.
+	slices.SortStableFunc(deduped, func(a, b string) int {
+		return scriptPriority(a) - scriptPriority(b)
+	})
+	return deduped
+}
+
+// professionScript maps a profession name to its Lua script ID.
+func professionScript(profession string) string {
+	switch profession {
+	case "bard":
+		return "bard"
+	case "guard":
+		return "guard"
+	case "ranger":
+		return "ranger"
+	case "priest":
+		return "priest"
+	case "farmer":
+		return "farmer"
+	case "fisherman":
+		return "fisherman"
+	case "miner":
+		return "miner"
+	case "blacksmith":
+		return "blacksmith"
+	case "innkeeper":
+		return "innkeeper"
+	case "herbalist":
+		return "herbalist"
+	case "courier":
+		return "courier"
+	case "thief":
+		return "thief"
+	case "cultist":
+		return "cultist"
+	case "merchant", "traveling_salesman":
+		return "traveling_salesman"
+	case "wizard":
+		return "wizard"
+	case "necromancer":
+		return "necromancer"
+	default:
+		return ""
 	}
 }
 

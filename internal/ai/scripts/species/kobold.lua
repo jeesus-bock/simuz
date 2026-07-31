@@ -91,8 +91,9 @@ local function do_tick()
     if phase == "night" or phase == "dusk" then
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
+            return true
         end
-        return
+        return false
     end
 
     if should_flee() then
@@ -101,14 +102,15 @@ local function do_tick()
             local dest = exits[util.rand_int(#exits) + 1]
             world.move_to(dest)
             util.log(self.name .. " fled from overwhelming odds")
+            return true
         end
-        return
+        return false
     end
 
     local target_id, target_info = find_hostile()
     if target_id then
         do_attack(target_id)
-        return
+        return true
     end
 
     if world.tick % WANDER_INTERVAL == 0 then
@@ -117,9 +119,11 @@ local function do_tick()
             local dest = exits[util.rand_int(#exits) + 1]
             if dest ~= self.loc_id then
                 world.move_to(dest)
+                return true
             end
         end
     end
+    return false
 end
 
-do_tick()
+return do_tick()

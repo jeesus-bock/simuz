@@ -134,6 +134,78 @@
 
 ---
 
+### Half-Dwarf
+
+| STR | DEX | CON | INT | WIS | CHA | HP | Speed | Lifespan |
+|-----|-----|-----|-----|-----|-----|----|-------|----------|
+| 12  | 8   | 14  | 8   | 9   | 8   | 24 | 4     | 90 years |
+| (8-18) | (5-14) | (10-18) | (5-14) | (6-14) | (5-14) | | | |
+
+**Traits:** Hardy constitution, darkvision 60ft, innate Craft skillbonus, slow but resilient
+**Culture:** Often live in dwarfholds or human towns. Valued for craftsmanship and endurance.
+
+---
+
+### Half-Goblin
+
+| STR | DEX | CON | INT | WIS | CHA | HP | Speed | Lifespan |
+|-----|-----|-----|-----|-----|-----|----|-------|----------|
+| 8   | 13  | 9   | 5   | 7   | 7   | 17 | 5     | 55 years |
+| (5-14) | (9-18) | (6-15) | (3-10) | (5-12) | (5-12) | | | |
+
+**Traits:** Darkvision 60ft, nimble fingers, +2 Sleight of Hand, nocturnal
+**Culture:** Often outcasts from both societies. Small, quick, resourceful scavengers.
+
+---
+
+### Half-Hobgoblin
+
+| STR | DEX | CON | INT | WIS | CHA | HP | Speed | Lifespan |
+|-----|-----|-----|-----|-----|-----|----|-------|----------|
+| 12  | 10  | 12  | 7   | 8   | 7   | 22 | 5     | 65 years |
+| (9-17) | (7-16) | (9-18) | (5-12) | (6-13) | (5-12) | | | |
+
+**Traits:** Darkvision 60ft, iron will (+1 morale save), martial training, diurnal
+**Culture:** Disciplined and pragmatic. Often serve as soldiers or officers in mixed armies.
+
+---
+
+### Half-Gnoll
+
+| STR | DEX | CON | INT | WIS | CHA | HP | Speed | Lifespan |
+|-----|-----|-----|-----|-----|-----|----|-------|----------|
+| 12  | 11  | 11  | 4   | 7   | 5   | 20 | 5     | 60 years |
+| (9-18) | (8-17) | (8-17) | (2-10) | (5-12) | (3-10) | | | |
+
+**Traits:** Darkvision 60ft, pack hunting instinct, nocturnal, scent ability
+**Culture:** Often rejected by gnoll packs and human societies alike. Fiercely loyal to those who accept them.
+
+---
+
+### Half-Kobold
+
+| STR | DEX | CON | INT | WIS | CHA | HP | Speed | Lifespan |
+|-----|-----|-----|-----|-----|-----|----|-------|----------|
+| 7   | 14  | 8   | 6   | 7   | 6   | 15 | 4     | 50 years |
+| (4-12) | (10-19) | (5-14) | (3-11) | (5-12) | (4-11) | | | |
+
+**Traits:** Darkvision 60ft, reptilian scales, small size (+1 AC), nocturnal
+**Culture:** Cunning and industrious. Often serve as scouts, tinkers, or spies.
+
+---
+
+### Half-Fey
+
+| STR | DEX | CON | INT | WIS | CHA | HP | Speed | Lifespan |
+|-----|-----|-----|-----|-----|-----|----|-------|----------|
+| 8   | 12  | 9   | 10  | 12  | 13  | 18 | 5     | 100 years |
+| (5-14) | (9-18) | (6-15) | (8-15) | (9-17) | (10-18) | | | |
+
+**Traits:** Fey Ancestry (immune to magic sleep), charm resistance, cantrip-like magic, nocturnal
+**Culture:** Ethereal and mysterious. Often drawn to nature, art, or wanderlust. Straddle mortal and fae realms.
+
+---
+
 ## 2. COMMON WILD RACES
 
 ### Orc
@@ -890,16 +962,44 @@ Darkvision 120ft, +2 CON. Lives underground. Armor masters.
 | Elf | Forests, magic glades | Medium | Hidden cities |
 | Dwarf | Mountains, underground | Medium | Mountain halls |
 | Halfling | Hills, farmland | Medium | Burrows, villages |
+| Half-Orc | Mountains, badlands | Low-Med | Tribal camps, border towns |
+| Half-Elf | Forests, cities | Low-Med | Hidden cities, human towns |
+| Half-Dwarf | Highlands, mountains | Low | Dwarfholds, human towns |
+| Half-Goblin | Caves, ruins, waste | Low | Scavenger camps |
+| Half-Hobgoblin | Highlands, plains | Low | Fortresses, military camps |
+| Half-Gnoll | Plains, waste | Low | Nomadic bands |
+| Half-Kobold | Underground, caves | Low | Burrows, tunnels |
+| Half-Fey | Forests, swamps | Very Low | Hidden glades, mortal towns |
 | Gnome | Forests, hills | Low-Med | Hidden workshops |
 | Orc | Mountains, badlands | Medium | Tribal camps |
 | Goblin | Everywhere | High | Caves, ruins |
 | Hobgoblin | Hills, plains | Low-Med | Fortresses |
-| Kobold | Underground | High (local) | Tunnel networks |
-| Lizardfolk | Swamps | Low-Med | Mound villages |
+| Bugbear | Forests, highlands, wastelands | Low | Solitary or hunting packs |
+| Lizardfolk | Swamps, riversides | Low-Med | Mound villages |
+| Gnoll | Arid plains, savannahs | Low | Nomadic packs |
 | Centaur | Plains | Low | Nomadic bands |
 | Minotaur | Mountains, mazes | Very Low | Fortresses |
 | Merfolk | Seas, coasts | Medium | Underwater cities |
 | Giant | Mountains | Very Low | Solitary or small clans |
+| Troll | Forests, swamps, mountains | Very Low | Solitary lairs |
+| Ogre | Hills, caves | Very Low | Solitary or small warbands |
+| Ettin | Highlands, mountains | Very Low | Solitary |
+| Cyclops | Islands, mountains | Very Low | Solitary |
 | Dragon | Varies | Very Low | Solitary lairs |
+| Griffin | Mountains, grasslands | Very Low | Solitary nests |
+| Wyvern | Cliffs, mountains, wastelands | Very Low | Solitary lairs |
+| Hydra | Swamps, lakes | Very Low | Solitary lairs |
+| Basilisk | Deserts, rocky wastelands | Very Low | Solitary |
+| Cockatrice | Temperate forests, farms | Very Low | Solitary flocks |
+| Manticore | Deserts, mountains | Very Low | Solitary |
+| Skeleton | Anywhere (raised) | Varies | Ruins, crypts |
+| Zombie | Anywhere (raised) | Varies | Anywhere |
+| Ghoul | Underground, cemeteries | Low | Ruins, dungeons |
+| Lich | Dungeons, towers | Very Low | Solitary towers |
+| Wraith | Shadowfell, battlefields | Very Low | Ruins, haunted places |
+| Mind Flayer | Underdark | Very Low | Underdark colonies |
+| Beholder | Caves, dungeons | Very Low | Solitary lairs |
+| Floating Eye | Swamps, underwater caves | Very Low | Solitary |
+| Medusa | Caves, wastelands | Very Low | Solitary caves |
 | Fey | Forests, springs | Low | Hidden glades |
 | Undead | Everywhere (as threat) | Varies | Ruins, crypts |

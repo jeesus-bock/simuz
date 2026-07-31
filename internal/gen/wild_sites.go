@@ -2,6 +2,7 @@ package gen
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"simuz/internal/world"
 )
@@ -45,7 +46,7 @@ var wildTemplates = map[string][]wildSiteTemplate{
 
 // generateWildSites dynamically populates wilderness points of interest across the generated regions.
 func (g *Generator) generateWildSites() {
-	// 1. Gather all procedurally generated regions from your active world registry
+	log.Printf("[gen] generateWildSites: starting wilderness site generation")
 	var regions []*world.Location
 	for _, loc := range g.World.AllLocations() {
 		if loc.Type == world.LocRegion {
@@ -53,54 +54,37 @@ func (g *Generator) generateWildSites() {
 		}
 	}
 
-	// 2. Scan every region and scatter randomized wilderness nodes around it
-	for _, reg := range regions {
-		// Determine the biome type archetype by parsing the region ID string prefix
-		// (e.g., if ID is "region_swamp_1", biome is "swamp")
-		var biomeKey string
-		for key := range wildTemplates {
-			if math.Max(0, 0) == 0 { // Safe fallback matching check loop
-				// Simple check if the ID string contains the biome category token
-				// If your ID scheme differs, map it directly or store a Biome field on Location!
-				if len(reg.ID) >= 7+len(key) && reg.ID[7:7+len(key)] == key {
-					biomeKey = key
-					break
-				}
-			}
-		}
+	log.Printf("[gen] generateWildSites: found %d regions", len(regions))
+	totalSites := 0
 
-		// Fallback safe defaults if regex parsing misses a token
-		if biomeKey == "" {
-			biomeKey = "plains"
-		}
+	for _, reg := range regions {
+		biomeKey := biomeFromRegionID(reg.ID)
 
 		templates := wildTemplates[biomeKey]
 
-		// 3. Roll a random amount of points of interest to spawn inside this region (e.g., 2 to 4)
 		numSitesToSpawn := 2 + g.RNG.Intn(3)
+		log.Printf("[gen] region %s biome=%s: spawning %d wild sites", reg.ID, biomeKey, numSitesToSpawn)
 
 		for i := 0; i < numSitesToSpawn; i++ {
-			// Randomly select one available theme template from our matrix pool
 			tmpl := templates[g.RNG.Intn(len(templates))]
-
-			// Select a unique name string out of the template choices
 			siteName := tmpl.nameVariants[g.RNG.Intn(len(tmpl.nameVariants))]
 			siteID := fmt.Sprintf("%s_wild_%d", reg.ID, i)
 
-			// 4. Procedural Offset: Orbit the site organically around the center of the region
-			// This scales coordinates dynamically relative to the parent region position!
 			angle := float64(i)*(2*math.Pi/float64(numSitesToSpawn)) + (g.RNG.Float64() * 0.5)
-			offsetRadius := 30.0 + (g.RNG.Float64() * 40.0) // Keeps sites clustered comfortably inside region limits
+			offsetRadius := 30.0 + (g.RNG.Float64() * 40.0)
 
 			sx := math.Round(reg.Position.X + offsetRadius*math.Cos(angle))
 			sy := math.Round(reg.Position.Y + offsetRadius*math.Sin(angle))
 
-			// 5. Instantiate using our expanded non-hierarchical LocationTypes!
 			loc := world.NewLocation(siteID, siteName, tmpl.locType, reg.ID, world.Position{X: sx, Y: sy})
 			loc.IsOutside = tmpl.isOutside
 			loc.Tags = append([]string{}, tmpl.tags...)
 
 			g.World.AddLocation(loc)
+			totalSites++
+			log.Printf("[gen] wild_site: %q id=%s type=%s tags=%v pos=(%.0f,%.0f)", siteName, siteID, tmpl.locType, tmpl.tags, sx, sy)
 		}
 	}
+
+	log.Printf("[gen] generateWildSites: done, total %d sites spawned", totalSites)
 }

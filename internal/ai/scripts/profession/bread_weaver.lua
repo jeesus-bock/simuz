@@ -88,14 +88,18 @@ local function manage_bakery_and_strikes()
 end
 
 local function do_tick()
+    local acted = false
+
     -- 1. Audit local area for tax men or raw grain buying every 10 ticks
     if world.tick % 10 == 0 then
         audit_the_slums()
+        acted = true
     end
 
     -- 2. Process culinary production or coordinate political resistance actions
     if world.tick % 18 == 0 then
         manage_bakery_and_strikes()
+        acted = true
     end
 
     -- 3. Mutual aid distribution: Feed hungry/injured dynamic allies nearby
@@ -110,12 +114,15 @@ local function do_tick()
                         world.feed(eid)
                         world.heal(eid, 15)
                         util.log(self.name .. " shared an emergency loaf to heal a wounded " .. info.profession)
+                        acted = true
                         break
                     end
                 end
             end
         end
     end
+
+    return acted
 end
 
-do_tick()
+return do_tick()

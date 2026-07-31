@@ -112,6 +112,8 @@ local function do_tick()
             end
         end
     end
+
+    return false
 end
 
-do_tick()
+return do_tick()

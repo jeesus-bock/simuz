@@ -60,20 +60,23 @@ local function do_tick()
     if phase == "night" then
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
+            return true
         end
-        return
+        return false
     end
 
     local hostile_id, hostile_info = find_hostile()
     if hostile_id then
         flee_home()
         util.set_mood("fearful")
-        return
+        return true
     end
 
+    local acted = false
     if tick % 25 == 0 then
         if util.rand_int(100) < 60 then
             wander_town()
+            acted = true
         end
     end
 
@@ -87,6 +90,7 @@ local function do_tick()
             util.set_mood("inspired")
         end
     end
+    return acted
 end
 
-do_tick()
+return do_tick()

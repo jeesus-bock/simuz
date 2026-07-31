@@ -41,15 +41,16 @@ local function do_tick()
     if phase == "night" or phase == "dusk" then
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
+            return true
         end
-        return
+        return false
     end
 
     -- Check for prey at current location
     local prey_id, prey_info = find_hostile_prey()
     if prey_id then
         do_pursuit(prey_id)
-        return
+        return true
     end
 
     -- Hunt across nearby locations
@@ -61,7 +62,7 @@ local function do_tick()
                 if info and info.alive and world.is_hostile(self.faction, info.faction) then
                     world.move_to(eid)
                     util.log(self.name .. " chased prey to " .. eid)
-                    return
+                    return true
                 end
             end
         end
@@ -75,11 +76,13 @@ local function do_tick()
                     local dest = exits[util.rand_int(#exits) + 1]
                     if dest ~= self.loc_id then
                         world.move_to(dest)
+                        return true
                     end
                 end
             end
         end
     end
+    return false
 end
 
-do_tick()
+return do_tick()

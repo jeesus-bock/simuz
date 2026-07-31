@@ -63,9 +63,10 @@ local function do_zeus_intervention()
 end
 
 local function do_tick()
-    if world.tick % 5 ~= 0 then return end
+    if world.tick % 5 ~= 0 then return false end
     do_divine_intervention()
     do_zeus_intervention()
+    return true
 end
 
-do_tick()
+return do_tick()

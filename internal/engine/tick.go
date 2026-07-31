@@ -215,6 +215,121 @@ func processReproduction(s *Simulation) {
 	}
 }
 
+// processCrossbreeding handles cross-species reproduction between compatible
+// races. Different-faction pairs at the same location have a small chance
+// to produce a half-species child (e.g., human + orc → half_orc).
+func processCrossbreeding(s *Simulation) {
+	// Global entity cap to prevent runaway growth
+	const maxEntities = 5000
+	if len(s.Entities.All()) >= maxEntities {
+		return
+	}
+
+	type locKey struct {
+		locID string
+	}
+	groups := make(map[locKey][]*entity.Entity)
+
+	for _, ent := range s.Entities.All() {
+		if !ent.Alive || !ent.Conscious {
+			continue
+		}
+		if !ent.IsAdult() {
+			continue
+		}
+		sp, ok := species.GetByID(ent.Species)
+		if !ok || !sp.CanReproduce {
+			continue
+		}
+		key := locKey{locID: ent.LocationID}
+		groups[key] = append(groups[key], ent)
+	}
+
+	for key, members := range groups {
+		if len(members) < 2 {
+			continue
+		}
+
+		// Only 0.05% per tick for crossbreeding (much rarer than same-species)
+		if s.RNG.Intn(10000) >= 5 {
+			continue
+		}
+
+		var mother, father *entity.Entity
+		for i := 0; i < 20; i++ {
+			cA := members[s.RNG.Intn(len(members))]
+			cB := members[s.RNG.Intn(len(members))]
+			if cA.ID == cB.ID {
+				continue
+			}
+			childSpecies := species.GetHalfSpecies(cA.Species, cB.Species)
+			if childSpecies == "" {
+				continue
+			}
+			// Assign mother/father randomly
+			if s.RNG.Intn(2) == 0 {
+				mother = cA
+				father = cB
+			} else {
+				mother = cB
+				father = cA
+			}
+			break
+		}
+		if mother == nil || father == nil {
+			continue
+		}
+
+		childSpecies := species.GetHalfSpecies(mother.Species, father.Species)
+		childAttrs := averageAttrs(mother.Attributes, father.Attributes, s.RNG)
+		childName := generateName(childSpecies, s.RNG)
+		childID := fmt.Sprintf("%s_child_%s_%d", childSpecies, mother.ID, s.Tick)
+
+		child := entity.NewEntity(childID, childName, childSpecies, childAttrs, 1, relation.CombineRelation(mother.Relation, father.Relation))
+		if s.RNG.Intn(2) == 0 {
+			child.Gender = "male"
+		} else {
+			child.Gender = "female"
+		}
+		child.LocationID = key.locID
+		child.Faction = mother.Faction
+		if child.Faction == "" {
+			child.Faction = father.Faction
+		}
+		child.Profession = mother.Profession
+		if child.Profession == "" {
+			child.Profession = father.Profession
+		}
+		child.AI = entity.EntityAI{
+			Type:         "passive",
+			SleepCycle:   defaultSleepCycle(childSpecies),
+			HomeLocation: key.locID,
+		}
+
+		child.XP = randomXPForLevel(1, s.RNG.Intn)
+
+		s.Entities.Add(child)
+
+		mother.AddRelationship(child.ID, entity.RelationshipChild, s.Tick)
+		father.AddRelationship(child.ID, entity.RelationshipChild, s.Tick)
+		child.AddRelationship(mother.ID, entity.RelationshipParent, s.Tick)
+		child.AddRelationship(father.ID, entity.RelationshipParent, s.Tick)
+
+		mother.AddRelationship(father.ID, entity.RelationshipMate, s.Tick)
+		father.AddRelationship(mother.ID, entity.RelationshipMate, s.Tick)
+
+		mother.LastReproductionTick = s.Tick
+		father.LastReproductionTick = s.Tick
+		log.Printf("[birth] %s (half-species %s) born to %s (%s) and %s (%s) at %s", child.Name, childSpecies, mother.Name, mother.Species, father.Name, father.Species, key.locID)
+		s.Emit(events.SimEvent{
+			Type:   events.EventEntityBorn,
+			Tick:   s.Tick,
+			Source: child.ID,
+			Data:   map[string]any{"mother": mother.ID, "father": father.ID, "species": childSpecies, "location": key.locID},
+		})
+	}
+}
+
 func processEntityAI(ent *entity.Entity, sim *Simulation) {
 	phase := sim.Time.Phase()
 	combat.SetTick(sim.Tick)
@@ -227,18 +342,17 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 				if sid == "" {
 					continue
 				}
-				scriptEvents, err := ai.RunScript(sid, ent, sim.World, sim.Entities, &sim.Time, sim.RNG, sim.Quests)
+				result, err := ai.RunScript(sid, ent, sim.World, sim.Entities, &sim.Time, sim.RNG, sim.Quests)
 				if err != nil {
 					log.Printf("AI  script error for %s (%s): %v", ent.Name, sid, err)
 					continue
 				}
-				if scriptEvents == nil {
-					continue
-				}
-				for _, event := range scriptEvents {
+				for _, event := range result.Events {
 					sim.Emit(*event)
 				}
-				break // Only run the first valid script per tick
+				if result.DidAct {
+					break
+				}
 			}
 		}
 		return

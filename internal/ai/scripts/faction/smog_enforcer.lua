@@ -56,13 +56,16 @@ local function do_tick()
     if world.phase == "night" then
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
+            return true
         end
-        return
+        return false
     end
 
+    local acted = false
     -- Run patrols and protection sweeps every 12 ticks
     if world.tick % 12 == 0 then
         check_targets()
+        acted = true
     end
 
     -- Randomly march around adjacent mining/foundry lanes if empty
@@ -72,8 +75,10 @@ local function do_tick()
             local next_loc = exits[util.rand_int(#exits) + 1]
             world.move_to(next_loc)
             util.log(self.name .. " marched to patrol location: " .. next_loc)
+            acted = true
         end
     end
+    return acted
 end
 
-do_tick()
+return do_tick()

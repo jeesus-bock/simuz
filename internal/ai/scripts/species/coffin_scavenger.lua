@@ -50,8 +50,9 @@ local function do_tick()
                 -- Otherwise safely head back to sleep inside the crypt tombs
                 world.move_to(self.home)
             end
+            return true
         end
-        return
+        return false
     end
 
     -- Night Operations Loop
@@ -67,8 +68,10 @@ local function do_tick()
                 if exits and #exits > 0 then
                     local target_spot = exits[util.rand_int(#exits) + 1]
                     world.move_to(target_spot)
+                    return true
                 end
             end
+            return found
         end
     else
         -- We are dragging a body! Immediately path back to the home crypt
@@ -84,8 +87,10 @@ local function do_tick()
                 util.mem_set("hauling_target", nil)
                 util.set_mood("relaxed", 30)
             end
+            return true
         end
     end
+    return false
 end
 
-do_tick()
+return do_tick()

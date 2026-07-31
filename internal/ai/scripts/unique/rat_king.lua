@@ -77,6 +77,7 @@ end
 local function do_tick()
     local tick = world.tick
     local phase = world.phase
+    local acted = false
 
     if hp_pct() < THRESHOLD_LOW_HP then
         is_defensive = true
@@ -95,6 +96,7 @@ local function do_tick()
     if tick % ROAR_COOLDOWN == 0 and aggression_flag then
         util.log("Skreet the Unseen lets out a fearsome roar!")
         last_roar = tick
+        acted = true
     end
 
     if tick % REGEN_INTERVAL == 0 and not aggression_flag then
@@ -103,18 +105,22 @@ local function do_tick()
 
     if tick % SUMMON_INTERVAL == 0 and aggression_flag then
         do_summon()
+        acted = true
     end
 
     if in_throne() and tick % 30 == 0 and not is_defensive then
         if has_hostile_nearby() then
             log_aggression()
+            acted = true
         end
     end
 
     -- If very low HP, rumble and become desperate
     if is_defensive and tick % 15 == 0 then
         util.log("Skreet the Unseen snarls defensively — " .. self.hp .. "/" .. self.max_hp .. " HP")
+        acted = true
     end
+    return acted
 end
 
-do_tick()
+return do_tick()

@@ -72,17 +72,18 @@ local function do_tick()
     local phase = world.phase
 
     if world.defend_self and world.defend_self() then
-        return
+        return true
     end
     if world.avoid_combat and world.avoid_combat() then
-        return
+        return true
     end
 
     if phase == "dusk" or phase == "night" then
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
+            return true
         end
-        return
+        return false
     end
 
     if world.tick % 10 == 0 then
@@ -117,6 +118,8 @@ local function do_tick()
     if world.tick % 30 == 0 then
         update_mood()
     end
+
+    return false
 end
 
-do_tick()
+return do_tick()

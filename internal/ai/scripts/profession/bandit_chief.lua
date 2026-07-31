@@ -38,8 +38,11 @@ local function coordinate_raid()
 end
 
 local function do_tick()
+    local acted = false
+
     if world.tick % 8 == 0 then
         coordinate_raid()
+        acted = true
     end
 
     -- Periodically move territory layout boundaries to find fresh caravans
@@ -47,8 +50,11 @@ local function do_tick()
         local exits = world.exits_from(self.loc_id)
         if exits and #exits > 0 then
             world.move_to(exits[util.rand_int(#exits) + 1])
+            acted = true
         end
     end
+
+    return acted
 end
 
-do_tick()
+return do_tick()

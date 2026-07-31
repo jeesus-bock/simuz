@@ -45,30 +45,36 @@ end
 local function do_tick()
     local tick = world.tick
     local phase = world.phase
+    local acted = false
 
     if phase == "night" then
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
+            return true
         end
-        return
+        return false
     end
 
     if is_hostile_nearby() then
         if self.hp < self.max_hp * FLEE_HP_THRESHOLD then
             if self.home and self.loc_id ~= self.home then
                 world.move_to(self.home)
+                return true
             end
         end
-        return
+        return false
     end
 
     if tick % 20 == 0 then
         do_gather()
+        acted = true
     end
 
     if self.home and self.loc_id ~= self.home and tick % 30 == 0 then
         world.move_to(self.home)
+        acted = true
     end
+    return acted
 end
 
-do_tick()
+return do_tick()

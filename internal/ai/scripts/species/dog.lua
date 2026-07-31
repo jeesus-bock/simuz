@@ -35,8 +35,10 @@ local function run_canine_alerts()
 end
 
 local function do_tick()
+    local acted = false
     if world.tick % 6 == 0 then
         run_canine_alerts()
+        acted = true
     end
 
     -- Companion path tracking: if following someone, automatically drag/hop to their sector
@@ -47,11 +49,13 @@ local function do_tick()
             if master_info and master_info.alive and master_info.location_id ~= self.loc_id then
                 world.move_to(master_info.location_id)
                 util.log(self.name .. " trots behind its companion into " .. master_info.location_id)
+                acted = true
             elseif not master_info or not master_info.alive then
                 util.mem_set("companion_target", nil) -- Reset tracker if companion dies
             end
         end
     end
+    return acted
 end
 
-do_tick()
+return do_tick()

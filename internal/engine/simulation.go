@@ -248,6 +248,7 @@ func (s *Simulation) TickOnce() {
 	// Natural reproduction: adult male/female pairs of the same species
 	// at the same location have a small chance to produce offspring each tick.
 	processReproduction(s)
+	processCrossbreeding(s)
 
 	if s.SpawnManager != nil {
 		s.SpawnManager.ProcessSpawns(s.World, s.Entities, int(s.Tick), s.RNG)

@@ -64,8 +64,9 @@ local function do_tick()
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
             util.log(self.name .. " fled to safety at low HP")
+            return true
         end
-        return
+        return false
     end
 
     local target_id, target_info = find_hostile()
@@ -76,7 +77,7 @@ local function do_tick()
         do_curse(target_id)
         do_memory_steal(target_id)
         summon_minions()
-        return
+        return true
     end
 
     if world.tick % 25 == 0 then
@@ -85,9 +86,11 @@ local function do_tick()
             local dest = exits[util.rand_int(#exits) + 1]
             if dest ~= self.loc_id then
                 world.move_to(dest)
+                return true
             end
         end
     end
+    return false
 end
 
-do_tick()
+return do_tick()

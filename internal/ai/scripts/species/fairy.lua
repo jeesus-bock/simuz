@@ -68,18 +68,24 @@ local function try_evade()
     return false
 end
 
-local function do_tick()
+local function do_tick(self)
+    -- 1. Fail-safe: Ensure the actor executing the tick actually exists
+    if not self then return false end
+
     local phase = world.phase
 
     if phase == "night" or phase == "dusk" then
-        if self.home and self.loc_id ~= self.home then
+        -- 2. Added safety check for self.home and self.loc_id
+        if self.home and self.loc_id and self.loc_id ~= self.home then
             world.move_to(self.home)
+            return true
         end
-        return
+        return false
     end
 
     local target_id, target_info = find_hostile()
-    if target_id then
+    -- 3. Fail-safe: Only interact if a target and target_info were successfully found
+    if target_id and target_info then
         local attacked = util.rand_int(100) < 60
         if attacked then
             local hit = world.attack(self.id, target_id)
@@ -91,18 +97,26 @@ local function do_tick()
         if target_info.species == "human" then
             do_charm(target_id)
         end
-        return
+        return true
     end
 
-    if world.tick % WANDER_INTERVAL == 0 then
-        local exits = world.exits_from(self.loc_id)
-        if exits and #exits > 0 then
-            local dest = exits[util.rand_int(#exits) + 1]
-            if dest ~= self.loc_id then
-                world.move_to(dest)
+    -- 4. Added safe-navigation check for world.tick and WANDER_INTERVAL
+    if world.tick and WANDER_INTERVAL and (world.tick % WANDER_INTERVAL == 0) then
+        -- Ensure we have a valid location ID to query exits from
+        if self.loc_id then
+            local exits = world.exits_from(self.loc_id)
+            if exits and #exits > 0 then
+                local dest = exits[util.rand_int(#exits) + 1]
+                -- 5. Added explicit nil check for the picked destination
+                if dest and dest ~= self.loc_id then
+                    world.move_to(dest)
+                    return true
+                end
             end
         end
     end
+    return false
 end
 
-do_tick()
+-- When executing the tick, pass the current entity context
+return do_tick(self)

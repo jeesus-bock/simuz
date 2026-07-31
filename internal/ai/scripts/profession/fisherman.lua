@@ -43,13 +43,18 @@ end
 
 local function do_tick()
     if world.phase == "night" then
-        if self.home and self.loc_id ~= self.home then world.move_to(self.home) end
-        return
+        if self.home and self.loc_id ~= self.home then
+            world.move_to(self.home)
+            return true
+        end
+        return false
     end
 
     if world.tick % 18 == 0 then
         execute_fishing()
     end
+
+    return false
 end
 
-do_tick()
+return do_tick()

@@ -3,6 +3,9 @@ package main
 import (
 	"log"
 	"math/rand"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"simuz/internal/engine"
@@ -25,13 +28,21 @@ func main() {
 	builder := engine.NewWorldBuilder(seed, rng)
 
 	// 4. Build the simulation context by feeding it the managers
-	_, err := builder.BootstrapWorld(w, em)
+	sim, err := builder.BootstrapWorld(w, em)
 	if err != nil {
 		log.Fatalf("Critical Engine Boot Failure: %v", err)
 	}
 
 	log.Println("Bootstrapping Complete. Engine running smoothly.")
 
-	// 5. Fire your tick execution loop
-	// sim.Tick(w, em, ...)
+	// 5. Start the tick loop in a goroutine
+	go sim.Start()
+
+	// 6. Wait for interrupt signal to gracefully shut down
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	<-sigCh
+
+	log.Println("Shutting down simulation...")
+	sim.Stop()
 }

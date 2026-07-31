@@ -38,8 +38,9 @@ local function do_tick()
     if phase == "night" then
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
+            return true
         end
-        return
+        return false
     end
 
     -- Flee from hostiles immediately
@@ -49,23 +50,27 @@ local function do_tick()
             if self.home and self.loc_id ~= self.home then
                 world.move_to(self.home)
                 util.log(self.name .. " fled home from threat")
+                return true
             end
-            return
         end
         -- Avoid combat, just stay alert
         util.log(self.name .. " spotted hostile, avoiding contact")
-        return
+        return true
     end
 
+    local acted = false
     -- Explore periodically
     if tick % EXPLORE_INTERVAL == 0 then
         do_explore()
+        acted = true
     end
 
     -- Return home periodically
     if tick % RETURN_HOME_INTERVAL == 0 and self.home and self.loc_id ~= self.home then
         world.move_to(self.home)
+        acted = true
     end
+    return acted
 end
 
-do_tick()
+return do_tick()
