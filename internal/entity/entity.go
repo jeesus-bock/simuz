@@ -118,6 +118,7 @@ type Entity struct {
 	Reproduction         Reproduction                  `json:"reproduction,omitempty"`
 	Relationships        map[string]EntityRelationship `json:"relationships,omitempty"`
 	LastReproductionTick uint64                        `json:"last_reproduction_tick,omitempty"`
+	KnockedOutTick       uint64                        `json:"knocked_out_tick,omitempty"`
 	TimeOfDeath          uint64                        `json:"timeOfDeath"`
 	relation.Relation
 	Memory     map[string]string `json:"memory,omitempty"`

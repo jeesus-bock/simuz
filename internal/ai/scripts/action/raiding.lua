@@ -51,7 +51,7 @@ local function find_raid_target()
     return nil
 end
 
-local function do_tick()
+function do_tick()
     local tick = world.tick
 
     if tick % RAID_INTERVAL ~= 0 then
