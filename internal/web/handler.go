@@ -43,14 +43,15 @@ func (h *Handler) Dashboard(c *gin.Context) {
 	defer h.Sim.RUnlock()
 
 	if err := h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
-		"title":     "Simuz",
-		"page":      "dashboard",
-		"tick":      h.Sim.Tick,
-		"time":      h.Sim.Time.String(),
-		"phase":     h.Sim.Time.Phase().String(),
-		"season":    h.Sim.Time.Season().String(),
-		"entities":  len(h.Sim.Entities.All()),
-		"locations": len(h.Sim.World.AllLocations()),
+		"title":         "Simuz",
+		"page":          "dashboard",
+		"tick":          h.Sim.Tick,
+		"time":          h.Sim.Time.String(),
+		"phase":         h.Sim.Time.Phase().String(),
+		"season":        h.Sim.Time.Season().String(),
+		"entities":      len(h.Sim.Entities.All()),
+		"locations":     len(h.Sim.World.AllLocations()),
+		"active_quests": h.activeQuestViews(),
 	}); err != nil {
 		_ = c.Error(err)
 	}
@@ -742,12 +743,13 @@ func (h *Handler) DashboardFragment(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
 	if err := h.Tmpls.ExecuteTemplate(c.Writer, "dashboard_stats", gin.H{
-		"tick":      h.Sim.Tick,
-		"time":      h.Sim.Time.String(),
-		"phase":     h.Sim.Time.Phase().String(),
-		"season":    h.Sim.Time.Season().String(),
-		"entities":  len(h.Sim.Entities.All()),
-		"locations": len(h.Sim.World.AllLocations()),
+		"tick":          h.Sim.Tick,
+		"time":          h.Sim.Time.String(),
+		"phase":         h.Sim.Time.Phase().String(),
+		"season":        h.Sim.Time.Season().String(),
+		"entities":      len(h.Sim.Entities.All()),
+		"locations":     len(h.Sim.World.AllLocations()),
+		"active_quests": h.activeQuestViews(),
 	}); err != nil {
 		_ = c.Error(err)
 	}
