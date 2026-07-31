@@ -188,7 +188,7 @@ func processTravel(s *Simulation) {
 
 			// Mortals cannot enter divine realms mid-travel.
 			// If the next step is a divine realm, abort the travel and let them stay put.
-			if ent.Species != "deity" && ent.Faction != "deity" && s.World.IsDivineRealm(nextID) {
+			if ent.Species != "divine" && ent.Species != "deity" && ent.Faction != "deity" && s.World.IsDivineRealm(nextID) {
 				ts.Status = world.TravelArrived
 				ent.Activity = entity.EntityActivity{
 					Type:      entity.ActivityIdle,

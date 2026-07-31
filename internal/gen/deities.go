@@ -20,9 +20,7 @@ type deityDef struct {
 }
 
 var DeityDefs = []deityDef{
-	// ==========================================
-	// 1. THE SPLIT-SKY GANG (Gilded High Hall & Chancery)
-	// ==========================================
+	// Room 1: gilded_high_hall — greek + norse + japanese
 	{
 		ID:          "seus_crackbolt",
 		Name:        "Seus Crackbolt",
@@ -34,92 +32,36 @@ var DeityDefs = []deityDef{
 		Attributes:  entity.Attributes{STR: 31, DEX: 22, CON: 38, INT: 24, WIS: 25, CHA: 35},
 	},
 	{
-		ID:          "posse_eidon",
-		Name:        "Posse-Eidon the Silt-King",
-		Pantheon:    "greek_offbrand",
-		Domain:      "stagnant_puddles_well_collapses",
-		RealmRoomID: "the_sump_tank",
-		Needs:       []string{"brackish_water", "dead_frogs", "salt_pork"},
-		Shape:       "A shivering, wet humanoid covered in pond scum and smelling of stagnant bogs, holding a bent iron fishing trident he uses as a walking cane.",
-		Attributes:  entity.Attributes{STR: 35, DEX: 20, CON: 35, INT: 21, WIS: 20, CHA: 24},
-	},
-	{
-		ID:          "othena_the_pedantic",
-		Name:        "Othena the Pedantic",
-		Pantheon:    "greek_offbrand",
-		Domain:      "grammatical_heresy_unwinnable_debates",
-		RealmRoomID: "drafty_marble_gallery",
-		Needs:       []string{"ink_vials", "herbal_tea", "wax_candles"},
-		Shape:       "A stern, unblinking woman carrying an excessively heavy stone tablet, constantly sighing and muttering corrections at mortal grammar errors.",
-		Attributes:  entity.Attributes{STR: 24, DEX: 27, CON: 25, INT: 39, WIS: 35, CHA: 28},
-	},
-	{
-		ID:          "oriz_the_bloodshot",
-		Name:        "Oriz the Bloodshot",
-		Pantheon:    "greek_offbrand",
-		Domain:      "unwarranted_brawls_bruised_shins",
-		RealmRoomID: "gilded_high_hall",
-		Needs:       []string{"raw_meat", "bandages", "loud_shouting"},
-		Shape:       "A hyperactive fighter whose rusty plate armor is missing several rivets. He swings an oversized iron sword but frequently trips over his own boots.",
-		Attributes:  entity.Attributes{STR: 39, DEX: 29, CON: 32, INT: 14, WIS: 10, CHA: 16},
-	},
-
-	// ==========================================
-	// 2. THE MOIST NORTHERN DECAY (The Drafty Longhouse)
-	// ==========================================
-	{
-		ID:          "odd_in",
-		Name:        "Odd-In the Near-Sighted",
-		Pantheon:    "norse_offbrand",
-		Domain:      "conspiracy_theories_damp_scrolls",
-		RealmRoomID: "drafty_longhouse",
-		Needs:       []string{"secret_journals", "old_cheese", "earplugs"},
-		Shape:       "A paranoid patriarch squinting through a cracked leather eye-patch. He has two mangy ravens that keep biting his ears instead of giving secrets.",
-		Attributes:  entity.Attributes{STR: 29, DEX: 22, CON: 32, INT: 39, WIS: 35, CHA: 28},
-	},
-	{
-		ID:          "thurn_the_thumper",
-		Name:        "Thurn the Thumper",
-		Pantheon:    "norse_offbrand",
-		Domain:      "loud_noises_shattered_handles",
-		RealmRoomID: "drafty_longhouse",
-		Needs:       []string{"roasted_marrow", "ale_barrels", "anvil_to_smash"},
-		Shape:       "A massive brawler who cannot speak below a deafening shout. His legendary war-hammer has a loose head that flies off whenever he swings it.",
-		Attributes:  entity.Attributes{STR: 45, DEX: 25, CON: 40, INT: 12, WIS: 15, CHA: 22},
-	},
-	{
 		ID:          "low_key",
 		Name:        "Low-Key the Fumbler",
 		Pantheon:    "norse_offbrand",
 		Domain:      "bad_advice_spilled_grease",
-		RealmRoomID: "the_cluttered_attic",
+		RealmRoomID: "gilded_high_hall",
 		Needs:       []string{"greased_strings", "rotten_eggs", "attention"},
 		Shape:       "A gaunt, twitchy trickster whose shape-shifting is broken. He occasionally gets stuck halfway between an elven merchant and a wet sewer fox.",
 		Attributes:  entity.Attributes{STR: 19, DEX: 35, CON: 22, INT: 35, WIS: 20, CHA: 35},
 	},
 	{
-		ID:          "froyda_the_thistle",
-		Name:        "Froyda the Thistle-Queen",
-		Pantheon:    "norse_offbrand",
-		Domain:      "obsessive_infatuation_stinging_betrayals",
-		RealmRoomID: "the_velvet_cesspool",
-		Needs:       []string{"violet_spores", "honey_pots", "gossip"},
-		Shape:       "A majestic figure whose porcelain skin cracks like dry clay upon close inspection, revealing writhing green stinging nettles beneath her silk dress.",
-		Attributes:  entity.Attributes{STR: 22, DEX: 27, CON: 25, INT: 27, WIS: 28, CHA: 39},
+		ID:          "amater_ashes",
+		Name:        "Amater-Ashes the Dim",
+		Pantheon:    "japanese_offbrand",
+		Domain:      "flickering_lanterns_bad_sunburns",
+		RealmRoomID: "gilded_high_hall",
+		Needs:       []string{"tallow_candles", "blankets", "clear_night"},
+		Shape:       "A shivering goddess wrapped in coarse woolen quilts, clutching a rusted oil lantern that refuses to stay lit for more than ten ticks.",
+		Attributes:  entity.Attributes{STR: 22, DEX: 25, CON: 29, INT: 31, WIS: 36, CHA: 39},
 	},
 
-	// ==========================================
-	// 3. THE CLOUD BUREAUCRACY (Chancery & Sump)
-	// ==========================================
+	// Room 2: chancery_of_clouds — greek + chinese + norse
 	{
-		ID:          "ooh_huang",
-		Name:        "Ooh-Huang the Clerk",
-		Pantheon:    "chinese_offbrand",
-		Domain:      "divine_red_tape_stagnation",
+		ID:          "othena_the_pedantic",
+		Name:        "Othena the Pedantic",
+		Pantheon:    "greek_offbrand",
+		Domain:      "grammatical_heresy_unwinnable_debates",
 		RealmRoomID: "chancery_of_clouds",
-		Needs:       []string{"stamped_deeds", "dried_ink", "absolute_silence"},
-		Shape:       "An ancient, unblinking celestial bureaucrat whose fingers are made entirely of brittle, yellowed audit parchment rolls.",
-		Attributes:  entity.Attributes{STR: 31, DEX: 22, CON: 36, INT: 41, WIS: 41, CHA: 36},
+		Needs:       []string{"ink_vials", "herbal_tea", "wax_candles"},
+		Shape:       "A stern, unblinking woman carrying an excessively heavy stone tablet, constantly sighing and muttering corrections at mortal grammar errors.",
+		Attributes:  entity.Attributes{STR: 24, DEX: 27, CON: 25, INT: 39, WIS: 35, CHA: 28},
 	},
 	{
 		ID:          "groan_yin",
@@ -132,53 +74,49 @@ var DeityDefs = []deityDef{
 		Attributes:  entity.Attributes{STR: 15, DEX: 19, CON: 27, INT: 35, WIS: 40, CHA: 39},
 	},
 	{
-		ID:          "wukong_the_mangy",
-		Name:        "Wukong the Mangy",
-		Pantheon:    "chinese_offbrand",
-		Domain:      "unwarranted_confidence_bruised_shins",
-		RealmRoomID: "the_cluttered_attic",
-		Needs:       []string{"stolen_peaches", "flea_combs", "stale_bread"},
-		Shape:       "An old baboon wearing an oversized bronze helmet that continuously slips down over his eyes, causing him to hit walls with his quarterstaff.",
-		Attributes:  entity.Attributes{STR: 35, DEX: 41, CON: 31, INT: 26, WIS: 16, CHA: 31},
+		ID:          "froyda_the_thistle",
+		Name:        "Froyda the Thistle-Queen",
+		Pantheon:    "norse_offbrand",
+		Domain:      "obsessive_infatuation_stinging_betrayals",
+		RealmRoomID: "chancery_of_clouds",
+		Needs:       []string{"violet_spores", "honey_pots", "gossip"},
+		Shape:       "A majestic figure whose porcelain skin cracks like dry clay upon close inspection, revealing writhing green stinging nettles beneath her silk dress.",
+		Attributes:  entity.Attributes{STR: 22, DEX: 27, CON: 25, INT: 27, WIS: 28, CHA: 39},
 	},
 
-	// ==========================================
-	// 4. THE SUNKEN SUN CULTS (The Mildew Corner)
-	// ==========================================
+	// Room 3: drafty_longhouse — norse + greek + japanese
 	{
-		ID:          "amater_ashes",
-		Name:        "Amater-Ashes the Dim",
-		Pantheon:    "japanese_offbrand",
-		Domain:      "flickering_lanterns_bad_sunburns",
-		RealmRoomID: "the_mildew_corner",
-		Needs:       []string{"tallow_candles", "blankets", "clear_night"},
-		Shape:       "A shivering goddess wrapped in coarse woolen quilts, clutching a rusted oil lantern that refuses to stay lit for more than ten ticks.",
-		Attributes:  entity.Attributes{STR: 22, DEX: 25, CON: 29, INT: 31, WIS: 36, CHA: 39},
+		ID:          "thurn_the_thumper",
+		Name:        "Thurn the Thumper",
+		Pantheon:    "norse_offbrand",
+		Domain:      "loud_noises_shattered_handles",
+		RealmRoomID: "drafty_longhouse",
+		Needs:       []string{"roasted_marrow", "ale_barrels", "anvil_to_smash"},
+		Shape:       "A massive brawler who cannot speak below a deafening shout. His legendary war-hammer has a loose head that flies off whenever he swings it.",
+		Attributes:  entity.Attributes{STR: 45, DEX: 25, CON: 40, INT: 12, WIS: 15, CHA: 22},
+	},
+	{
+		ID:          "oriz_the_bloodshot",
+		Name:        "Oriz the Bloodshot",
+		Pantheon:    "greek_offbrand",
+		Domain:      "unwarranted_brawls_bruised_shins",
+		RealmRoomID: "drafty_longhouse",
+		Needs:       []string{"raw_meat", "bandages", "loud_shouting"},
+		Shape:       "A hyperactive fighter whose rusty plate armor is missing several rivets. He swings an oversized iron sword but frequently trips over his own boots.",
+		Attributes:  entity.Attributes{STR: 39, DEX: 29, CON: 32, INT: 14, WIS: 10, CHA: 16},
 	},
 	{
 		ID:          "snoozanoo",
 		Name:        "Snoozano-o the Lethargic",
 		Pantheon:    "japanese_offbrand",
 		Domain:      "damp_gales_clogged_drains",
-		RealmRoomID: "the_sump_tank",
+		RealmRoomID: "drafty_longhouse",
 		Needs:       []string{"brackish_water", "dry_pillows", "salted_fish"},
 		Shape:       "A bloated, sleeping sea-spirit resting face down in a puddle of muddy drainage water, snoring with the sound of a small, distant thunderstorm.",
 		Attributes:  entity.Attributes{STR: 35, DEX: 27, CON: 32, INT: 19, WIS: 15, CHA: 25},
 	},
-	{
-		ID:          "raijin_the_rattler",
-		Name:        "Raijin the Rattler",
-		Pantheon:    "japanese_offbrand",
-		Domain:      "cracked_drums_tinnitus",
-		RealmRoomID: "the_sump_tank",
-		Needs:       []string{"raw_hide", "wooden_mallets", "earplugs"},
-		Shape:       "An old oni whose thunder-drums have loose, dry skins. Every time he hits them, they make a sad, hollow rattling sound instead of thunder.",
-		Attributes:  entity.Attributes{STR: 29, DEX: 25, CON: 27, INT: 15, WIS: 19, CHA: 22},
-	},
 
-	// ==========================================
-	// 5. THE BASER EXPEDITIONS (The Moldering Vaults)
-	// ==========================================
+	// Room 4: moldering_root_vault — greek + dnd + japanese
 	{
 		ID:          "haydes_the_hoarder",
 		Name:        "Haydes the Hoarder",
@@ -200,24 +138,79 @@ var DeityDefs = []deityDef{
 		Attributes:  entity.Attributes{STR: 41, DEX: 22, CON: 41, INT: 26, WIS: 25, CHA: 31},
 	},
 	{
-		ID:          "baa_hamut",
-		Name:        "Baa-Hamut the Blunderer",
-		Pantheon:    "dnd_offbrand",
-		Domain:      "misplaced_justice_broken_scales",
-		RealmRoomID: "drafty_marble_gallery",
-		Needs:       []string{"polishing_wax", "parchment_deeds", "herbal_tea"},
-		Shape:       "A massive platinum-scaled creature whose eyesight is so poor he continuously knocks down ancient marble columns while looking for his glasses.",
-		Attributes:  entity.Attributes{STR: 38, DEX: 22, CON: 38, INT: 31, WIS: 34, CHA: 34},
+		ID:          "raijin_the_rattler",
+		Name:        "Raijin the Rattler",
+		Pantheon:    "japanese_offbrand",
+		Domain:      "cracked_drums_tinnitus",
+		RealmRoomID: "moldering_root_vault",
+		Needs:       []string{"raw_hide", "wooden_mallets", "earplugs"},
+		Shape:       "An old oni whose thunder-drums have loose, dry skins. Every time he hits them, they make a sad, hollow rattling sound instead of thunder.",
+		Attributes:  entity.Attributes{STR: 29, DEX: 25, CON: 27, INT: 15, WIS: 19, CHA: 22},
+	},
+
+	// Room 5: the_cluttered_attic — norse + chinese + dnd
+	{
+		ID:          "odd_in",
+		Name:        "Odd-In the Near-Sighted",
+		Pantheon:    "norse_offbrand",
+		Domain:      "conspiracy_theories_damp_scrolls",
+		RealmRoomID: "the_cluttered_attic",
+		Needs:       []string{"secret_journals", "old_cheese", "earplugs"},
+		Shape:       "A paranoid patriarch squinting through a cracked leather eye-patch. He has two mangy ravens that keep biting his ears instead of giving secrets.",
+		Attributes:  entity.Attributes{STR: 29, DEX: 22, CON: 32, INT: 39, WIS: 35, CHA: 28},
+	},
+	{
+		ID:          "wukong_the_mangy",
+		Name:        "Wukong the Mangy",
+		Pantheon:    "chinese_offbrand",
+		Domain:      "unwarranted_confidence_bruised_shins",
+		RealmRoomID: "the_cluttered_attic",
+		Needs:       []string{"stolen_peaches", "flea_combs", "stale_bread"},
+		Shape:       "An old baboon wearing an oversized bronze helmet that continuously slips down over his eyes, causing him to hit walls with his quarterstaff.",
+		Attributes:  entity.Attributes{STR: 35, DEX: 41, CON: 31, INT: 26, WIS: 16, CHA: 31},
 	},
 	{
 		ID:          "vaicna_the_unwashed",
 		Name:        "Vaicna the Unwashed",
 		Pantheon:    "dnd_offbrand",
 		Domain:      "petty_secrets_mildew_scrolls",
-		RealmRoomID: "the_mildew_corner",
+		RealmRoomID: "the_cluttered_attic",
 		Needs:       []string{"stale_bread", "secret_journals", "moldy_cheese"},
 		Shape:       "A gaunt, skeletal lich missing its left earlobe and hand, wearing a moth-eaten woolen sweater and hiding moldy scrolls inside its ribs.",
-		Attributes:  entity.Attributes{STR: 19, DEX: 18, CON: 25, INT: 41, WIS: 36, CHA: 26}},
+		Attributes:  entity.Attributes{STR: 19, DEX: 18, CON: 25, INT: 41, WIS: 36, CHA: 26},
+	},
+
+	// Room 6: the_sump_tank — greek + chinese + dnd
+	{
+		ID:          "posse_eidon",
+		Name:        "Posse-Eidon the Silt-King",
+		Pantheon:    "greek_offbrand",
+		Domain:      "stagnant_puddles_well_collapses",
+		RealmRoomID: "the_sump_tank",
+		Needs:       []string{"brackish_water", "dead_frogs", "salt_pork"},
+		Shape:       "A shivering, wet humanoid covered in pond scum and smelling of stagnant bogs, holding a bent iron fishing trident he uses as a walking cane.",
+		Attributes:  entity.Attributes{STR: 35, DEX: 20, CON: 35, INT: 21, WIS: 20, CHA: 24},
+	},
+	{
+		ID:          "ooh_huang",
+		Name:        "Ooh-Huang the Clerk",
+		Pantheon:    "chinese_offbrand",
+		Domain:      "divine_red_tape_stagnation",
+		RealmRoomID: "the_sump_tank",
+		Needs:       []string{"stamped_deeds", "dried_ink", "absolute_silence"},
+		Shape:       "An ancient, unblinking celestial bureaucrat whose fingers are made entirely of brittle, yellowed audit parchment rolls.",
+		Attributes:  entity.Attributes{STR: 31, DEX: 22, CON: 36, INT: 41, WIS: 41, CHA: 36},
+	},
+	{
+		ID:          "baa_hamut",
+		Name:        "Baa-Hamut the Blunderer",
+		Pantheon:    "dnd_offbrand",
+		Domain:      "misplaced_justice_broken_scales",
+		RealmRoomID: "the_sump_tank",
+		Needs:       []string{"polishing_wax", "parchment_deeds", "herbal_tea"},
+		Shape:       "A massive platinum-scaled creature whose eyesight is so poor he continuously knocks down ancient marble columns while looking for his glasses.",
+		Attributes:  entity.Attributes{STR: 38, DEX: 22, CON: 38, INT: 31, WIS: 34, CHA: 34},
+	},
 }
 
 func findRealmForDeity(deityID string) string {
@@ -230,6 +223,100 @@ func findRealmForDeity(deityID string) string {
 	}
 	log.Printf("[gen] findRealmForDeity: no realm found for deity %s", deityID)
 	return ""
+}
+
+var deityIDs []string
+
+// Species-specific deity pools — mixed pantheons per species.
+// Each species draws from a curated, thematic selection across all pantheons.
+// Elves and dwarves share no deities. Humans and greenskins share 2.
+var (
+	elfDeityPool = []string{
+		"froyda_the_thistle",  // norse — nature, obsessive love
+		"amater_ashes",        // japanese — sun, light
+		"othena_the_pedantic", // greek — wisdom, law
+		"groan_yin",           // chinese — compassion, pity
+		"baa_hamut",           // dnd — justice, scales
+	}
+	dwarfDeityPool = []string{
+		"odd_in",              // norse — wisdom, secrets, scrolls
+		"thurn_the_thumper",   // norse — war, thunder, hammers
+		"haydes_the_hoarder",  // greek — underground, hoarding
+		"raijin_the_rattler",  // japanese — drums, craft noise
+		"tie_o_mat",           // dnd — dungeon, copper, beasts
+	}
+	greenskinDeityPool = []string{
+		"seus_crackbolt",      // greek — thunder, raw power (shared with humans)
+		"oriz_the_bloodshot",  // greek — brawls, brute force (shared with humans)
+		"wukong_the_mangy",    // chinese — mischief, confidence
+		"vaicna_the_unwashed", // dnd — secrets, decay
+		"snoozanoo",           // japanese — laziness, sea
+	}
+	humanDeityPool = []string{
+		"seus_crackbolt",  // greek — thunder, sky (shared with greenskins)
+		"oriz_the_bloodshot", // greek — war (shared with greenskins)
+		"ooh_huang",       // chinese — bureaucracy, order
+		"low_key",         // norse — trickery, trade
+		"posse_eidon",     // greek — sea, earth, wells
+	}
+)
+
+func init() {
+	for _, d := range DeityDefs {
+		deityIDs = append(deityIDs, d.ID)
+	}
+}
+
+// AssignWorship sets the Worship field on an entity based on its species.
+// Each species draws from a curated, pantheon-mixed pool:
+//   - elves: froyda, amater_ashes, othena, groan_yin, baa_hamut
+//   - dwarves: odd_in, thurn, haydes, raijin, tie_o_mat
+//   - greenskins: seus, oriz, wukong, vaicna, snoozanoo
+//   - humans/hobbits: seus, oriz, ooh_huang, low_key, posse_eidon
+//   - humans and greenskins share seus_crackbolt and oriz_the_bloodshot
+//   - elves and dwarves share nothing
+//   - divine/deity: none
+func AssignWorship(e *entity.Entity, rng interface{ Intn(int) int }) {
+	if e.Species == "divine" || e.Species == "deity" {
+		return
+	}
+	if len(deityIDs) == 0 {
+		return
+	}
+
+	var pool []string
+	var count int
+
+	switch e.Species {
+	case "elf":
+		pool = elfDeityPool
+		count = 1 + rng.Intn(2) // 1-2
+	case "dwarf":
+		pool = dwarfDeityPool
+		count = 1 + rng.Intn(2) // 1-2
+	case "orc", "goblin", "ogre", "lizardfolk", "hobgoblin", "gnoll":
+		pool = greenskinDeityPool
+		count = rng.Intn(3) // 0-2
+	case "human", "hobbit":
+		pool = humanDeityPool
+		count = 1 + rng.Intn(3) // 1-3
+	default:
+		pool = deityIDs
+		count = rng.Intn(2) // 0-1
+	}
+
+	if count == 0 || len(pool) == 0 {
+		return
+	}
+
+	picked := make(map[string]bool)
+	for len(picked) < count {
+		d := pool[rng.Intn(len(pool))]
+		if !picked[d] {
+			picked[d] = true
+			e.Worship = append(e.Worship, d)
+		}
+	}
 }
 
 func equipDeity(e *entity.Entity, id string) {

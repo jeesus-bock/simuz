@@ -13,6 +13,7 @@ type RealmRoomDef struct {
 }
 
 // RealmDefs is the exported collection with matching resident assignments.
+// Deities from different pantheons are mixed together in each room.
 var RealmDefs = []RealmRoomDef{
 	{
 		ID:          "gilded_high_hall",
@@ -20,15 +21,15 @@ var RealmDefs = []RealmRoomDef{
 		Description: "A flashy, gold-plated chamber that smells intensely of sulfur and stale ozone.",
 		Exits:       []string{"chancery_of_clouds", "the_cluttered_attic"},
 		Atmosphere:  "smoky",
-		DeityIDs:    []string{"seus_crackbolt", "oriz_the_bloodshot"}, // Pre-assigning residents
+		DeityIDs:    []string{"seus_crackbolt", "low_key", "amater_ashes"},
 	},
 	{
 		ID:          "chancery_of_clouds",
 		Name:        "The Chancery of Clouds",
 		Description: "A silent, drafty archive room filled with brittle, yellowed paper stacks.",
-		Exits:       []string{"gilded_high_hall", "drafty_marble_gallery"},
+		Exits:       []string{"gilded_high_hall", "the_cluttered_attic"},
 		Atmosphere:  "drafty",
-		DeityIDs:    []string{"ooh_huang", "groan_yin"},
+		DeityIDs:    []string{"othena_the_pedantic", "groan_yin", "froyda_the_thistle"},
 	},
 	{
 		ID:          "drafty_longhouse",
@@ -36,23 +37,23 @@ var RealmDefs = []RealmRoomDef{
 		Description: "A cold, damp hall where massive old tables are warped by ambient moisture.",
 		Exits:       []string{"gilded_high_hall", "the_cluttered_attic"},
 		Atmosphere:  "cold",
-		DeityIDs:    []string{"odd_in", "thurn_the_thumper"},
+		DeityIDs:    []string{"thurn_the_thumper", "oriz_the_bloodshot", "snoozanoo"},
 	},
 	{
 		ID:          "moldering_root_vault",
 		Name:        "The Moldering Root Vault",
 		Description: "A cramped basement space packed with spiderwebs and bags of useless zinc coins.",
-		Exits:       []string{"the_mildew_corner", "the_sump_tank"},
+		Exits:       []string{"the_cluttered_attic", "the_sump_tank"},
 		Atmosphere:  "damp",
-		DeityIDs:    []string{"haydes_the_hoarder", "tie_o_mat"},
+		DeityIDs:    []string{"haydes_the_hoarder", "tie_o_mat", "raijin_the_rattler"},
 	},
 	{
 		ID:          "the_cluttered_attic",
 		Name:        "The Cluttered Attic",
 		Description: "A chaotic, drafty storage attic where outcasts huddle together and pull fleas.",
-		Exits:       []string{"gilded_high_hall", "drafty_longhouse", "the_mildew_corner"},
+		Exits:       []string{"gilded_high_hall", "drafty_longhouse", "moldering_root_vault"},
 		Atmosphere:  "dusty",
-		DeityIDs:    []string{"low_key", "wukong_the_mangy", "cuckoo_kan"},
+		DeityIDs:    []string{"odd_in", "wukong_the_mangy", "vaicna_the_unwashed"},
 	},
 	{
 		ID:          "the_sump_tank",
@@ -60,30 +61,6 @@ var RealmDefs = []RealmRoomDef{
 		Description: "A stagnant, leaky drainage pit collecting the runoff water of the upper plane.",
 		Exits:       []string{"moldering_root_vault"},
 		Atmosphere:  "stagnant",
-		DeityIDs:    []string{"posse_eidon", "snoozanoo", "raijin_the_rattler", "choke_the_drenched"},
-	},
-	{
-		ID:          "the_velvet_cesspool",
-		Name:        "The Velvet Cesspool",
-		Description: "A luxurious, dim alcove filled with rotting silk cushions and poisonous mushrooms.",
-		Exits:       []string{"the_mildew_corner"},
-		Atmosphere:  "toxic",
-		DeityIDs:    []string{"froyda_the_thistle"},
-	},
-	{
-		ID:          "the_mildew_corner",
-		Name:        "The Mildew Corner",
-		Description: "An overgrown, water-damaged gallery corner where moldy scrolls rot away.",
-		Exits:       []string{"the_cluttered_attic", "moldering_root_vault", "the_velvet_cesspool"},
-		Atmosphere:  "musty",
-		DeityIDs:    []string{"amater_ashes", "vaicna_the_unwashed"},
-	},
-	{
-		ID:          "drafty_marble_gallery",
-		Name:        "The Drafty Marble Gallery",
-		Description: "A grand, freezing hallway lined with cracked white pillars and heavy stone tablets.",
-		Exits:       []string{"chancery_of_clouds"},
-		Atmosphere:  "freezing",
-		DeityIDs:    []string{"othena_the_pedantic", "baa_hamut"},
+		DeityIDs:    []string{"posse_eidon", "ooh_huang", "baa_hamut"},
 	},
 }

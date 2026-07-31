@@ -46,6 +46,18 @@ func (wb *WorldBuilder) BootstrapWorld(w *world.World, em *entity.EntityManager)
 }
 
 func (wb *WorldBuilder) initDeities(em *entity.EntityManager) {
+	// deityScriptIDs returns the script list for a deity.
+	// deity_core runs for all deities; the per-deity script is included only if it exists.
+	deityScriptIDs := func(id string) []string {
+		known := map[string]bool{
+			"seus_crackbolt": true,
+		}
+		if known[id] {
+			return []string{"deity_core", id}
+		}
+		return []string{"deity_core"}
+	}
+
 	// Global package arrays like deityDefs are visible when compiling the entire package.
 	// We read the definitions array we scrubbed previously.
 	for _, def := range gen.DeityDefs {
@@ -55,12 +67,17 @@ func (wb *WorldBuilder) initDeities(em *entity.EntityManager) {
 			Name:       def.Name,
 			Species:    "divine",
 			Profession: "deity",
-			Gender:     "none",
+			Gender:     "other",
 			Alive:      true,
 			Immortal:   true,
 			Conscious:  true,
 			LocationID: def.RealmRoomID,
 			Attributes: def.Attributes,
+			AI: entity.EntityAI{
+				Type:       "scripted",
+				ScriptIDs:  deityScriptIDs(def.ID),
+				SleepCycle: "none",
+			},
 
 			// FIX 2: Instantiate as map[string]string to match your exact struct signature
 			Memory: make(map[string]string),

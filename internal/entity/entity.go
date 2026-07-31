@@ -109,6 +109,7 @@ type Entity struct {
 	AI                   EntityAI                      `json:"ai"`
 	Activity             EntityActivity                `json:"activity"`
 	Faction              string                        `json:"faction"`
+	Worship              []string                      `json:"worship,omitempty"`
 	Conscious            bool                          `json:"conscious"`
 	Effects              []ActiveEffect                `json:"effects,omitempty"`
 	Flags                map[string]any                `json:"flags,omitempty"`
