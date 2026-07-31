@@ -119,6 +119,53 @@ type questProgressView struct {
 	State  *quest.EntityQuestState
 }
 
+type entityQuestView struct {
+	QuestID      string
+	Title        string
+	Type         string
+	Level        int
+	State        string
+	CurrentStage string
+	StageDesc    string
+	AcceptedTick uint64
+	Objectives   []quest.ObjectiveDef
+	Progress     map[string]int
+	Activity     []quest.QuestActivity
+}
+
+func buildEntityQuestViews(qm *quest.Manager, entityID string) []entityQuestView {
+	states := qm.EntityStates(entityID)
+	var out []entityQuestView
+	for _, s := range states {
+		def := qm.GetDef(s.QuestID)
+		ev := entityQuestView{
+			QuestID:      s.QuestID,
+			State:        string(s.State),
+			CurrentStage: s.CurrentStage,
+			AcceptedTick: s.AcceptedTick,
+			Progress:     s.Objectives,
+			Activity:     s.Activity,
+		}
+		if def != nil {
+			ev.Title = def.Title
+			ev.Type = string(def.Type)
+			ev.Level = def.Level
+			for _, stage := range def.Stages {
+				if stage.ID == s.CurrentStage {
+					ev.StageDesc = stage.Description
+					ev.Objectives = stage.Objectives
+					break
+				}
+			}
+		}
+		if ev.Title == "" {
+			ev.Title = s.QuestID
+		}
+		out = append(out, ev)
+	}
+	return out
+}
+
 func (h *Handler) activeQuestViews() []questProgressView {
 	var active []questProgressView
 	for _, ent := range h.Sim.Entities.All() {
@@ -1391,7 +1438,7 @@ func (h *Handler) EntityDetailFragment(c *gin.Context) {
 		"xp_percent":    xpPercent,
 		"can_level_up":  canLevelUp,
 		"mood_mods_str": moodModsString(ent),
-		"quest_states":  h.Sim.Quests.EntityStates(ent.ID),
+		"quest_states":  buildEntityQuestViews(h.Sim.Quests, ent.ID),
 		"skills":        buildSkillInfo(ent),
 	}); err != nil {
 		_ = c.Error(err)

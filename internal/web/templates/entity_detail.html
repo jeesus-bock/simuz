@@ -157,14 +157,51 @@
 
         {{if .quest_states}}
         <div class="card">
-            <h2>Active Quests ({{len .quest_states}})</h2>
+            <h2>Quests ({{len .quest_states}})</h2>
             {{range .quest_states}}
-            <div style="border-left:3px solid {{if eq .State "completed"}}#4caf50{{else if eq .State "failed"}}#e94560{{else}}#ffd700{{end}};padding:4px 8px;margin:4px 0;background:#0f1a2e;border-radius:3px;">
-                <div style="display:flex;justify-content:space-between;">
-                    <span style="color:{{if eq .State "completed"}}#4caf50{{else if eq .State "failed"}}#e94560{{else}}#ffd700{{end}};font-weight:bold;">{{.QuestID}}</span>
-                    <span style="color:#888;font-size:0.85em;">{{.State}}</span>
+            <div style="border-left:3px solid {{if eq .State "completed"}}#4caf50{{else if eq .State "failed"}}#e94560{{else}}#ffd700{{end}};padding:6px 10px;margin:6px 0;background:#0f1a2e;border-radius:3px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <a href="/quest/{{.QuestID}}" style="color:{{if eq .State "completed"}}#4caf50{{else if eq .State "failed"}}#e94560{{else}}#ffd700{{end}};font-weight:bold;text-decoration:none;">{{.Title}}</a>
+                    <div style="display:flex;gap:6px;align-items:center;">
+                        <span style="color:#888;font-size:0.75rem;">Lvl {{.Level}} · {{.Type}}</span>
+                        <span style="padding:2px 6px;border-radius:3px;font-size:0.7rem;
+                            {{if eq .State "active"}}background:#204a20;color:#b3ffb3;
+                            {{else if eq .State "completed"}}background:#1a3a5c;color:#c8e6ff;
+                            {{else if eq .State "failed"}}background:#4a2020;color:#ffb3b3;
+                            {{else}}background:#222;color:#888;{{end}}">
+                            {{.State}}
+                        </span>
+                    </div>
                 </div>
-                <div style="font-size:0.85em;color:#888;">Stage: {{.CurrentStage}}</div>
+                <div style="font-size:0.85em;color:#888;margin-top:2px;">Stage: {{.CurrentStage}}{{if .StageDesc}} — {{.StageDesc}}{{end}}</div>
+                {{if .Objectives}}
+                <div style="margin-top:6px;">
+                    {{range .Objectives}}
+                    {{$prog := index $.Progress .ID}}
+                    <div style="display:flex;gap:8px;align-items:center;padding:2px 0;font-size:0.82rem;">
+                        <span style="color:#888;min-width:70px;">{{.Type}}</span>
+                        <span style="color:var(--text-dim);flex:1;">{{.Description}}</span>
+                        {{if gt .Count 1}}
+                        <span style="color:{{if ge $prog .Count}}#4caf50{{else}}#888{{end}};">{{$prog}}/{{.Count}}</span>
+                        <div class="hp-bar" style="width:50px;">
+                            <div class="hp-bar-fill" style="width:{{percent $prog .Count}}%;background:{{if ge $prog .Count}}#4caf50{{else}}#ffd700{{end}};"></div>
+                        </div>
+                        {{else}}
+                        <span style="color:{{if ge $prog 1}}#4caf50{{else}}#888{{end}};">{{if ge $prog 1}}✓{{else}}○{{end}}</span>
+                        {{end}}
+                    </div>
+                    {{end}}
+                </div>
+                {{end}}
+                {{if .Activity}}
+                <div style="margin-top:6px;padding-left:8px;border-left:2px solid rgba(255,255,255,0.08);max-height:100px;overflow-y:auto;">
+                    {{range .Activity}}
+                    <div style="font-size:0.78rem;color:var(--text-dim);padding:1px 0;">
+                        <span style="color:#666;">t{{.Tick}}</span> {{.Message}}
+                    </div>
+                    {{end}}
+                </div>
+                {{end}}
             </div>
             {{end}}
         </div>
