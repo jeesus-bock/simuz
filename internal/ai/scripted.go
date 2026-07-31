@@ -1118,6 +1118,11 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.EntityManager, tm *worl
 		tbl.RawSetString("gender", lua.LString(e.Gender))
 		tbl.RawSetString("location_id", lua.LString(e.LocationID))
 		tbl.RawSetString("hunger", lua.LNumber(computeHunger(e, tm.Tick)))
+		worshipTbl := L.NewTable()
+		for _, d := range e.Worship {
+			worshipTbl.Append(lua.LString(d))
+		}
+		tbl.RawSetString("worship", worshipTbl)
 		L.Push(tbl)
 		return 1
 	}))

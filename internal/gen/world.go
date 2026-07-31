@@ -363,6 +363,7 @@ func (g *Generator) generateHostiles() []*entity.Entity {
 			addItem(ent, lookup("bandage"))
 		}
 		giveCurrency(ent, 5+g.RNG.Intn(20), g.RNG.Intn(10), g.RNG.Intn(5))
+		AssignWorship(ent, g.RNG)
 		all = append(all, ent)
 		log.Printf("[gen] orc spawned: %s at %s (level %d)", o.name, o.locID, ent.Level)
 	}
@@ -389,6 +390,7 @@ func (g *Generator) generateHostiles() []*entity.Entity {
 			addItem(ent, lookup("herb"))
 		}
 		giveCurrency(ent, 10+g.RNG.Intn(20), 5+g.RNG.Intn(10), g.RNG.Intn(5))
+		AssignWorship(ent, g.RNG)
 		all = append(all, ent)
 		log.Printf("[gen] elf spawned: %s at %s (level %d)", e.name, e.locID, ent.Level)
 	}
@@ -413,6 +415,7 @@ func (g *Generator) generateHostiles() []*entity.Entity {
 		if g.RNG.Intn(100) < 25 {
 			addItem(ent, lookup("bandage"))
 		}
+		AssignWorship(ent, g.RNG)
 		all = append(all, ent)
 		log.Printf("[gen] thief spawned: %s at %s (level %d)", t.name, t.locID, ent.Level)
 
@@ -449,6 +452,7 @@ func (g *Generator) generateHostiles() []*entity.Entity {
 			addItem(ent, lookup("bandage"))
 		}
 		giveCurrency(ent, 10+g.RNG.Intn(40), g.RNG.Intn(20), g.RNG.Intn(10))
+		AssignWorship(ent, g.RNG)
 		all = append(all, ent)
 		log.Printf("[gen] bandit spawned: %s at %s (level %d)", b.name, b.locID, ent.Level)
 	}
@@ -478,6 +482,7 @@ func (g *Generator) generateHostiles() []*entity.Entity {
 			addItem(ent, lookup("bandage"))
 		}
 		giveCurrency(ent, 5+g.RNG.Intn(15), g.RNG.Intn(5), 0)
+		AssignWorship(ent, g.RNG)
 		all = append(all, ent)
 		log.Printf("[gen] bugbear spawned: %s at %s (level %d)", bb.name, bb.regionID, ent.Level)
 	}
@@ -504,6 +509,7 @@ func (g *Generator) generateHostiles() []*entity.Entity {
 			equipItem(ent, lookup("leather_helmet"))
 		}
 		giveCurrency(ent, 5+g.RNG.Intn(15), g.RNG.Intn(5), 0)
+		AssignWorship(ent, g.RNG)
 		all = append(all, ent)
 		log.Printf("[gen] hobgoblin spawned: %s at %s (level %d)", hg.name, hg.regionID, ent.Level)
 	}
@@ -527,6 +533,7 @@ func (g *Generator) generateHostiles() []*entity.Entity {
 			addItem(ent, lookup("meat"))
 		}
 		giveCurrency(ent, g.RNG.Intn(8), 0, 0)
+		AssignWorship(ent, g.RNG)
 		all = append(all, ent)
 		log.Printf("[gen] gnoll spawned: %s at %s (level %d)", gn.name, gn.regionID, ent.Level)
 	}
@@ -553,6 +560,7 @@ func (g *Generator) generateHostiles() []*entity.Entity {
 			addItem(ent, lookup("herb"))
 		}
 		giveCurrency(ent, 3+g.RNG.Intn(8), 0, 0)
+		AssignWorship(ent, g.RNG)
 		all = append(all, ent)
 		log.Printf("[gen] lizardfolk spawned: %s at %s (level %d)", lf.name, lf.regionID, ent.Level)
 	}
@@ -613,6 +621,7 @@ func (g *Generator) generateBeasts() []*entity.Entity {
 		}
 
 		equipNaturalWeapon(ent, b.species)
+		AssignWorship(ent, g.RNG)
 		all = append(all, ent)
 	}
 	log.Printf("[gen] generateBeasts: done, total %d beasts", len(all))
@@ -1707,6 +1716,7 @@ func (g *Generator) generateHalfOrcs() []*entity.Entity {
 		}
 		equipItem(ent, lookup("orc_cleaver"))
 		giveCurrency(ent, 5+g.RNG.Intn(15), g.RNG.Intn(5), 0)
+		AssignWorship(ent, g.RNG)
 		all = append(all, ent)
 		log.Printf("[gen] half-orc spawned: %s at %s", ent.Name, loc)
 	}
@@ -1731,6 +1741,7 @@ func (g *Generator) generateHalfElves() []*entity.Entity {
 		equipItem(ent, lookup("common_clothes"))
 		equipItem(ent, lookup("leather_boots"))
 		giveCurrency(ent, 5+g.RNG.Intn(15), g.RNG.Intn(5), 0)
+		AssignWorship(ent, g.RNG)
 		all = append(all, ent)
 		log.Printf("[gen] half-elf spawned: %s at %s", ent.Name, loc)
 	}
@@ -1756,6 +1767,7 @@ func (g *Generator) generateHalfDwarves() []*entity.Entity {
 		equipItem(ent, lookup("leather_boots"))
 		equipItem(ent, lookup("axe"))
 		giveCurrency(ent, 5+g.RNG.Intn(15), g.RNG.Intn(5), 0)
+		AssignWorship(ent, g.RNG)
 		all = append(all, ent)
 		log.Printf("[gen] half-dwarf spawned: %s at %s", ent.Name, loc)
 	}
@@ -1779,6 +1791,7 @@ func (g *Generator) generateHalfGoblins() []*entity.Entity {
 		ent.AI = entity.EntityAI{Type: "passive", SleepCycle: "nocturnal", HomeLocation: loc, ScriptIDs: []string{"human"}}
 		equipItem(ent, lookup("common_clothes"))
 		giveCurrency(ent, 3+g.RNG.Intn(10), g.RNG.Intn(3), 0)
+		AssignWorship(ent, g.RNG)
 		all = append(all, ent)
 		log.Printf("[gen] half-goblin spawned: %s at %s", ent.Name, loc)
 	}
@@ -1804,6 +1817,7 @@ func (g *Generator) generateHalfHobgoblins() []*entity.Entity {
 		equipItem(ent, lookup("leather_boots"))
 		equipItem(ent, lookup("short_sword"))
 		giveCurrency(ent, 5+g.RNG.Intn(15), g.RNG.Intn(5), 0)
+		AssignWorship(ent, g.RNG)
 		all = append(all, ent)
 		log.Printf("[gen] half-hobgoblin spawned: %s at %s", ent.Name, loc)
 	}
@@ -1829,6 +1843,7 @@ func (g *Generator) generateHalfGnolls() []*entity.Entity {
 		equipItem(ent, lookup("leather_boots"))
 		equipItem(ent, lookup("iron_spear"))
 		giveCurrency(ent, g.RNG.Intn(8), 0, 0)
+		AssignWorship(ent, g.RNG)
 		all = append(all, ent)
 		log.Printf("[gen] half-gnoll spawned: %s at %s", ent.Name, loc)
 	}
@@ -1852,6 +1867,7 @@ func (g *Generator) generateHalfKobolds() []*entity.Entity {
 		ent.AI = entity.EntityAI{Type: "passive", SleepCycle: "nocturnal", HomeLocation: loc, ScriptIDs: []string{"human"}}
 		equipItem(ent, lookup("common_clothes"))
 		giveCurrency(ent, 3+g.RNG.Intn(10), g.RNG.Intn(3), 0)
+		AssignWorship(ent, g.RNG)
 		all = append(all, ent)
 		log.Printf("[gen] half-kobold spawned: %s at %s", ent.Name, loc)
 	}
@@ -1875,6 +1891,7 @@ func (g *Generator) generateHalfFey() []*entity.Entity {
 		ent.AI = entity.EntityAI{Type: "passive", SleepCycle: "nocturnal", HomeLocation: loc, ScriptIDs: []string{"human"}}
 		equipItem(ent, lookup("common_clothes"))
 		giveCurrency(ent, 5+g.RNG.Intn(15), g.RNG.Intn(5), 0)
+		AssignWorship(ent, g.RNG)
 		all = append(all, ent)
 		log.Printf("[gen] half-fey spawned: %s at %s", ent.Name, loc)
 	}

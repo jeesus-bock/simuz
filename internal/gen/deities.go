@@ -225,6 +225,52 @@ func findRealmForDeity(deityID string) string {
 	return ""
 }
 
+var deityIDs []string
+
+func init() {
+	for _, d := range DeityDefs {
+		deityIDs = append(deityIDs, d.ID)
+	}
+}
+
+// AssignWorship sets the Worship field on an entity based on its species.
+// Rules:
+//   - elf, dwarf: 1-2 deities
+//   - human, orc, hobbit: 0-4 deities
+//   - beasts, ogres, goblins, etc.: 0-1 deity
+//   - divine/deity: none (they ARE the gods)
+func AssignWorship(e *entity.Entity, rng interface{ Intn(int) int }) {
+	if e.Species == "divine" || e.Species == "deity" {
+		return
+	}
+	if len(deityIDs) == 0 {
+		return
+	}
+
+	var count int
+	switch e.Species {
+	case "elf", "dwarf":
+		count = 1 + rng.Intn(2) // 1-2
+	case "human", "orc", "hobbit":
+		count = rng.Intn(5) // 0-4
+	default:
+		count = rng.Intn(2) // 0-1
+	}
+
+	if count == 0 {
+		return
+	}
+
+	picked := make(map[string]bool)
+	for len(picked) < count {
+		d := deityIDs[rng.Intn(len(deityIDs))]
+		if !picked[d] {
+			picked[d] = true
+			e.Worship = append(e.Worship, d)
+		}
+	}
+}
+
 func equipDeity(e *entity.Entity, id string) {
 	switch id {
 	case "zeus":
