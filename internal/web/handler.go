@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"io"
 	"io/fs"
+	"net/http"
 	"sort"
 	"strings"
 
@@ -43,14 +44,15 @@ func (h *Handler) Dashboard(c *gin.Context) {
 	defer h.Sim.RUnlock()
 
 	if err := h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
-		"title":     "Simuz",
-		"page":      "dashboard",
-		"tick":      h.Sim.Tick,
-		"time":      h.Sim.Time.String(),
-		"phase":     h.Sim.Time.Phase().String(),
-		"season":    h.Sim.Time.Season().String(),
-		"entities":  len(h.Sim.Entities.All()),
-		"locations": len(h.Sim.World.AllLocations()),
+		"title":         "Simuz",
+		"page":          "dashboard",
+		"tick":          h.Sim.Tick,
+		"time":          h.Sim.Time.String(),
+		"phase":         h.Sim.Time.Phase().String(),
+		"season":        h.Sim.Time.Season().String(),
+		"entities":      len(h.Sim.Entities.All()),
+		"locations":     len(h.Sim.World.AllLocations()),
+		"active_quests": h.activeQuestViews(),
 	}); err != nil {
 		_ = c.Error(err)
 	}
@@ -115,6 +117,53 @@ type questProgressView struct {
 	Def    *quest.QuestDef
 	Entity *entity.Entity
 	State  *quest.EntityQuestState
+}
+
+type entityQuestView struct {
+	QuestID      string
+	Title        string
+	Type         string
+	Level        int
+	State        string
+	CurrentStage string
+	StageDesc    string
+	AcceptedTick uint64
+	Objectives   []quest.ObjectiveDef
+	Progress     map[string]int
+	Activity     []quest.QuestActivity
+}
+
+func buildEntityQuestViews(qm *quest.Manager, entityID string) []entityQuestView {
+	states := qm.EntityStates(entityID)
+	var out []entityQuestView
+	for _, s := range states {
+		def := qm.GetDef(s.QuestID)
+		ev := entityQuestView{
+			QuestID:      s.QuestID,
+			State:        string(s.State),
+			CurrentStage: s.CurrentStage,
+			AcceptedTick: s.AcceptedTick,
+			Progress:     s.Objectives,
+			Activity:     s.Activity,
+		}
+		if def != nil {
+			ev.Title = def.Title
+			ev.Type = string(def.Type)
+			ev.Level = def.Level
+			for _, stage := range def.Stages {
+				if stage.ID == s.CurrentStage {
+					ev.StageDesc = stage.Description
+					ev.Objectives = stage.Objectives
+					break
+				}
+			}
+		}
+		if ev.Title == "" {
+			ev.Title = s.QuestID
+		}
+		out = append(out, ev)
+	}
+	return out
 }
 
 func (h *Handler) activeQuestViews() []questProgressView {
@@ -572,6 +621,169 @@ func (h *Handler) QuestsPage(c *gin.Context) {
 	}
 }
 
+func (h *Handler) QuestDetailPage(c *gin.Context) {
+	h.Sim.RLock()
+	defer h.Sim.RUnlock()
+	data, ok := h.questDetailData(c.Param("id"))
+	if !ok {
+		c.String(404, "Quest not found")
+		return
+	}
+	data["title"] = "Quest: " + data["quest_title"].(string)
+	data["page"] = "quest_detail"
+	data["phase"] = h.Sim.Time.Phase().String()
+	data["season"] = h.Sim.Time.Season().String()
+	data["entities"] = len(h.Sim.Entities.All())
+	data["locations"] = len(h.Sim.World.AllLocations())
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "base.html", data); err != nil {
+		_ = c.Error(err)
+	}
+}
+
+func (h *Handler) QuestDetailFragment(c *gin.Context) {
+	h.Sim.RLock()
+	defer h.Sim.RUnlock()
+	data, ok := h.questDetailData(c.Param("id"))
+	if !ok {
+		c.String(404, "Quest not found")
+		return
+	}
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "quest_detail_status", data); err != nil {
+		_ = c.Error(err)
+	}
+}
+
+type questPursuerView struct {
+	EntityID   string
+	EntityName string
+	Species    string
+	Level      int
+	State      string
+	Stage      string
+	Accepted   uint64
+	Activity   []quest.QuestActivity
+}
+
+func (h *Handler) questDetailData(questID string) (gin.H, bool) {
+	def := h.Sim.Quests.GetDef(questID)
+	if def == nil {
+		return nil, false
+	}
+
+	var pursuers []questPursuerView
+	for _, ent := range h.Sim.Entities.All() {
+		for _, state := range h.Sim.Quests.EntityStates(ent.ID) {
+			if state.QuestID != questID {
+				continue
+			}
+			pursuers = append(pursuers, questPursuerView{
+				EntityID:   ent.ID,
+				EntityName: ent.Name,
+				Species:    ent.Species,
+				Level:      ent.Level,
+				State:      string(state.State),
+				Stage:      state.CurrentStage,
+				Accepted:   state.AcceptedTick,
+				Activity:   h.Sim.Quests.RecentActivity(ent.ID, questID),
+			})
+		}
+	}
+	sort.SliceStable(pursuers, func(i, j int) bool {
+		if pursuers[i].State != pursuers[j].State {
+			oi := stateOrder(pursuers[i].State)
+			oj := stateOrder(pursuers[j].State)
+			if oi != oj {
+				return oi < oj
+			}
+		}
+		return pursuers[i].EntityName < pursuers[j].EntityName
+	})
+
+	sourceName := ""
+	sourceLocName := ""
+	if def.Source != nil {
+		sourceName = def.Source.NPCID
+		sourceLocName = def.Source.LocationID
+		if sourceLocName != "" {
+			if loc := h.Sim.World.Location(sourceLocName); loc != nil {
+				sourceLocName = loc.Name
+			}
+		}
+	}
+
+	type eligibleEntity struct {
+		ID    string
+		Name  string
+		Level int
+	}
+	var eligible []eligibleEntity
+	for _, ent := range h.Sim.Entities.All() {
+		if !ent.Alive {
+			continue
+		}
+		if h.Sim.Quests.CanAccept(ent.ID, questID, ent.Level) {
+			eligible = append(eligible, eligibleEntity{ID: ent.ID, Name: ent.Name, Level: ent.Level})
+		}
+	}
+	sort.SliceStable(eligible, func(i, j int) bool {
+		return strings.ToLower(eligible[i].Name) < strings.ToLower(eligible[j].Name)
+	})
+
+	return gin.H{
+		"tick":            h.Sim.Tick,
+		"time":            h.Sim.Time.String(),
+		"quest_id":        def.ID,
+		"quest_title":     def.Title,
+		"quest":           def,
+		"pursuers":        pursuers,
+		"pursuer_count":   len(pursuers),
+		"source_name":     sourceName,
+		"source_loc_name": sourceLocName,
+		"eligible":        eligible,
+	}, true
+}
+
+func stateOrder(s string) int {
+	switch s {
+	case "active":
+		return 0
+	case "inactive":
+		return 1
+	case "completed":
+		return 2
+	case "failed":
+		return 3
+	default:
+		return 4
+	}
+}
+
+func (h *Handler) AcceptQuestPost(c *gin.Context) {
+	h.Sim.Lock()
+	defer h.Sim.Unlock()
+
+	questID := c.Param("id")
+	entityID := c.PostForm("entity_id")
+	if entityID == "" {
+		c.String(400, "entity_id required")
+		return
+	}
+
+	ent := h.Sim.Entities.Get(entityID)
+	if ent == nil {
+		c.String(404, "entity not found")
+		return
+	}
+
+	if !h.Sim.Quests.CanAccept(entityID, questID, ent.Level) {
+		c.Redirect(http.StatusSeeOther, "/quest/"+questID)
+		return
+	}
+
+	h.Sim.Quests.Accept(entityID, questID, ent.Level, h.Sim.Tick)
+	c.Redirect(http.StatusSeeOther, "/quest/"+questID)
+}
+
 func (h *Handler) AIPage(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
@@ -624,12 +836,13 @@ func (h *Handler) DashboardFragment(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
 	if err := h.Tmpls.ExecuteTemplate(c.Writer, "dashboard_stats", gin.H{
-		"tick":      h.Sim.Tick,
-		"time":      h.Sim.Time.String(),
-		"phase":     h.Sim.Time.Phase().String(),
-		"season":    h.Sim.Time.Season().String(),
-		"entities":  len(h.Sim.Entities.All()),
-		"locations": len(h.Sim.World.AllLocations()),
+		"tick":          h.Sim.Tick,
+		"time":          h.Sim.Time.String(),
+		"phase":         h.Sim.Time.Phase().String(),
+		"season":        h.Sim.Time.Season().String(),
+		"entities":      len(h.Sim.Entities.All()),
+		"locations":     len(h.Sim.World.AllLocations()),
+		"active_quests": h.activeQuestViews(),
 	}); err != nil {
 		_ = c.Error(err)
 	}
@@ -1225,7 +1438,7 @@ func (h *Handler) EntityDetailFragment(c *gin.Context) {
 		"xp_percent":    xpPercent,
 		"can_level_up":  canLevelUp,
 		"mood_mods_str": moodModsString(ent),
-		"quest_states":  h.Sim.Quests.EntityStates(ent.ID),
+		"quest_states":  buildEntityQuestViews(h.Sim.Quests, ent.ID),
 		"skills":        buildSkillInfo(ent),
 	}); err != nil {
 		_ = c.Error(err)

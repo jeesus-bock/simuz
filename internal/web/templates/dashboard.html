@@ -1,17 +1,42 @@
 {{define "dashboard"}}
 <div hx-ext="sse" sse-connect="/api/v1/ui/events">
-    <div class="card" id="dashboard-stats" hx-get="/api/v1/ui/fragments/dashboard" hx-trigger="sse:tick" hx-target="#dashboard-stats" hx-swap="innerHTML">
+    <div id="dashboard-content" hx-get="/api/v1/ui/fragments/dashboard" hx-trigger="sse:tick" hx-target="#dashboard-content" hx-swap="innerHTML">
         {{template "dashboard_stats" .}}
     </div>
 </div>
 {{end}}
 
 {{define "dashboard_stats"}}
-<h2>World State</h2>
-<div class="stat"><span>Tick</span><span>{{.tick}}</span></div>
-<div class="stat"><span>Time</span><span>{{.time}}</span></div>
-<div class="stat"><span>Phase</span><span>{{.phase}}</span></div>
-<div class="stat"><span>Season</span><span>{{.season}}</span></div>
-<div class="stat"><span>Entities</span><span>{{.entities}}</span></div>
-<div class="stat"><span>Locations</span><span>{{.locations}}</span></div>
+<div class="card">
+    <h2>World State</h2>
+    <div class="stat"><span>Tick</span><span>{{.tick}}</span></div>
+    <div class="stat"><span>Time</span><span>{{.time}}</span></div>
+    <div class="stat"><span>Phase</span><span>{{.phase}}</span></div>
+    <div class="stat"><span>Season</span><span>{{.season}}</span></div>
+    <div class="stat"><span>Entities</span><span>{{.entities}}</span></div>
+    <div class="stat"><span>Locations</span><span>{{.locations}}</span></div>
+</div>
+
+{{if .active_quests}}
+<div class="card">
+    <h2>Active Quests ({{len .active_quests}})</h2>
+    {{range .active_quests}}
+    <div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <a href="/quest/{{.Def.ID}}" style="color:#ffd700;text-decoration:none;font-weight:bold;">{{.Def.Title}}</a>
+                <span style="color:#888;font-size:0.8rem;margin-left:6px;">Lvl {{.Def.Level}} · {{.Def.Type}}</span>
+            </div>
+            <span style="padding:2px 6px;border-radius:3px;font-size:0.7rem;background:#204a20;color:#b3ffb3;">active</span>
+        </div>
+        <div style="color:var(--text-dim);font-size:0.85rem;margin-top:2px;">
+            <a href="/entity/{{.Entity.ID}}" style="color:var(--accent);text-decoration:none;">{{.Entity.Name}}</a>
+            · Stage: {{.State.CurrentStage}}
+        </div>
+    </div>
+    {{else}}
+    <p style="color:var(--text-dim);">No active quests.</p>
+    {{end}}
+</div>
+{{end}}
 {{end}}
