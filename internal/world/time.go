@@ -146,6 +146,41 @@ func GameDaysToTicks(days, speed int) int {
 	return days * TicksPerGameDay(speed)
 }
 
+// GameYearDays is the number of game-days in one game-year.
+const GameYearDays = 360
+
+// GameYearsToTicks converts a count of game-years to simulation ticks.
+func GameYearsToTicks(years, speed int) int {
+	return years * GameYearDays * TicksPerGameDay(speed)
+}
+
+// SetSpeed changes the game speed (game-minutes per tick).
+// Minimum 1, maximum 1440 (one game-day per tick).
+func (gt *GameTime) SetSpeed(speed int) {
+	if speed < 1 {
+		speed = 1
+	}
+	if speed > 1440 {
+		speed = 1440
+	}
+	gt.Speed = speed
+}
+
+// TicksPerGameDayFor returns how many ticks equal one game-day at the current speed.
+func (gt *GameTime) TicksPerGameDayFor() int {
+	return TicksPerGameDay(gt.Speed)
+}
+
+// Year returns the current game-year (1-indexed).
+func (gt *GameTime) Year() int {
+	return (gt.Day-1)/GameYearDays + 1
+}
+
+// DayInYear returns the day within the current year (1..360).
+func (gt *GameTime) DayInYear() int {
+	return (gt.Day-1)%GameYearDays + 1
+}
+
 func (gt *GameTime) String() string {
 	return fmt.Sprintf("Day %d, %02d:%02d", gt.Day, gt.Hour, gt.Minute)
 }

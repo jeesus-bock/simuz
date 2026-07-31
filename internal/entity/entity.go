@@ -206,14 +206,11 @@ func (e *Entity) CanGetPregnant() bool {
 }
 
 // IsAdult returns true if the entity is old enough to reproduce.
-// speed is the game speed (game-minutes per tick), used to convert AdultAge from game-days to ticks.
-func (e *Entity) IsAdult(speed int) bool {
+// currentDay is the current GameTime.Day value.
+func (e *Entity) IsAdult(currentDay int) bool {
 	if sp, exists := species.GetByID(e.Species); exists {
-		adultAgeTicks := sp.AdultAge * 1440 / speed
-		if adultAgeTicks < 1 {
-			adultAgeTicks = 1
-		}
-		return e.Age >= adultAgeTicks || e.Level >= 3
+		adultDay := sp.AdultAge * 360
+		return currentDay >= adultDay || e.Level >= 3
 	}
 	return false
 }
