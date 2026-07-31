@@ -43,6 +43,16 @@ var cultureMatrix = map[string]settlementTemplate{
 		nameSuffixes: []string{"Shire", "Burrows", "Hollow", "Meadow"},
 		cityType:     "shire",
 	},
+	"wildlife": {
+		namePrefixes: []string{"Pack", "Herd", "Den", "Hollow", "Thicket"},
+		nameSuffixes: []string{"Hollow", "Burrow", "Trail", "Range", "Glen"},
+		cityType:     "den",
+	},
+	"beast": {
+		namePrefixes: []string{"Grim", "Bone", "Rot", "Dark", "Ruin"},
+		nameSuffixes: []string{"Lair", "Warren", "Pit", "Hoard", "Nest"},
+		cityType:     "lair",
+	},
 }
 
 // generateSettlements iterates over all active regions and builds dynamic permanent settlements
@@ -78,7 +88,20 @@ func (g *Generator) generateSettlements() []*entity.Entity {
 		cultureKey := eligibleCultures[g.RNG.Intn(len(eligibleCultures))]
 		culture, ok := cultureMatrix[cultureKey]
 		if !ok {
-			culture = cultureMatrix["human"]
+			// Map species without explicit culture entries to appropriate templates
+			switch cultureKey {
+			case "bear", "wolf", "sheep", "dog":
+				culture = cultureMatrix["wildlife"]
+			case "troll", "bugbear", "ogre", "ettin", "cyclops", "gnoll",
+				"lizardfolk", "kobold", "goblin", "hobgoblin",
+				"wyvern", "griffin", "hydra", "basilisk", "cockatrice",
+				"manticore", "medusa", "beholder", "mind_flayer", "floating_eye",
+				"skeleton", "zombie", "ghoul", "lich", "wraith", "rat_king",
+				"spider", "dragon", "hag", "vampire", "werewolf":
+				culture = cultureMatrix["beast"]
+			default:
+				culture = cultureMatrix["human"]
+			}
 		}
 
 		pfx := culture.namePrefixes[g.RNG.Intn(len(culture.namePrefixes))]
