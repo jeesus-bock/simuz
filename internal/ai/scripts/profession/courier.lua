@@ -12,10 +12,10 @@ local function attempt_delivery()
             if info and info.alive and info.profession == "guard" then
                 world.talk_to(eid)
                 local deliver = world.deliver_item(eid, "royal_scroll")
-                if deliver and deliver.done then
+                if deliver then
                     util.log(self.name .. " successfully dispatched order documents to " .. info.name)
                     util.set_mood("happy", 25)
-                    world.add_item(self.id, "courier_token", 1) -- Earned payout token
+                    world.add_item("courier_token")
                     return true
                 end
             end
