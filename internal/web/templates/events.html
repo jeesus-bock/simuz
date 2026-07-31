@@ -1,0 +1,64 @@
+{{define "events"}}
+<div hx-ext="sse" sse-connect="/api/v1/ui/events">
+    <div id="events-content" hx-get="/api/v1/ui/fragments/events" hx-trigger="sse:tick" hx-target="#events-content" hx-swap="innerHTML">
+        {{template "events_list" .}}
+    </div>
+</div>
+{{end}}
+
+{{define "events_list"}}
+<div class="card">
+    <h2>Events ({{len .events}})</h2>
+    <div class="stat"><span>Tick</span><span>{{.tick}}</span></div>
+</div>
+
+<div class="card">
+    <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <input type="text" id="event-filter" placeholder="Filter events..."
+            oninput="filterEvents()"
+            style="flex:1;padding:8px 12px;background:#0f1a2e;border:1px solid #333;border-radius:4px;color:var(--text);font-family:monospace;font-size:0.9rem;">
+        <select id="event-type-filter" onchange="filterEvents()" style="padding:8px;background:#0f1a2e;border:1px solid #333;border-radius:4px;color:var(--text);font-size:0.85rem;">
+            <option value="">All Types</option>
+            <option value="combat">Combat</option>
+            <option value="quest">Quest</option>
+            <option value="ambient">Ambient</option>
+            <option value="mood">Mood</option>
+            <option value="world">World</option>
+        </select>
+    </div>
+    <div style="max-height:600px;overflow-y:auto;font-family:monospace;font-size:0.82rem;line-height:1.5;">
+        {{range .events}}
+        <div class="event-row" data-type="{{.Type}}" style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.03);display:flex;gap:8px;">
+            <span style="color:#666;min-width:45px;">#{{.Tick}}</span>
+            <span style="min-width:65px;padding:1px 6px;border-radius:3px;font-size:0.72rem;text-align:center;
+                {{if eq .Type "combat"}}background:#4a2020;color:#ffb3b3;
+                {{else if eq .Type "quest"}}background:#3a3a20;color:#ffe8a3;
+                {{else if eq .Type "ambient"}}background:#1a3a2e;color:#a5d6a7;
+                {{else if eq .Type "mood"}}background:#2a1a3e;color:#d1c4e9;
+                {{else if eq .Type "world"}}background:#1a3a5c;color:#c8e6ff;
+                {{else}}background:#222;color:#888;{{end}}">{{.Type}}</span>
+            <span style="min-width:90px;color:#ffd700;font-weight:bold;">{{.Title}}</span>
+            <span style="color:var(--text-dim);flex:1;">{{.Message}}</span>
+            {{if .LocID}}<span style="color:#666;font-size:0.75rem;">@<a href="/location/{{.LocID}}" style="color:#64b5f6;text-decoration:none;">{{.LocID}}</a></span>{{end}}
+        </div>
+        {{else}}
+        <p style="color:var(--text-dim);">No events recorded yet.</p>
+        {{end}}
+    </div>
+</div>
+
+<script>
+function filterEvents() {
+    var q = (document.getElementById('event-filter').value || '').toLowerCase();
+    var typeFilter = document.getElementById('event-type-filter').value;
+    var rows = document.querySelectorAll('.event-row');
+    rows.forEach(function(row) {
+        var text = row.textContent.toLowerCase();
+        var type = row.getAttribute('data-type') || '';
+        var matchText = !q || text.indexOf(q) !== -1;
+        var matchType = !typeFilter || type === typeFilter;
+        row.style.display = (matchText && matchType) ? '' : 'none';
+    });
+}
+</script>
+{{end}}

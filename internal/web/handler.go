@@ -1816,3 +1816,199 @@ func buildRelationships(sim *engine.Simulation) []relationshipView {
 	})
 	return out
 }
+
+// --- Deities view ---
+
+type deityView struct {
+	ID           string
+	Name         string
+	Pantheon     string
+	Domain       string
+	Shape        string
+	Alive        bool
+	LocationID   string
+	LocationName string
+	Needs        []string
+	STR          int
+	DEX          int
+	CON          int
+	INT          int
+	WIS          int
+	CHA          int
+}
+
+func buildDeityViews(sim *engine.Simulation) []deityView {
+	var out []deityView
+	for _, e := range sim.Entities.All() {
+		if e.Species != "divine" {
+			continue
+		}
+		locName := e.LocationID
+		if loc := sim.World.Location(e.LocationID); loc != nil {
+			locName = loc.Name
+		}
+		needs := make([]string, 0)
+		for k, v := range e.Memory {
+			if strings.HasPrefix(k, "need_") && v == "true" {
+				needs = append(needs, strings.TrimPrefix(k, "need_"))
+			}
+		}
+		sort.Strings(needs)
+		out = append(out, deityView{
+			ID:           e.ID,
+			Name:         e.Name,
+			Pantheon:     e.Memory["pantheon"],
+			Domain:       e.Memory["domain"],
+			Shape:        e.Memory["divine_shape"],
+			Alive:        e.Alive,
+			LocationID:   e.LocationID,
+			LocationName: locName,
+			Needs:        needs,
+			STR:          e.Attributes.STR,
+			DEX:          e.Attributes.DEX,
+			CON:          e.Attributes.CON,
+			INT:          e.Attributes.INT,
+			WIS:          e.Attributes.WIS,
+			CHA:          e.Attributes.CHA,
+		})
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		if !strings.EqualFold(out[i].Name, out[j].Name) {
+			return strings.ToLower(out[i].Name) < strings.ToLower(out[j].Name)
+		}
+		return out[i].ID < out[j].ID
+	})
+	return out
+}
+
+func (h *Handler) DeitiesPage(c *gin.Context) {
+	h.Sim.RLock()
+	defer h.Sim.RUnlock()
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
+		"title":     "Deities",
+		"page":      "deities",
+		"tick":      h.Sim.Tick,
+		"time":      h.Sim.Time.String(),
+		"phase":     h.Sim.Time.Phase().String(),
+		"season":    h.Sim.Time.Season().String(),
+		"entities":  len(h.Sim.Entities.All()),
+		"locations": len(h.Sim.World.AllLocations()),
+		"deities":   buildDeityViews(h.Sim),
+	}); err != nil {
+		_ = c.Error(err)
+	}
+}
+
+func (h *Handler) DeitiesFragment(c *gin.Context) {
+	h.Sim.RLock()
+	defer h.Sim.RUnlock()
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "deities_list", gin.H{
+		"tick":    h.Sim.Tick,
+		"deities": buildDeityViews(h.Sim),
+	}); err != nil {
+		_ = c.Error(err)
+	}
+}
+
+// --- Factions view ---
+
+type factionRelationView struct {
+	Name  string
+	Value int
+}
+
+type controlledZoneView struct {
+	LocationID string
+	Influence  float64
+}
+
+type factionView struct {
+	ID              string
+	Name            string
+	CurrentState    string
+	PrimaryObjective string
+	WealthTier      int
+	VaultGold       int
+	HQLocationID    string
+	LeaderEntityID  string
+	MemberCount     int
+	MaxCapacity     int
+	Relations       []factionRelationView
+	ControlledZones []controlledZoneView
+	Stockpile       map[string]int
+}
+
+func buildFactionViews(sim *engine.Simulation) []factionView {
+	var out []factionView
+	for _, fac := range faction.FactionRegistry {
+		fv := factionView{
+			ID:               fac.ID,
+			Name:             fac.ID,
+			CurrentState:     fac.CurrentState,
+			PrimaryObjective: fac.PrimaryObjective,
+			WealthTier:       fac.WealthTier,
+			VaultGold:        fac.VaultGold,
+			HQLocationID:     fac.HQLocationID,
+			LeaderEntityID:   fac.LeaderEntityID,
+			MaxCapacity:      fac.MaxCapacity,
+			Stockpile:        fac.Stockpile,
+		}
+		if fac.MemberIDs != nil {
+			fv.MemberCount = len(fac.MemberIDs)
+		}
+		if fac.ControlledZones != nil {
+			for locID, influence := range fac.ControlledZones {
+				fv.ControlledZones = append(fv.ControlledZones, controlledZoneView{
+					LocationID: locID,
+					Influence:  influence,
+				})
+			}
+			sort.SliceStable(fv.ControlledZones, func(i, j int) bool {
+				return fv.ControlledZones[i].LocationID < fv.ControlledZones[j].LocationID
+			})
+		}
+		for otherID, val := range fac.Relation.FactionRelation {
+			fv.Relations = append(fv.Relations, factionRelationView{
+				Name:  otherID,
+				Value: val.Int(),
+			})
+		}
+		sort.SliceStable(fv.Relations, func(i, j int) bool {
+			return fv.Relations[i].Name < fv.Relations[j].Name
+		})
+		out = append(out, fv)
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		return strings.ToLower(out[i].ID) < strings.ToLower(out[j].ID)
+	})
+	return out
+}
+
+func (h *Handler) FactionsPage(c *gin.Context) {
+	h.Sim.RLock()
+	defer h.Sim.RUnlock()
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
+		"title":     "Factions",
+		"page":      "factions",
+		"tick":      h.Sim.Tick,
+		"time":      h.Sim.Time.String(),
+		"phase":     h.Sim.Time.Phase().String(),
+		"season":    h.Sim.Time.Season().String(),
+		"entities":  len(h.Sim.Entities.All()),
+		"locations": len(h.Sim.World.AllLocations()),
+		"factions":  buildFactionViews(h.Sim),
+	}); err != nil {
+		_ = c.Error(err)
+	}
+}
+
+func (h *Handler) FactionsFragment(c *gin.Context) {
+	h.Sim.RLock()
+	defer h.Sim.RUnlock()
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "factions_list", gin.H{
+		"tick":     h.Sim.Tick,
+		"factions": buildFactionViews(h.Sim),
+	}); err != nil {
+		_ = c.Error(err)
+	}
+}
