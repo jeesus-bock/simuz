@@ -18,8 +18,8 @@ func processAging(ent *entity.Entity, sim *Simulation) {
 
 	ent.Age++
 	if ent.MaxAge > 0 {
-		maxAgeDays := ent.MaxAge * world.GameYearDays
-		if sim.Time.Day >= maxAgeDays {
+		ageDays := ent.Age / world.TicksPerGameDay(sim.Time.Speed)
+		if ageDays >= ent.MaxAge*world.GameYearDays {
 			oldAge(ent, sim)
 			return
 		}

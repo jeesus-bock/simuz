@@ -8,6 +8,7 @@ import (
 	"simuz/internal/items"
 	"simuz/internal/relation"
 	"simuz/internal/species"
+	"simuz/internal/world"
 )
 
 type Position struct {
@@ -206,11 +207,14 @@ func (e *Entity) CanGetPregnant() bool {
 }
 
 // IsAdult returns true if the entity is old enough to reproduce.
-// currentDay is the current GameTime.Day value.
-func (e *Entity) IsAdult(currentDay int) bool {
+// ticksPerGameDay is the number of simulation ticks in one game-day at the current speed.
+func (e *Entity) IsAdult(ticksPerGameDay int) bool {
 	if sp, exists := species.GetByID(e.Species); exists {
-		adultDay := sp.AdultAge * 360
-		return currentDay >= adultDay || e.Level >= 3
+		if ticksPerGameDay < 1 {
+			ticksPerGameDay = 1
+		}
+		ageDays := e.Age / ticksPerGameDay
+		return ageDays >= sp.AdultAge*world.GameYearDays || e.Level >= 3
 	}
 	return false
 }

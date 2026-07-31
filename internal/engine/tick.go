@@ -93,7 +93,7 @@ func processReproduction(s *Simulation) {
 		if !ent.Alive || !ent.Conscious {
 			continue
 		}
-		if !ent.IsAdult(s.Time.Day) {
+		if !ent.IsAdult(s.Time.TicksPerGameDayFor()) {
 			continue
 		}
 		if species, ok := species.GetByID(ent.Species); !ok || !species.CanReproduce {
@@ -237,7 +237,7 @@ func processCrossbreeding(s *Simulation) {
 		if !ent.Alive || !ent.Conscious {
 			continue
 		}
-		if !ent.IsAdult(s.Time.Day) {
+		if !ent.IsAdult(s.Time.TicksPerGameDayFor()) {
 			continue
 		}
 		sp, ok := species.GetByID(ent.Species)
