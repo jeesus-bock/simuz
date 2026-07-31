@@ -17,10 +17,11 @@ const (
 // and evaluates historical childbed/labor risks once the duration concludes.
 func (s *Simulation) UpdatePregnancy(mother *entity.Entity, tm *world.GameTime, rng *rand.Rand, em *entity.EntityManager) {
 	ticksPregnant := tm.Tick - mother.Reproduction.PregnantSinceTick
-
-	// 1. Evaluate early/mid-term miscarriage risks due to medieval health hazards
-	// 1.5% chance per low-frequency evaluation pass
-	if rng.Intn(1000) < GestationDurationTicks {
+	if ticksPregnant < GestationDurationTicks {
+		return // not yet full term
+	}
+	// ~1.5% resolution chance per pass past full term
+	if rng.Intn(1000) < 15 {
 		mother.Reproduction.Pregnant = false
 		roll := rng.Intn(100)
 

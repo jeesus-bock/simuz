@@ -36,11 +36,8 @@ func processAging(ent *entity.Entity, sim *Simulation) {
 
 func starvationCheck(ent *entity.Entity, sim *Simulation) {
 	sp, ok := species.GetByID(ent.Species)
-
-	if ok {
-		if threshold := sp.StarvationThreshold; threshold <= 0 {
-			return
-		}
+	if !ok || sp.StarvationThreshold <= 0 {
+		return
 	}
 
 	ticksSinceMeal := int(sim.Tick) - ent.LastMealTick
