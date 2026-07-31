@@ -760,7 +760,7 @@ func stateOrder(s string) int {
 
 func (h *Handler) AcceptQuestPost(c *gin.Context) {
 	h.Sim.Lock()
-	defer h.Sim.RUnlock()
+	defer h.Sim.Unlock()
 
 	questID := c.Param("id")
 	entityID := c.PostForm("entity_id")
