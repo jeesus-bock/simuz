@@ -227,22 +227,37 @@ func findRealmForDeity(deityID string) string {
 
 var deityIDs []string
 
-// Species-specific deity pools.
-// Elves and dwarves have separate pools with no overlap.
-// Greenskins (orcs, goblins, ogres, lizardmen, etc.) share a pool.
-// Humans/hobbits draw from the full list.
+// Species-specific deity pools — mixed pantheons per species.
+// Each species draws from a curated, thematic selection across all pantheons.
+// Elves and dwarves share no deities. Humans and greenskins share 2.
 var (
 	elfDeityPool = []string{
-		"amater_ashes", "snoozanoo", "raijin_the_rattler",
-		"ooh_huang", "groan_yin", "wukong_the_mangy",
+		"froyda_the_thistle",  // norse — nature, obsessive love
+		"amater_ashes",        // japanese — sun, light
+		"othena_the_pedantic", // greek — wisdom, law
+		"groan_yin",           // chinese — compassion, pity
+		"baa_hamut",           // dnd — justice, scales
 	}
 	dwarfDeityPool = []string{
-		"seus_crackbolt", "posse_eidon", "othena_the_pedantic", "oriz_the_bloodshot", "haydes_the_hoarder",
-		"odd_in", "thurn_the_thumper", "low_key", "froyda_the_thistle",
+		"odd_in",              // norse — wisdom, secrets, scrolls
+		"thurn_the_thumper",   // norse — war, thunder, hammers
+		"haydes_the_hoarder",  // greek — underground, hoarding
+		"raijin_the_rattler",  // japanese — drums, craft noise
+		"tie_o_mat",           // dnd — dungeon, copper, beasts
 	}
 	greenskinDeityPool = []string{
-		"tie_o_mat", "baa_hamut", "vaicna_the_unwashed",
-		"oriz_the_bloodshot", "haydes_the_hoarder",
+		"seus_crackbolt",      // greek — thunder, raw power (shared with humans)
+		"oriz_the_bloodshot",  // greek — brawls, brute force (shared with humans)
+		"wukong_the_mangy",    // chinese — mischief, confidence
+		"vaicna_the_unwashed", // dnd — secrets, decay
+		"snoozanoo",           // japanese — laziness, sea
+	}
+	humanDeityPool = []string{
+		"seus_crackbolt",  // greek — thunder, sky (shared with greenskins)
+		"oriz_the_bloodshot", // greek — war (shared with greenskins)
+		"ooh_huang",       // chinese — bureaucracy, order
+		"low_key",         // norse — trickery, trade
+		"posse_eidon",     // greek — sea, earth, wells
 	}
 )
 
@@ -253,12 +268,13 @@ func init() {
 }
 
 // AssignWorship sets the Worship field on an entity based on its species.
-// Each species group draws from a themed deity pool:
-//   - elves: japanese + chinese pantheon (nature, balance)
-//   - dwarves: greek + norse pantheon (craft, war, thunder)
-//   - greenskins (orc, goblin, ogre, lizardfolk, hobgoblin, gnoll): dnd + brutal greek
-//   - human, hobbit: all deities
-//   - beasts, others: 0-1 from any
+// Each species draws from a curated, pantheon-mixed pool:
+//   - elves: froyda, amater_ashes, othena, groan_yin, baa_hamut
+//   - dwarves: odd_in, thurn, haydes, raijin, tie_o_mat
+//   - greenskins: seus, oriz, wukong, vaicna, snoozanoo
+//   - humans/hobbits: seus, oriz, ooh_huang, low_key, posse_eidon
+//   - humans and greenskins share seus_crackbolt and oriz_the_bloodshot
+//   - elves and dwarves share nothing
 //   - divine/deity: none
 func AssignWorship(e *entity.Entity, rng interface{ Intn(int) int }) {
 	if e.Species == "divine" || e.Species == "deity" {
@@ -282,8 +298,8 @@ func AssignWorship(e *entity.Entity, rng interface{ Intn(int) int }) {
 		pool = greenskinDeityPool
 		count = rng.Intn(3) // 0-2
 	case "human", "hobbit":
-		pool = deityIDs
-		count = rng.Intn(5) // 0-4
+		pool = humanDeityPool
+		count = 1 + rng.Intn(3) // 1-3
 	default:
 		pool = deityIDs
 		count = rng.Intn(2) // 0-1
