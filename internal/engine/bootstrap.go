@@ -55,12 +55,17 @@ func (wb *WorldBuilder) initDeities(em *entity.EntityManager) {
 			Name:       def.Name,
 			Species:    "divine",
 			Profession: "deity",
-			Gender:     "none",
+			Gender:     "other",
 			Alive:      true,
 			Immortal:   true,
 			Conscious:  true,
 			LocationID: def.RealmRoomID,
 			Attributes: def.Attributes,
+			AI: entity.EntityAI{
+				Type:       "scripted",
+				ScriptIDs:  []string{"deity_core", def.ID},
+				SleepCycle: "none",
+			},
 
 			// FIX 2: Instantiate as map[string]string to match your exact struct signature
 			Memory: make(map[string]string),

@@ -254,6 +254,7 @@ func bindEntity(L *lua.LState, e *entity.Entity, tick uint64) {
 	stateTbl.RawSetString("location_id", lua.LString(e.LocationID))
 	entTbl.RawSetString("state", stateTbl)
 	entTbl.RawSetString("mood", lua.LString(e.Mood))
+	entTbl.RawSetString("gender", lua.LString(e.Gender))
 	entTbl.RawSetString("hunger", lua.LNumber(computeHunger(e, tick)))
 	skillsTbl := L.NewTable()
 	for _, sname := range entity.SkillNames {
@@ -1027,7 +1028,7 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.EntityManager, tm *worl
 
 	worldTbl.RawSetString("move_to", L.NewFunction(func(L *lua.LState) int {
 		id := L.ToString(1)
-		if w.Location(id) == nil || ((w.IsDivineRealm(ent.LocationID) || w.IsDivineRealm(id)) && ent.Species != "deity" && ent.Faction != "deity") {
+		if w.Location(id) == nil || ((w.IsDivineRealm(ent.LocationID) || w.IsDivineRealm(id)) && ent.Species != "divine" && ent.Species != "deity" && ent.Faction != "deity") {
 			L.Push(lua.LBool(false))
 			return 1
 		}
@@ -1114,6 +1115,7 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.EntityManager, tm *worl
 		tbl.RawSetString("age", lua.LNumber(e.Age))
 		tbl.RawSetString("alive", lua.LBool(e.Alive))
 		tbl.RawSetString("conscious", lua.LBool(e.Conscious))
+		tbl.RawSetString("gender", lua.LString(e.Gender))
 		tbl.RawSetString("location_id", lua.LString(e.LocationID))
 		tbl.RawSetString("hunger", lua.LNumber(computeHunger(e, tm.Tick)))
 		L.Push(tbl)
@@ -2152,6 +2154,137 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.EntityManager, tm *worl
 		}
 
 		return 0 // Returns nothing back to the Lua script execution stack
+	}))
+
+	// world.impregnate(father_id, mother_id) — divine conception.
+	// Makes the mother pregnant with the father's child, bypassing normal
+	// species compatibility checks. Used by deities to sire mortal offspring.
+	worldTbl.RawSetString("impregnate", L.NewFunction(func(L *lua.LState) int {
+		fatherID := L.ToString(1)
+		motherID := L.ToString(2)
+		if fatherID == "" || motherID == "" {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		father := em.Get(fatherID)
+		mother := em.Get(motherID)
+		if father == nil || mother == nil {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		if !mother.Alive {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		if mother.Reproduction.Pregnant {
+			L.Push(lua.LFalse)
+			return 1
+		}
+
+		childSpecies := mother.Species
+		if childSpecies == "divine" {
+			childSpecies = father.Species
+			if childSpecies == "divine" {
+				childSpecies = "human"
+			}
+		}
+
+		mother.Reproduction.Pregnant = true
+		mother.Reproduction.PregnantSinceTick = tm.Tick
+		mother.Reproduction.FatherID = fatherID
+
+		father.AddRelationship(mother.ID, entity.RelationshipMate, tm.Tick)
+		mother.AddRelationship(father.ID, entity.RelationshipMate, tm.Tick)
+
+		log.Printf("[divine] %s impregnated %s (child species: %s)", father.Name, mother.Name, childSpecies)
+		L.Push(lua.LTrue)
+		return 1
+	}))
+
+	// world.polymorph(target_id, new_species) — change an entity's species temporarily.
+	// Returns true if successful.
+	worldTbl.RawSetString("polymorph", L.NewFunction(func(L *lua.LState) int {
+		targetID := L.ToString(1)
+		newSpecies := L.ToString(2)
+		if targetID == "" || newSpecies == "" {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		target := em.Get(targetID)
+		if target == nil {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		oldSpecies := target.Species
+		target.Species = newSpecies
+		target.Memory["_polymorph_original"] = oldSpecies
+		log.Printf("[divine] %s polymorphed from %s to %s", target.Name, oldSpecies, newSpecies)
+		L.Push(lua.LTrue)
+		return 1
+	}))
+
+	// world.revert_polymorph(target_id) — revert a polymorphed entity to its original species.
+	worldTbl.RawSetString("revert_polymorph", L.NewFunction(func(L *lua.LState) int {
+		targetID := L.ToString(1)
+		if targetID == "" {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		target := em.Get(targetID)
+		if target == nil {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		original, ok := target.Memory["_polymorph_original"]
+		if !ok || original == "" {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		target.Species = original
+		delete(target.Memory, "_polymorph_original")
+		log.Printf("[divine] %s reverted polymorph to %s", target.Name, original)
+		L.Push(lua.LTrue)
+		return 1
+	}))
+
+	// world.find_entities_by_gender(gender) — returns entity IDs of all living entities with given gender.
+	worldTbl.RawSetString("find_entities_by_gender", L.NewFunction(func(L *lua.LState) int {
+		gender := L.ToString(1)
+		tbl := L.NewTable()
+		for _, e := range em.All() {
+			if e.Alive && e.Gender == gender {
+				tbl.Append(lua.LString(e.ID))
+			}
+		}
+		L.Push(tbl)
+		return 1
+	}))
+
+	// world.find_entities_by_species(species) — returns entity IDs of all living entities of given species.
+	worldTbl.RawSetString("find_entities_by_species", L.NewFunction(func(L *lua.LState) int {
+		sp := L.ToString(1)
+		tbl := L.NewTable()
+		for _, e := range em.All() {
+			if e.Alive && e.Species == sp {
+				tbl.Append(lua.LString(e.ID))
+			}
+		}
+		L.Push(tbl)
+		return 1
+	}))
+
+	// world.find_mortal_locations() — returns location IDs that contain at least one living mortal.
+	worldTbl.RawSetString("find_mortal_locations", L.NewFunction(func(L *lua.LState) int {
+		seen := make(map[string]bool)
+		tbl := L.NewTable()
+		for _, e := range em.All() {
+			if e.Alive && e.Species != "divine" && e.Species != "deity" && !seen[e.LocationID] {
+				seen[e.LocationID] = true
+				tbl.Append(lua.LString(e.LocationID))
+			}
+		}
+		L.Push(tbl)
+		return 1
 	}))
 
 	L.SetGlobal("world", worldTbl)
