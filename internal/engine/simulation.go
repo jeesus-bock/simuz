@@ -167,6 +167,41 @@ func (s *Simulation) TickOnce() {
 		}
 	}
 
+	// Recover knocked-out entities: slowly regain HP, then flee when conscious.
+	for _, ent := range s.Entities.All() {
+		if !ent.Alive || ent.Conscious {
+			continue
+		}
+		if ent.HP > 0 {
+			// Already recovered (e.g. healed by another entity) — just wake up.
+			ent.Conscious = true
+			continue
+		}
+		// Recover 1 HP every 10 ticks while knocked out.
+		if s.Tick%10 == 0 {
+			ent.HP = 1
+			ent.Conscious = true
+			ent.AddMoodModifier("knockout_recovery", "fearful", 20)
+			log.Printf("[recovery] %s regained consciousness at %s", ent.Name, ent.LocationID)
+			// Flee: move to a random adjacent location.
+			loc := s.World.Location(ent.LocationID)
+			if loc != nil && loc.ParentID != "" {
+				siblings := s.World.ChildLocations(loc.ParentID)
+				var exits []string
+				for _, sib := range siblings {
+					if sib.ID != ent.LocationID {
+						exits = append(exits, sib.ID)
+					}
+				}
+				if len(exits) > 0 {
+					dest := exits[s.RNG.Intn(len(exits))]
+					ent.LocationID = dest
+					log.Printf("[recovery] %s fled from %s to %s", ent.Name, loc.ID, dest)
+				}
+			}
+		}
+	}
+
 	for _, ent := range s.Entities.All() {
 		if !ent.Alive || !ent.Conscious {
 			continue
