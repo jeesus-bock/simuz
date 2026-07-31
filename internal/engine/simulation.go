@@ -42,13 +42,13 @@ func (s *Simulation) Unlock()  { s.mu.Unlock() }
 func (s *Simulation) GetAllEntities() []*entity.Entity {
 	return s.Entities.All()
 }
-func NewSimulation(w *world.World) *Simulation {
+func NewSimulation(w *world.World, em *entity.EntityManager) *Simulation {
 	qm := quest.NewManager()
 	sim := &Simulation{
 		Tick:         0,
 		Scheduler:    NewScheduler(),
 		World:        w,
-		Entities:     entity.NewEntityManager(),
+		Entities:     em,
 		Quests:       qm,
 		Events:       events.NewManager(),
 		Time:         world.NewGameTime(24),

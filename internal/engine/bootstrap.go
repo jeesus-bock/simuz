@@ -23,8 +23,7 @@ func NewWorldBuilder(seed string, rng *rand.Rand) *WorldBuilder {
 
 // BootstrapWorld allocates, links, and builds the entire world simulation.
 func (wb *WorldBuilder) BootstrapWorld(w *world.World, em *entity.EntityManager) (*Simulation, error) {
-	sim := NewSimulation(w)
-	sim.Entities = em
+	sim := NewSimulation(w, em)
 
 	// 0. Load all Lua AI scripts from disk
 	ai.InitScripts()
