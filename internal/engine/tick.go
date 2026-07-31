@@ -266,13 +266,31 @@ func processCrossbreeding(s *Simulation) {
 			if childSpecies == "" {
 				continue
 			}
-			// Assign mother/father randomly
-			if s.RNG.Intn(2) == 0 {
+			// Check pregnancy
+			if cA.Reproduction.Pregnant || cB.Reproduction.Pregnant {
+				continue
+			}
+			// Check cooldown (1000 ticks, same as same-species)
+			const cooldown = uint64(1000)
+			if s.Tick-cA.LastReproductionTick < cooldown || s.Tick-cB.LastReproductionTick < cooldown {
+				continue
+			}
+			// Check existing mate bonds — skip if either already has a mate
+			if _, ok := cA.GetPartner(); ok {
+				continue
+			}
+			if _, ok := cB.GetPartner(); ok {
+				continue
+			}
+			// Assign mother (female) and father (male) by gender
+			if cA.Gender == entity.GenderFemale && cB.Gender == entity.GenderMale {
 				mother = cA
 				father = cB
-			} else {
+			} else if cA.Gender == entity.GenderMale && cB.Gender == entity.GenderFemale {
 				mother = cB
 				father = cA
+			} else {
+				continue // incompatible gender pairing
 			}
 			break
 		}
