@@ -50,7 +50,24 @@ func (wb *WorldBuilder) initDeities(em *entity.EntityManager) {
 	// deity_core runs for all deities; the per-deity script is included only if it exists.
 	deityScriptIDs := func(id string) []string {
 		known := map[string]bool{
-			"seus_crackbolt": true,
+			"seus_crackbolt":      true,
+			"posse_eidon":         true,
+			"othena_the_pedantic": true,
+			"oriz_the_bloodshot":  true,
+			"odd_in":              true,
+			"thurn_the_thumper":   true,
+			"low_key":             true,
+			"froyda_the_thistle":  true,
+			"ooh_huang":           true,
+			"groan_yin":           true,
+			"wukong_the_mangy":    true,
+			"amater_ashes":        true,
+			"snoozanoo":           true,
+			"raijin_the_rattler":  true,
+			"haydes_the_hoarder":  true,
+			"tie_o_mat":           true,
+			"baa_hamut":           true,
+			"vaicna_the_unwashed": true,
 		}
 		if known[id] {
 			return []string{"deity_core", id}
