@@ -2,6 +2,7 @@ package engine
 
 import (
 	"math/rand"
+	"simuz/internal/ai"
 	"simuz/internal/entity"
 	"simuz/internal/gen"
 	"simuz/internal/world"
@@ -24,6 +25,9 @@ func NewWorldBuilder(seed string, rng *rand.Rand) *WorldBuilder {
 func (wb *WorldBuilder) BootstrapWorld(w *world.World, em *entity.EntityManager) (*Simulation, error) {
 	sim := NewSimulation(w)
 	sim.Entities = em
+
+	// 0. Load all Lua AI scripts from disk
+	ai.InitScripts()
 
 	// 1. Initialize Deities into the divided Divine Real Estate
 	wb.initDeities(em)
