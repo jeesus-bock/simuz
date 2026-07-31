@@ -50,7 +50,7 @@
                 <tr><th>Rescue State</th><td>{{if .entity.RescueState}}{{.entity.RescueState}}{{else}}none{{end}}</td></tr>
                 {{if .entity.Worship}}
                 <tr><th>Worships</th><td>
-                    {{range $i, $d := .entity.Worship}}{{if $i}}, {{end}}<a href="/quest/{{$d}}" style="color:#b388ff;text-decoration:none;">{{$d}}</a>{{end}}
+                    {{range $i, $d := .entity.Worship}}{{if $i}}, {{end}}<a href="/entity/{{$d}}" style="color:#b388ff;text-decoration:none;">{{$d}}</a>{{end}}
                 </td></tr>
                 {{end}}
             </table>

@@ -2186,14 +2186,6 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.EntityManager, tm *worl
 			return 1
 		}
 
-		childSpecies := mother.Species
-		if childSpecies == "divine" {
-			childSpecies = father.Species
-			if childSpecies == "divine" {
-				childSpecies = "human"
-			}
-		}
-
 		mother.Reproduction.Pregnant = true
 		mother.Reproduction.PregnantSinceTick = tm.Tick
 		mother.Reproduction.FatherID = fatherID
@@ -2201,7 +2193,7 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.EntityManager, tm *worl
 		father.AddRelationship(mother.ID, entity.RelationshipMate, tm.Tick)
 		mother.AddRelationship(father.ID, entity.RelationshipMate, tm.Tick)
 
-		log.Printf("[divine] %s impregnated %s (child species: %s)", father.Name, mother.Name, childSpecies)
+		log.Printf("[divine] %s impregnated %s (%s)", father.Name, mother.Name, mother.Species)
 		L.Push(lua.LTrue)
 		return 1
 	}))
@@ -2222,6 +2214,9 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.EntityManager, tm *worl
 		}
 		oldSpecies := target.Species
 		target.Species = newSpecies
+		if target.Memory == nil {
+			target.Memory = make(map[string]string)
+		}
 		target.Memory["_polymorph_original"] = oldSpecies
 		log.Printf("[divine] %s polymorphed from %s to %s", target.Name, oldSpecies, newSpecies)
 		L.Push(lua.LTrue)

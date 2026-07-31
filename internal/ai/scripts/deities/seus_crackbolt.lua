@@ -63,9 +63,9 @@ function do_tick()
     -- Divine conception
     if world.impregnate(self.id, target_id) then
         util.log("[DIVINE] " .. self.name .. " has impregnated " .. target_info.name .. " (" .. target_info.species .. ")")
-        table.insert(events, util.event("entity_born", {
+        table.insert(events, util.event("world", {
             source = self.id,
-            data = { mother = target_id, species = target_info.species, divine = true }
+            data = { mother = target_id, species = target_info.species, event = "divine_conception" }
         }))
     else
         util.log(self.name .. " failed to impregnate " .. target_info.name)
