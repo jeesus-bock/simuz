@@ -8,6 +8,7 @@ import (
 	"simuz/internal/entity"
 	"simuz/internal/events"
 	"simuz/internal/species"
+	"simuz/internal/world"
 )
 
 func processAging(ent *entity.Entity, sim *Simulation) {
@@ -16,9 +17,12 @@ func processAging(ent *entity.Entity, sim *Simulation) {
 	}
 
 	ent.Age++
-	if ent.MaxAge > 0 && ent.Age >= ent.MaxAge {
-		oldAge(ent, sim)
-		return
+	if ent.MaxAge > 0 {
+		maxAgeTicks := world.GameDaysToTicks(ent.MaxAge, sim.Time.Speed)
+		if ent.Age >= maxAgeTicks {
+			oldAge(ent, sim)
+			return
+		}
 	}
 
 	if ent.LastMealTick <= 0 {

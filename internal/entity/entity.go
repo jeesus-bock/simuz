@@ -88,9 +88,9 @@ type Entity struct {
 	Gender               string                        `json:"gender"`
 	Profession           string                        `json:"profession"`
 	Level                int                           `json:"level"`
-	Age                  int                           `json:"age"`
-	MaxAge               int                           `json:"max_age"`
-	LastMealTick         int                           `json:"last_meal"`
+	Age                  int                           `json:"age"`           // simulation ticks: increments by 1 per tick
+	MaxAge               int                           `json:"max_age"`       // game-days: natural lifespan (converted to ticks at comparison)
+	LastMealTick         int                           `json:"last_meal"`     // simulation tick of last meal
 	Alive                bool                          `json:"alive"`
 	Immortal             bool                          `json:"immortal"`
 	Attributes           Attributes                    `json:"attributes"`
@@ -117,9 +117,9 @@ type Entity struct {
 	RescueState          string                        `json:"rescue_state,omitempty"`
 	Reproduction         Reproduction                  `json:"reproduction,omitempty"`
 	Relationships        map[string]EntityRelationship `json:"relationships,omitempty"`
-	LastReproductionTick uint64                        `json:"last_reproduction_tick,omitempty"`
-	KnockedOutTick       uint64                        `json:"knocked_out_tick,omitempty"`
-	TimeOfDeath          uint64                        `json:"timeOfDeath"`
+	LastReproductionTick uint64                        `json:"last_reproduction_tick,omitempty"` // simulation tick
+	KnockedOutTick       uint64                        `json:"knocked_out_tick,omitempty"`       // simulation tick
+	TimeOfDeath          uint64                        `json:"timeOfDeath"`                      // simulation tick
 	relation.Relation
 	Memory     map[string]string `json:"memory,omitempty"`
 	BioProfile *species.Species  `json:"bioProfile"`
@@ -206,9 +206,14 @@ func (e *Entity) CanGetPregnant() bool {
 }
 
 // IsAdult returns true if the entity is old enough to reproduce.
-func (e *Entity) IsAdult() bool {
+// speed is the game speed (game-minutes per tick), used to convert AdultAge from game-days to ticks.
+func (e *Entity) IsAdult(speed int) bool {
 	if sp, exists := species.GetByID(e.Species); exists {
-		return e.Age >= sp.AdultAge || e.Level >= 3
+		adultAgeTicks := sp.AdultAge * 1440 / speed
+		if adultAgeTicks < 1 {
+			adultAgeTicks = 1
+		}
+		return e.Age >= adultAgeTicks || e.Level >= 3
 	}
 	return false
 }

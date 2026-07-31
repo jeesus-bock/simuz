@@ -131,6 +131,21 @@ func (gt *GameTime) DayOfWeekName() string {
 	return days[gt.DayOfWeek()-1]
 }
 
+// GameDayToTicks converts a number of game-days to simulation ticks at the given speed.
+// TicksPerGameDay returns how many ticks equal one game-day at the given speed.
+// At the default speed of 24, one tick = 24 game-minutes, so one game-day = 60 ticks.
+func TicksPerGameDay(speed int) int {
+	if speed <= 0 {
+		speed = 1
+	}
+	return 1440 / speed
+}
+
+// GameDaysToTicks converts a count of game-days to simulation ticks.
+func GameDaysToTicks(days, speed int) int {
+	return days * TicksPerGameDay(speed)
+}
+
 func (gt *GameTime) String() string {
 	return fmt.Sprintf("Day %d, %02d:%02d", gt.Day, gt.Hour, gt.Minute)
 }
