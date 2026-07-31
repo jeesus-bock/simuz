@@ -1,0 +1,68 @@
+{{define "deities"}}
+<div hx-ext="sse" sse-connect="/api/v1/ui/events">
+    <div id="deities-content" hx-get="/api/v1/ui/fragments/deities" hx-trigger="sse:tick" hx-target="#deities-content" hx-swap="innerHTML">
+        {{template "deities_list" .}}
+    </div>
+</div>
+{{end}}
+
+{{define "deities_list"}}
+<div class="card">
+    <h2>Deities ({{len .deities}})</h2>
+    <div class="stat"><span>Tick</span><span>{{.tick}}</span></div>
+</div>
+
+{{range .deities}}
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <h3 style="color:#b388ff;">{{.Name}}</h3>
+        <span style="padding:2px 8px;border-radius:999px;font-size:0.72rem;
+            {{if .Alive}}background:#2d6a2d;color:#8f8;{{else}}background:#6a2d2d;color:#f88;{{end}}">
+            {{if .Alive}}Immortal{{else}}Fallen{{end}}
+        </span>
+    </div>
+    <div class="stat"><span>ID</span><span>{{.ID}}</span></div>
+    <div class="stat"><span>Pantheon</span><span>{{.Pantheon}}</span></div>
+    <div class="stat"><span>Domain</span><span style="color:#b388ff;">{{.Domain}}</span></div>
+    <div class="stat"><span>Location</span><span><a href="/location/{{.LocationID}}" style="color:var(--accent)">{{.LocationName}}</a></span></div>
+    <div class="stat"><span>Shape</span></div>
+    <p style="color:var(--text-dim);font-size:0.9rem;margin-top:4px;font-style:italic;">{{.Shape}}</p>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px;">
+        <div style="background:#0f1a2e;padding:6px;border-radius:4px;text-align:center;">
+            <div style="color:#888;font-size:0.7rem;">STR</div>
+            <div style="color:#ffd700;font-weight:bold;">{{.STR}}</div>
+        </div>
+        <div style="background:#0f1a2e;padding:6px;border-radius:4px;text-align:center;">
+            <div style="color:#888;font-size:0.7rem;">DEX</div>
+            <div style="color:#ffd700;font-weight:bold;">{{.DEX}}</div>
+        </div>
+        <div style="background:#0f1a2e;padding:6px;border-radius:4px;text-align:center;">
+            <div style="color:#888;font-size:0.7rem;">CON</div>
+            <div style="color:#ffd700;font-weight:bold;">{{.CON}}</div>
+        </div>
+        <div style="background:#0f1a2e;padding:6px;border-radius:4px;text-align:center;">
+            <div style="color:#888;font-size:0.7rem;">INT</div>
+            <div style="color:#ffd700;font-weight:bold;">{{.INT}}</div>
+        </div>
+        <div style="background:#0f1a2e;padding:6px;border-radius:4px;text-align:center;">
+            <div style="color:#888;font-size:0.7rem;">WIS</div>
+            <div style="color:#ffd700;font-weight:bold;">{{.WIS}}</div>
+        </div>
+        <div style="background:#0f1a2e;padding:6px;border-radius:4px;text-align:center;">
+            <div style="color:#888;font-size:0.7rem;">CHA</div>
+            <div style="color:#ffd700;font-weight:bold;">{{.CHA}}</div>
+        </div>
+    </div>
+    {{if .Needs}}
+    <div style="margin-top:8px;">
+        <span style="color:#888;font-size:0.8rem;">Needs:</span>
+        <span style="color:var(--text-dim);font-size:0.85rem;">{{join .Needs ", "}}</span>
+    </div>
+    {{end}}
+</div>
+{{else}}
+<div class="card">
+    <p style="color:var(--text-dim);">No deities found.</p>
+</div>
+{{end}}
+{{end}}

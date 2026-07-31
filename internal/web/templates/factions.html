@@ -1,0 +1,81 @@
+{{define "factions"}}
+<div hx-ext="sse" sse-connect="/api/v1/ui/events">
+    <div id="factions-content" hx-get="/api/v1/ui/fragments/factions" hx-trigger="sse:tick" hx-target="#factions-content" hx-swap="innerHTML">
+        {{template "factions_list" .}}
+    </div>
+</div>
+{{end}}
+
+{{define "factions_list"}}
+<div class="card">
+    <h2>Factions ({{len .factions}})</h2>
+    <div class="stat"><span>Tick</span><span>{{.tick}}</span></div>
+</div>
+
+{{range .factions}}
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <h3>{{.Name}}</h3>
+        <span style="color:var(--text-dim);font-size:0.8rem;">{{.ID}}</span>
+    </div>
+    {{if .CurrentState}}
+    <div class="stat"><span>State</span><span style="color:{{if eq .CurrentState "war_mobilization"}}#e94560{{else if eq .CurrentState "starving"}}#ffa726{{else if eq .CurrentState "striking"}}#ffd700{{else}}#4caf50{{end}};">{{.CurrentState}}</span></div>
+    {{end}}
+    {{if .PrimaryObjective}}
+    <div class="stat"><span>Objective</span><span>{{.PrimaryObjective}}</span></div>
+    {{end}}
+    <div class="stat"><span>Wealth Tier</span><span>{{.WealthTier}}/5</span></div>
+    <div class="stat"><span>Vault Gold</span><span style="color:#ffd700;">{{.VaultGold}}</span></div>
+    {{if .HQLocationID}}
+    <div class="stat"><span>HQ</span><span><a href="/location/{{.HQLocationID}}" style="color:var(--accent)">{{.HQLocationID}}</a></span></div>
+    {{end}}
+    {{if .LeaderEntityID}}
+    <div class="stat"><span>Leader</span><span><a href="/entity/{{.LeaderEntityID}}" style="color:var(--accent)">{{.LeaderEntityID}}</a></span></div>
+    {{end}}
+    <div class="stat"><span>Members</span><span>{{.MemberCount}}{{if .MaxCapacity}} / {{.MaxCapacity}}{{end}}</span></div>
+
+    {{if .Relations}}
+    <div style="margin-top:10px;">
+        <div style="color:#888;font-size:0.8rem;margin-bottom:6px;">Faction Relations</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">
+            {{range .Relations}}
+            <span style="padding:2px 8px;border-radius:4px;font-size:0.75rem;
+                {{if gt .Value 0}}background:#1a3a2e;color:#a5d6a7;
+                {{else if lt .Value 0}}background:#4a2020;color:#ffb3b3;
+                {{else}}background:#222;color:#888;{{end}}">
+                {{.Name}}: {{.Value}}
+            </span>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
+
+    {{if .ControlledZones}}
+    <div style="margin-top:10px;">
+        <div style="color:#888;font-size:0.8rem;margin-bottom:6px;">Controlled Zones ({{len .ControlledZones}})</div>
+        {{range .ControlledZones}}
+        <div style="font-size:0.85rem;padding:2px 0;">
+            <a href="/location/{{.LocationID}}" style="color:var(--accent);">{{.LocationID}}</a>
+            <span style="color:#888;margin-left:8px;">{{printf "%.0f" .Influence}}%</span>
+        </div>
+        {{end}}
+    </div>
+    {{end}}
+
+    {{if .Stockpile}}
+    <div style="margin-top:10px;">
+        <div style="color:#888;font-size:0.8rem;margin-bottom:6px;">Stockpile</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">
+            {{range $item, $count := .Stockpile}}
+            <span style="padding:2px 6px;background:#0f1a2e;border-radius:3px;font-size:0.8rem;color:var(--text-dim);">{{$item}}: {{$count}}</span>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
+</div>
+{{else}}
+<div class="card">
+    <p style="color:var(--text-dim);">No factions found.</p>
+</div>
+{{end}}
+{{end}}

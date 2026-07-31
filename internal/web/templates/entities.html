@@ -10,6 +10,21 @@
 <div class="card">
     <h2>Entities ({{len .entities_list}})</h2>
     <div class="stat"><span>Tick</span><span>{{.tick}}</span></div>
+    <div style="margin-top:10px;margin-bottom:12px;">
+        <input type="text" id="entity-filter" placeholder="Search by name, species, faction, location..."
+            oninput="filterEntities()"
+            style="width:100%;padding:8px 12px;background:#0f1a2e;border:1px solid #333;border-radius:4px;color:var(--text);font-family:monospace;font-size:0.9rem;box-sizing:border-box;">
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+        <button onclick="setEntityStatus('')" class="entity-status-btn active" data-status=""
+            style="padding:4px 10px;border:1px solid var(--accent);border-radius:4px;background:none;color:var(--accent);cursor:pointer;font-size:0.75rem;">All</button>
+        <button onclick="setEntityStatus('alive')" class="entity-status-btn" data-status="alive"
+            style="padding:4px 10px;border:1px solid #444;border-radius:4px;background:none;color:var(--text-dim);cursor:pointer;font-size:0.75rem;">Alive</button>
+        <button onclick="setEntityStatus('knocked')" class="entity-status-btn" data-status="knocked"
+            style="padding:4px 10px;border:1px solid #444;border-radius:4px;background:none;color:var(--text-dim);cursor:pointer;font-size:0.75rem;">Knocked Out</button>
+        <button onclick="setEntityStatus('dead')" class="entity-status-btn" data-status="dead"
+            style="padding:4px 10px;border:1px solid #444;border-radius:4px;background:none;color:var(--text-dim);cursor:pointer;font-size:0.75rem;">Dead</button>
+    </div>
     <table>
         <thead>
             <tr>
@@ -27,7 +42,8 @@
         </thead>
         <tbody>
             {{range .entities_list}}
-            <tr>
+            <tr class="entity-row" data-status="{{if not .Alive}}dead{{else if not .Conscious}}knocked{{else}}alive{{end}}"
+                data-search="{{.Name}} {{.Species}} {{.Faction}} {{.LocationID}} {{.AI.Type}}">
                 <td><a href="/entity/{{.ID}}" style="color:var(--accent);text-decoration:none;">{{.Name}}</a></td>
                 <td>{{.Species}}</td>
                 <td>
@@ -58,4 +74,30 @@
         </tbody>
     </table>
 </div>
+
+<script>
+var currentEntityStatus = '';
+function setEntityStatus(status) {
+    currentEntityStatus = status;
+    var btns = document.querySelectorAll('.entity-status-btn');
+    btns.forEach(function(b) {
+        var isActive = b.getAttribute('data-status') === status;
+        b.style.color = isActive ? 'var(--accent)' : 'var(--text-dim)';
+        b.style.borderColor = isActive ? 'var(--accent)' : '#444';
+    });
+    filterEntities();
+}
+function filterEntities() {
+    var q = (document.getElementById('entity-filter') || {}).value || '';
+    q = q.toLowerCase();
+    var rows = document.querySelectorAll('.entity-row');
+    rows.forEach(function(row) {
+        var search = (row.getAttribute('data-search') || '').toLowerCase();
+        var status = row.getAttribute('data-status') || '';
+        var matchSearch = !q || search.indexOf(q) !== -1;
+        var matchStatus = !currentEntityStatus || status === currentEntityStatus;
+        row.style.display = (matchSearch && matchStatus) ? '' : 'none';
+    });
+}
+</script>
 {{end}}
