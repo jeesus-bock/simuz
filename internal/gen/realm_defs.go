@@ -27,7 +27,7 @@ var RealmDefs = []RealmRoomDef{
 		ID:          "chancery_of_clouds",
 		Name:        "The Chancery of Clouds",
 		Description: "A silent, drafty archive room filled with brittle, yellowed paper stacks.",
-		Exits:       []string{"gilded_high_hall", "drafty_marble_gallery"},
+		Exits:       []string{"gilded_high_hall", "the_cluttered_attic"},
 		Atmosphere:  "drafty",
 		DeityIDs:    []string{"othena_the_pedantic", "groan_yin", "froyda_the_thistle"},
 	},
