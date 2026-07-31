@@ -44,9 +44,14 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 		}
 	}
 
-	// Always guarantee at least one municipal guard post exists mapped safely to town base
+	// Always guarantee guard posts and a bard
+	for i := 0; i < 2+g.RNG.Intn(3); i++ {
+		targetBuildings = append(targetBuildings, architecturalTask{
+			id: townID, profession: "guard", targetRoom: townID,
+		})
+	}
 	targetBuildings = append(targetBuildings, architecturalTask{
-		id: townID, profession: "guard", targetRoom: townID,
+		id: townID, profession: "bard", targetRoom: townID,
 	})
 
 	for _, b := range targetBuildings {
@@ -120,6 +125,11 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 			addItem(ent, lookup("charged_quartz"))
 			giveCurrency(ent, 10, 2, 1)
 
+		case "bard":
+			equipItem(ent, lookup("common_clothes"))
+			addItem(ent, lookup("beer"))
+			giveCurrency(ent, 5+g.RNG.Intn(10), 2+g.RNG.Intn(5), 0)
+
 		default:
 			equipItem(ent, lookup("common_clothes"))
 			giveCurrency(ent, 1+g.RNG.Intn(5), 0, 0)
@@ -172,14 +182,76 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 	}
 
 	// Ambient population builder loops
-	numCommoners := 1 + g.RNG.Intn(3)
+	numCommoners := 10 + g.RNG.Intn(15)
 	for i := 0; i < numCommoners; i++ {
-		ent := entity.NewEntity(fmt.Sprintf("%s_peasant_%d", townID, i), "Town Folk", dominantCulture, entity.Attributes{STR: 10}, 1, relation.CivilianRelation)
+		professions := []string{"farmer", "fisherman", "herbalist", "courier", "bar_patron", "thief", "ranger", "traveler"}
+		prof := professions[g.RNG.Intn(len(professions))]
+
+		workerSpecies := dominantCulture
+		if g.RNG.Intn(100) < 15 {
+			allPossibleSpecies := []string{"human", "orc", "elf", "dwarf", "hobbit"}
+			workerSpecies = allPossibleSpecies[g.RNG.Intn(len(allPossibleSpecies))]
+		}
+		specDef, exists := species.Registry[workerSpecies]
+		if !exists {
+			specDef = species.Registry["human"]
+		}
+		gender := "male"
+		if g.RNG.Intn(100) < 50 {
+			gender = "female"
+		}
+		npcName := specDef.GetRandomName(gender, g.RNG)
+		npcID := fmt.Sprintf("%s_%s_%d", townID, prof, i)
+
+		ent := entity.NewEntity(npcID, npcName, workerSpecies, entity.Attributes{STR: 10, DEX: 10}, 1, relation.CivilianRelation)
 		ent.LocationID = townID
-		ent.Profession = "traveler"
-		ent.AI = entity.EntityAI{Type: "passive", FactionID: townID, HomeLocation: townID, SleepCycle: "diurnal", ScriptIDs: []string{"traveler"}}
+		ent.Gender = gender
+		ent.BioProfile = &specDef
+		ent.Age = specDef.AdultAge + g.RNG.Intn(10)
+		ent.MaxAge = specDef.MaxAge
+		ent.Alive = true
+		ent.Conscious = true
+		ent.AI = entity.EntityAI{
+			Type:         "scripted",
+			FactionID:    townID,
+			HomeLocation: townID,
+			SleepCycle:   specDef.DefaultSleepCycle,
+			ScriptIDs:    []string{prof},
+		}
+		ent.Faction = "civilian"
+		ent.Profession = prof
 		equipItem(ent, lookup("common_clothes"))
+		giveCurrency(ent, 1+g.RNG.Intn(5), 0, 0)
 		entities = append(entities, ent)
+	}
+
+	// Farm animals: sheep and dogs near settlements
+	numSheep := 3 + g.RNG.Intn(5)
+	for i := 0; i < numSheep; i++ {
+		sheepID := fmt.Sprintf("%s_sheep_%d", townID, i)
+		sheep := entity.NewEntity(sheepID, "Sheep", "sheep", entity.Attributes{STR: 4, DEX: 6, CON: 8}, 1, relation.Relation{})
+		sheep.LocationID = townID
+		sheep.Gender = "female"
+		if g.RNG.Intn(100) < 30 {
+			sheep.Gender = "male"
+		}
+		sheep.Faction = "civilian"
+		sheep.AI = entity.EntityAI{Type: "passive", HomeLocation: townID, SleepCycle: "diurnal"}
+		entities = append(entities, sheep)
+	}
+
+	numDogs := 1 + g.RNG.Intn(2)
+	for i := 0; i < numDogs; i++ {
+		dogID := fmt.Sprintf("%s_dog_%d", townID, i)
+		dog := entity.NewEntity(dogID, "Dog", "dog", entity.Attributes{STR: 8, DEX: 12, CON: 10}, 1, relation.Relation{})
+		dog.LocationID = townID
+		dog.Gender = "male"
+		if g.RNG.Intn(100) < 50 {
+			dog.Gender = "female"
+		}
+		dog.Faction = "civilian"
+		dog.AI = entity.EntityAI{Type: "scripted", HomeLocation: townID, SleepCycle: "diurnal", ScriptIDs: []string{"dog"}}
+		entities = append(entities, dog)
 	}
 
 	return entities

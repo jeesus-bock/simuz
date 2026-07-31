@@ -78,7 +78,7 @@ func (g *Generator) Generate() (*world.World, []*entity.Entity) {
 	worldLoc.Weather = world.NewWeather(world.Clear, 15)
 	g.World.AddLocation(worldLoc)
 
-	numRegions := 4 + g.RNG.Intn(5)
+	numRegions := 8 + g.RNG.Intn(5)
 	log.Printf("[gen] creating %d regions", numRegions)
 	biomeTypes := []string{"highlands", "swamp", "plains", "forest", "waste"}
 
