@@ -10,58 +10,119 @@
 <div class="card">
     <h2>Quests ({{len .quest_defs}})</h2>
     <div class="stat"><span>Tick</span><span>{{.tick}}</span></div>
+    <div style="margin-top:10px;margin-bottom:12px;">
+        <input type="text" id="quest-filter" placeholder="Search quests by title, ID, type, description..."
+            oninput="filterQuests()"
+            style="width:100%;padding:8px 12px;background:#0f1a2e;border:1px solid #333;border-radius:4px;color:var(--text);font-family:monospace;font-size:0.9rem;box-sizing:border-box;">
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button onclick="setQuestType('')" class="quest-type-btn" data-type=""
+            style="padding:4px 10px;border:1px solid var(--accent);border-radius:4px;background:none;color:var(--accent);cursor:pointer;font-size:0.75rem;">All</button>
+        <button onclick="setQuestType('main')" class="quest-type-btn" data-type="main"
+            style="padding:4px 10px;border:1px solid #444;border-radius:4px;background:none;color:var(--text-dim);cursor:pointer;font-size:0.75rem;">Main</button>
+        <button onclick="setQuestType('side')" class="quest-type-btn" data-type="side"
+            style="padding:4px 10px;border:1px solid #444;border-radius:4px;background:none;color:var(--text-dim);cursor:pointer;font-size:0.75rem;">Side</button>
+        <button onclick="setQuestType('faction')" class="quest-type-btn" data-type="faction"
+            style="padding:4px 10px;border:1px solid #444;border-radius:4px;background:none;color:var(--text-dim);cursor:pointer;font-size:0.75rem;">Faction</button>
+        <button onclick="setQuestType('daily')" class="quest-type-btn" data-type="daily"
+            style="padding:4px 10px;border:1px solid #444;border-radius:4px;background:none;color:var(--text-dim);cursor:pointer;font-size:0.75rem;">Daily</button>
+        <button onclick="setQuestType('repeatable')" class="quest-type-btn" data-type="repeatable"
+            style="padding:4px 10px;border:1px solid #444;border-radius:4px;background:none;color:var(--text-dim);cursor:pointer;font-size:0.75rem;">Repeatable</button>
+    </div>
 </div>
+
+{{if .active_quests}}
 <div class="card">
-    <h2>Ongoing Quests ({{len .active_quests}})</h2>
+    <h2 style="color:#ffd700;">Ongoing Quests ({{len .active_quests}})</h2>
     {{range .active_quests}}
     <div style="border-left:3px solid #ffd700;padding:6px 10px;margin:6px 0;background:#0f1a2e;border-radius:3px;">
         <div style="display:flex;justify-content:space-between;gap:8px;">
-            <strong>{{.Def.Title}}</strong>
+            <a href="/quest/{{.Def.ID}}" style="color:#ffd700;text-decoration:none;font-weight:bold;">{{.Def.Title}}</a>
             <span style="color:#aaa;font-size:.85rem;">Level {{.Def.Level}} · {{.Def.Type}}</span>
         </div>
-        <div style="margin-top:3px;font-size:.9rem;">Being pursued by <a href="/entity/{{.Entity.ID}}" style="color:var(--accent)">{{.Entity.Name}}</a> · Stage: {{.State.CurrentStage}}</div>
+        <div style="margin-top:3px;font-size:.9rem;">
+            <a href="/entity/{{.Entity.ID}}" style="color:var(--accent);text-decoration:none;">{{.Entity.Name}}</a>
+            · Stage: {{.State.CurrentStage}}
+        </div>
         {{if .State.Activity}}
         <div style="margin-top:6px;color:var(--text-dim);font-family:monospace;font-size:.82rem;max-height:150px;overflow-y:auto;">
             {{range .State.Activity}}<div><span style="color:#666">#{{.Tick}}</span> {{.Message}}</div>{{end}}
         </div>
-        {{else}}
-        <div style="margin-top:6px;color:#666;font-size:.85rem;">No activity recorded yet.</div>
         {{end}}
     </div>
-    {{else}}
-    <p style="color:var(--text-dim);">No entities are currently pursuing a quest.</p>
     {{end}}
 </div>
+{{end}}
+
 {{range .quest_defs}}
-<div class="card">
-    <h3>{{.Title}}</h3>
-    <div class="stat"><span>Quest ID</span><span>{{.ID}}</span></div>
-    <div class="stat"><span>Level / Type</span><span>{{.Level}} / {{.Type}}</span></div>
-    <p style="margin-top: 8px; color: var(--text-dim);">{{.Description}}</p>
-    {{if .Source}}
-    <div class="stat" style="margin-top: 4px;"><span>Source</span><span>{{.Source.NPCID}}</span></div>
-    {{end}}
-    <div style="margin-top: 8px;">
-        <strong>Stages:</strong>
-        <ul style="margin: 4px 0 0 16px; color: var(--text-dim); font-size: 0.9rem;">
-        {{range .Stages}}
-            <li>{{.Name}}: {{.Description}}</li>
+<div class="quest-row" data-type="{{.Type}}" data-search="{{.Title}} {{.ID}} {{.Type}} {{.Description}}">
+    <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <h3><a href="/quest/{{.ID}}" style="color:var(--accent);text-decoration:none;">{{.Title}}</a></h3>
+            <div style="display:flex;gap:6px;align-items:center;">
+                <span style="color:#888;font-size:0.8rem;">Lvl {{.Level}}</span>
+                <span style="padding:2px 6px;border-radius:3px;font-size:0.7rem;
+                    {{if eq .Type "main"}}background:#4a3d20;color:#ffe8a3;
+                    {{else if eq .Type "faction"}}background:#2a1a3e;color:#d1c4e9;
+                    {{else if eq .Type "daily"}}background:#1a3a5c;color:#c8e6ff;
+                    {{else if eq .Type "repeatable"}}background:#1a3a2e;color:#a5d6a7;
+                    {{else}}background:#222;color:#888;{{end}}">
+                    {{.Type}}
+                </span>
+            </div>
+        </div>
+        {{if .Description}}
+        <p style="margin-top:6px;color:var(--text-dim);font-size:0.9rem;">{{.Description}}</p>
         {{end}}
-        </ul>
+        {{if .Source}}
+        <div style="margin-top:4px;color:#888;font-size:0.8rem;">Source: {{.Source.NPCID}}{{if .Source.LocationID}} @ {{.Source.LocationID}}{{end}}</div>
+        {{end}}
+        <div style="margin-top:6px;">
+            <span style="color:#888;font-size:0.8rem;">Stages:</span>
+            <span style="color:var(--text-dim);font-size:0.85rem;">
+                {{range $i, $s := .Stages}}{{if $i}} → {{end}}{{$s.Name}}{{end}}
+            </span>
+        </div>
+        {{if .Rewards}}
+        <div style="margin-top:4px;">
+            <span style="color:#888;font-size:0.8rem;">Rewards:</span>
+            <span style="color:var(--text-dim);font-size:0.85rem;">
+                {{if .Rewards.Experience}}{{.Rewards.Experience}} XP {{end}}
+                {{if .Rewards.Gold}}{{.Rewards.Gold}} gold{{end}}
+            </span>
+        </div>
+        {{end}}
     </div>
-    {{if .Rewards}}
-    <div style="margin-top: 8px;">
-        <strong>Rewards:</strong>
-        <span style="color: var(--text-dim); font-size: 0.9rem;">
-            {{if .Rewards.Experience}}{{.Rewards.Experience}} XP {{end}}
-            {{if .Rewards.Gold}}{{.Rewards.Gold}} gold{{end}}
-        </span>
-    </div>
-    {{end}}
 </div>
 {{else}}
 <div class="card">
-    <p>No quests available.</p>
+    <p style="color:var(--text-dim);">No quests available.</p>
 </div>
 {{end}}
+
+<script>
+var currentQuestType = '';
+function setQuestType(type) {
+    currentQuestType = type;
+    var btns = document.querySelectorAll('.quest-type-btn');
+    btns.forEach(function(b) {
+        var isActive = b.getAttribute('data-type') === type;
+        b.style.color = isActive ? 'var(--accent)' : 'var(--text-dim)';
+        b.style.borderColor = isActive ? 'var(--accent)' : '#444';
+    });
+    filterQuests();
+}
+function filterQuests() {
+    var q = (document.getElementById('quest-filter') || {}).value || '';
+    q = q.toLowerCase();
+    var rows = document.querySelectorAll('.quest-row');
+    rows.forEach(function(row) {
+        var search = (row.getAttribute('data-search') || '').toLowerCase();
+        var type = row.getAttribute('data-type') || '';
+        var matchText = !q || search.indexOf(q) !== -1;
+        var matchType = !currentQuestType || type === currentQuestType;
+        row.style.display = (matchText && matchType) ? '' : 'none';
+    });
+}
+</script>
 {{end}}
