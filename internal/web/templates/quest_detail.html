@@ -1,0 +1,216 @@
+{{define "quest_detail"}}
+<div hx-ext="sse" sse-connect="/api/v1/ui/events">
+    <div id="quest-detail-content" hx-get="/api/v1/ui/fragments/quest/{{.quest_id}}" hx-trigger="sse:tick" hx-target="#quest-detail-content" hx-swap="innerHTML">
+        {{template "quest_detail_status" .}}
+    </div>
+</div>
+{{end}}
+
+{{define "quest_detail_status"}}
+<div style="margin-bottom:12px;">
+    <a href="/quests" style="color:var(--accent);text-decoration:none;">&larr; All Quests</a>
+</div>
+
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;">
+    <div>
+        <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <h2 style="color:#ffd700;">{{.quest.Title}}</h2>
+                <span style="padding:2px 8px;border-radius:4px;font-size:0.75rem;
+                    {{if eq .quest.Type "main"}}background:#4a3d20;color:#ffe8a3;
+                    {{else if eq .quest.Type "faction"}}background:#2a1a3e;color:#d1c4e9;
+                    {{else if eq .quest.Type "daily"}}background:#1a3a5c;color:#c8e6ff;
+                    {{else}}background:#222;color:#888;{{end}}">
+                    {{.quest.Type}}
+                </span>
+            </div>
+            <div class="stat"><span>ID</span><span>{{.quest.ID}}</span></div>
+            <div class="stat"><span>Level</span><span>{{.quest.Level}}</span></div>
+            {{if .quest.Description}}
+            <p style="margin-top:10px;color:var(--text-dim);">{{.quest.Description}}</p>
+            {{end}}
+            {{if .source_name}}
+            <div class="stat" style="margin-top:8px;"><span>Source NPC</span><span>{{.source_name}}</span></div>
+            {{end}}
+            {{if .source_loc_name}}
+            <div class="stat"><span>Source Location</span><span>{{.source_loc_name}}</span></div>
+            {{end}}
+        </div>
+
+        {{if .quest.Source.Dialog}}
+        <div class="card">
+            <h3>Dialog</h3>
+            {{if .quest.Source.Dialog.Accept}}
+            <div style="margin:6px 0;padding:6px 10px;background:#0f1a2e;border-radius:4px;border-left:3px solid #4caf50;">
+                <div style="color:#888;font-size:0.75rem;">Accept</div>
+                <div style="color:var(--text-dim);font-style:italic;">"{{.quest.Source.Dialog.Accept}}"</div>
+            </div>
+            {{end}}
+            {{if .quest.Source.Dialog.Progress}}
+            <div style="margin:6px 0;padding:6px 10px;background:#0f1a2e;border-radius:4px;border-left:3px solid #ffd700;">
+                <div style="color:#888;font-size:0.75rem;">Progress</div>
+                <div style="color:var(--text-dim);font-style:italic;">"{{.quest.Source.Dialog.Progress}}"</div>
+            </div>
+            {{end}}
+            {{if .quest.Source.Dialog.Complete}}
+            <div style="margin:6px 0;padding:6px 10px;background:#0f1a2e;border-radius:4px;border-left:3px solid #b388ff;">
+                <div style="color:#888;font-size:0.75rem;">Complete</div>
+                <div style="color:var(--text-dim);font-style:italic;">"{{.quest.Source.Dialog.Complete}}"</div>
+            </div>
+            {{end}}
+        </div>
+        {{end}}
+
+        <div class="card">
+            <h3>Stages ({{len .quest.Stages}})</h3>
+            {{range $i, $stage := .quest.Stages}}
+            <div style="margin:8px 0;padding:8px 10px;background:#0f1a2e;border-radius:4px;border-left:3px solid #555;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <strong>{{$stage.Name}}</strong>
+                    <span style="color:#888;font-size:0.8rem;">{{$stage.ID}}</span>
+                </div>
+                <div style="color:var(--text-dim);font-size:0.9rem;margin-top:4px;">{{$stage.Description}}</div>
+                {{if $stage.Requirements}}
+                <div style="margin-top:6px;color:#888;font-size:0.8rem;">Requires: {{join $stage.Requirements ", "}}</div>
+                {{end}}
+                {{if $stage.Objectives}}
+                <div style="margin-top:8px;">
+                    <div style="color:#888;font-size:0.75rem;margin-bottom:4px;">OBJECTIVES</div>
+                    {{range $stage.Objectives}}
+                    <div style="display:flex;gap:8px;padding:3px 0;font-size:0.85rem;">
+                        <span style="color:#888;min-width:80px;">{{.Type}}</span>
+                        <span style="color:var(--text-dim);">{{.Description}}</span>
+                        {{if gt .Count 1}}<span style="color:#666;">({{.Count}})</span>{{end}}
+                        {{if .Optional}}<span style="color:#ffa726;font-size:0.75rem;">optional</span>{{end}}
+                    </div>
+                    {{end}}
+                </div>
+                {{end}}
+            </div>
+            {{end}}
+        </div>
+
+        {{if .quest.FailConditions}}
+        <div class="card">
+            <h3>Failure Conditions</h3>
+            {{range .quest.FailConditions}}
+            <div style="padding:4px 0;font-size:0.9rem;color:var(--text-dim);">
+                <span style="color:#e94560;">{{.Type}}</span>
+                {{if .Hours}} — {{.Hours}} hours{{end}}
+                {{if .EntityID}} — entity: {{.EntityID}}{{end}}
+                {{if .Flag}} — flag: {{.Flag}}{{end}}
+            </div>
+            {{end}}
+        </div>
+        {{end}}
+    </div>
+
+    <div>
+        {{if .quest.Prereqs}}
+        <div class="card">
+            <h3>Prerequisites</h3>
+            {{if .quest.Prereqs.LevelMin}}
+            <div class="stat"><span>Min Level</span><span>{{.quest.Prereqs.LevelMin}}</span></div>
+            {{end}}
+            {{if .quest.Prereqs.LevelMax}}
+            <div class="stat"><span>Max Level</span><span>{{.quest.Prereqs.LevelMax}}</span></div>
+            {{end}}
+            {{if .quest.Prereqs.QuestsCompleted}}
+            <div style="margin-top:6px;">
+                <div style="color:#888;font-size:0.75rem;">QUESTS REQUIRED</div>
+                {{range .quest.Prereqs.QuestsCompleted}}
+                <div style="padding:2px 0;"><a href="/quest/{{.}}" style="color:var(--accent);text-decoration:none;">{{.}}</a></div>
+                {{end}}
+            </div>
+            {{end}}
+            {{if .quest.Prereqs.FactionRep}}
+            <div style="margin-top:6px;">
+                <div style="color:#888;font-size:0.75rem;">FACTION REP</div>
+                {{range $fac, $rep := .quest.Prereqs.FactionRep}}
+                <div style="padding:2px 0;font-size:0.9rem;">{{$fac}}: {{$rep}}</div>
+                {{end}}
+            </div>
+            {{end}}
+        </div>
+        {{end}}
+
+        {{if .quest.Rewards}}
+        <div class="card">
+            <h3>Rewards</h3>
+            {{if .quest.Rewards.Experience}}
+            <div class="stat"><span>Experience</span><span style="color:#4caf50;">{{.quest.Rewards.Experience}} XP</span></div>
+            {{end}}
+            {{if .quest.Rewards.Gold}}
+            <div class="stat"><span>Gold</span><span style="color:#ffd700;">{{.quest.Rewards.Gold}} gp</span></div>
+            {{end}}
+            {{if .quest.Rewards.Items}}
+            <div style="margin-top:6px;">
+                <div style="color:#888;font-size:0.75rem;">ITEMS</div>
+                {{range .quest.Rewards.Items}}
+                <div style="padding:2px 0;font-size:0.9rem;">{{.Template}} {{if gt .Count 1}}x{{.Count}}{{end}}</div>
+                {{end}}
+            </div>
+            {{end}}
+            {{if .quest.Rewards.FactionRep}}
+            <div style="margin-top:6px;">
+                <div style="color:#888;font-size:0.75rem;">FACTION REP</div>
+                {{range $fac, $rep := .quest.Rewards.FactionRep}}
+                <div style="padding:2px 0;font-size:0.9rem;">{{$fac}}: +{{$rep}}</div>
+                {{end}}
+            </div>
+            {{end}}
+            {{if .quest.Rewards.Unlocks}}
+            {{if .quest.Rewards.Unlocks.Quests}}
+            <div style="margin-top:6px;">
+                <div style="color:#888;font-size:0.75rem;">UNLOCKS QUESTS</div>
+                {{range .quest.Rewards.Unlocks.Quests}}
+                <div style="padding:2px 0;"><a href="/quest/{{.}}" style="color:var(--accent);text-decoration:none;">{{.}}</a></div>
+                {{end}}
+            </div>
+            {{end}}
+            {{if .quest.Rewards.Unlocks.Locations}}
+            <div style="margin-top:6px;">
+                <div style="color:#888;font-size:0.75rem;">UNLOCKS LOCATIONS</div>
+                {{range .quest.Rewards.Unlocks.Locations}}
+                <div style="padding:2px 0;"><a href="/location/{{.}}" style="color:var(--accent);text-decoration:none;">{{.}}</a></div>
+                {{end}}
+            </div>
+            {{end}}
+            {{end}}
+        </div>
+        {{end}}
+
+        <div class="card">
+            <h3>Pursuers ({{.pursuer_count}})</h3>
+            {{range .pursuers}}
+            <div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <a href="/entity/{{.EntityID}}" style="color:var(--accent);text-decoration:none;font-weight:bold;">{{.EntityName}}</a>
+                    <span style="padding:2px 6px;border-radius:3px;font-size:0.7rem;
+                        {{if eq .State "active"}}background:#204a20;color:#b3ffb3;
+                        {{else if eq .State "completed"}}background:#1a3a5c;color:#c8e6ff;
+                        {{else if eq .State "failed"}}background:#4a2020;color:#ffb3b3;
+                        {{else}}background:#222;color:#888;{{end}}">
+                        {{.State}}
+                    </span>
+                </div>
+                <div style="color:var(--text-dim);font-size:0.8rem;margin-top:2px;">
+                    {{.Species}} · Lvl {{.Level}} · Stage: {{.Stage}}
+                </div>
+                {{if .Activity}}
+                <div style="margin-top:6px;padding-left:8px;border-left:2px solid rgba(255,255,255,0.08);max-height:120px;overflow-y:auto;">
+                    {{range .Activity}}
+                    <div style="font-size:0.8rem;color:var(--text-dim);padding:1px 0;">
+                        <span style="color:#666;">t{{.Tick}}</span> {{.Message}}
+                    </div>
+                    {{end}}
+                </div>
+                {{end}}
+            </div>
+            {{else}}
+            <p style="color:var(--text-dim);font-size:0.9rem;">No entity is currently pursuing this quest.</p>
+            {{end}}
+        </div>
+    </div>
+</div>
+{{end}}

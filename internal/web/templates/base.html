@@ -102,6 +102,8 @@ nav { width: 200px; background: var(--surface); padding: 1rem; display: flex; fl
             {{block "content" .}}{{end}}
         {{else if eq .page "quests"}}
             {{block "quests" .}}{{end}}
+        {{else if eq .page "quest_detail"}}
+            {{block "quest_detail" .}}{{end}}
         {{else if eq .page "ai"}}
             {{block "ai" .}}{{end}}
         {{else if eq .page "events"}}

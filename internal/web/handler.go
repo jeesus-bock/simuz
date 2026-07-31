@@ -572,6 +572,124 @@ func (h *Handler) QuestsPage(c *gin.Context) {
 	}
 }
 
+func (h *Handler) QuestDetailPage(c *gin.Context) {
+	h.Sim.RLock()
+	defer h.Sim.RUnlock()
+	data, ok := h.questDetailData(c.Param("id"))
+	if !ok {
+		c.String(404, "Quest not found")
+		return
+	}
+	data["title"] = "Quest: " + data["quest_title"].(string)
+	data["page"] = "quest_detail"
+	data["phase"] = h.Sim.Time.Phase().String()
+	data["season"] = h.Sim.Time.Season().String()
+	data["entities"] = len(h.Sim.Entities.All())
+	data["locations"] = len(h.Sim.World.AllLocations())
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "base.html", data); err != nil {
+		_ = c.Error(err)
+	}
+}
+
+func (h *Handler) QuestDetailFragment(c *gin.Context) {
+	h.Sim.RLock()
+	defer h.Sim.RUnlock()
+	data, ok := h.questDetailData(c.Param("id"))
+	if !ok {
+		c.String(404, "Quest not found")
+		return
+	}
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "quest_detail_status", data); err != nil {
+		_ = c.Error(err)
+	}
+}
+
+type questPursuerView struct {
+	EntityID   string
+	EntityName string
+	Species    string
+	Level      int
+	State      string
+	Stage      string
+	Accepted   uint64
+	Activity   []quest.QuestActivity
+}
+
+func (h *Handler) questDetailData(questID string) (gin.H, bool) {
+	def := h.Sim.Quests.GetDef(questID)
+	if def == nil {
+		return nil, false
+	}
+
+	var pursuers []questPursuerView
+	for _, ent := range h.Sim.Entities.All() {
+		for _, state := range h.Sim.Quests.EntityStates(ent.ID) {
+			if state.QuestID != questID {
+				continue
+			}
+			pursuers = append(pursuers, questPursuerView{
+				EntityID:   ent.ID,
+				EntityName: ent.Name,
+				Species:    ent.Species,
+				Level:      ent.Level,
+				State:      string(state.State),
+				Stage:      state.CurrentStage,
+				Accepted:   state.AcceptedTick,
+				Activity:   h.Sim.Quests.RecentActivity(ent.ID, questID),
+			})
+		}
+	}
+	sort.SliceStable(pursuers, func(i, j int) bool {
+		if pursuers[i].State != pursuers[j].State {
+			oi := stateOrder(pursuers[i].State)
+			oj := stateOrder(pursuers[j].State)
+			if oi != oj {
+				return oi < oj
+			}
+		}
+		return pursuers[i].EntityName < pursuers[j].EntityName
+	})
+
+	sourceName := ""
+	sourceLocName := ""
+	if def.Source != nil {
+		sourceName = def.Source.NPCID
+		sourceLocName = def.Source.LocationID
+		if sourceLocName != "" {
+			if loc := h.Sim.World.Location(sourceLocName); loc != nil {
+				sourceLocName = loc.Name
+			}
+		}
+	}
+
+	return gin.H{
+		"tick":            h.Sim.Tick,
+		"time":            h.Sim.Time.String(),
+		"quest_id":        def.ID,
+		"quest_title":     def.Title,
+		"quest":           def,
+		"pursuers":        pursuers,
+		"pursuer_count":   len(pursuers),
+		"source_name":     sourceName,
+		"source_loc_name": sourceLocName,
+	}, true
+}
+
+func stateOrder(s string) int {
+	switch s {
+	case "active":
+		return 0
+	case "inactive":
+		return 1
+	case "completed":
+		return 2
+	case "failed":
+		return 3
+	default:
+		return 4
+	}
+}
+
 func (h *Handler) AIPage(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
