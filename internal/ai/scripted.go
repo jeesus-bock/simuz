@@ -147,6 +147,11 @@ var eventTypeNames = map[string]events.EventType{
 	"quest_complete":    events.EventTypeQuestComplete,
 	"xp_gained":         events.EventXPGained,
 	"starvation":        events.EventTypeStarvation,
+	"world":             events.EventWorld,
+	"ambient":           events.EventAmbient,
+	"mood":              events.EventMood,
+	"divine":            events.EventDivine,
+	"combat":            events.EventEntityKilled, // combat events map to killed for backwards compat
 }
 
 func decodeSimEvents(tbl *lua.LTable, defaultTick uint64) []*events.SimEvent {

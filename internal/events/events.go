@@ -28,6 +28,10 @@ const (
 	EventTypeQuestComplete
 	EventXPGained
 	EventTypeStarvation
+	EventWorld
+	EventAmbient
+	EventMood
+	EventDivine
 )
 
 type SimEvent struct {
