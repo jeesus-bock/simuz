@@ -1116,11 +1116,16 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.EntityManager, tm *worl
 		a := L.ToString(1)
 		b := L.ToString(2)
 		att := em.Get(a)
-
 		def := em.Get(b)
 
-		rel := att.Relation.Relation(def)
-		L.Push(lua.LBool(rel < 0))
+		// If both resolve as entities, use entity-level relation.
+		if att != nil && def != nil {
+			rel := att.Relation.Relation(def)
+			L.Push(lua.LBool(rel < 0))
+			return 1
+		}
+		// Otherwise treat as faction strings and use faction-level hostility.
+		L.Push(lua.LBool(IsHostile(a, b)))
 		return 1
 	}))
 
@@ -1511,6 +1516,36 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.EntityManager, tm *worl
 		result.RawSetString("done", lua.LTrue)
 		log.Printf("[lua] %s stole %s from %s", ent.Name, itemDefID, target.Name)
 		L.Push(result)
+		return 1
+	}))
+
+	worldTbl.RawSetString("loot_item", L.NewFunction(func(L *lua.LState) int {
+		targetID := L.ToString(1)
+		itemDefID := L.ToString(2)
+		target := em.Get(targetID)
+		if target == nil {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		idx, found := economy.HasItem(target, itemDefID)
+		if !found {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		inst := target.Inventory[idx]
+		if inst.Def == nil {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		if inst.Count > 1 {
+			target.Inventory[idx].Count--
+		} else {
+			target.Inventory = append(target.Inventory[:idx], target.Inventory[idx+1:]...)
+		}
+		newInst := items.NewItemInstance(itemDefID+"_"+ent.ID+"_"+strconv.Itoa(len(ent.Inventory)), itemDefID, inst.Def, 1)
+		ent.AddItem(newInst)
+		log.Printf("[lua] %s looted %s from %s", ent.Name, itemDefID, target.Name)
+		L.Push(lua.LTrue)
 		return 1
 	}))
 
