@@ -23,16 +23,24 @@ func NewWorldBuilder(seed string, rng *rand.Rand) *WorldBuilder {
 
 // BootstrapWorld allocates, links, and builds the entire world simulation.
 func (wb *WorldBuilder) BootstrapWorld(w *world.World, em *entity.EntityManager) (*Simulation, error) {
-	sim := NewSimulation(w, em)
-
 	// 0. Load all Lua AI scripts from disk
 	ai.InitScripts()
 
-	// 1. Initialize Deities into the divided Divine Real Estate
-	wb.initDeities(em)
+	// 1. Generate the world (locations, exits, weather) and mortal entities
+	g := gen.NewGenerator(wb.seed)
+	g.World = w
+	genWorld, genEntities := g.Generate()
 
-	// 2. Populate starting mortal demographics
-	wb.spawnInitialPopulations(em)
+	// 2. Add generated entities to the entity manager
+	for _, ent := range genEntities {
+		em.Add(ent)
+	}
+
+	// 3. Create the simulation with the populated world and entity manager
+	sim := NewSimulation(genWorld, em)
+
+	// 4. Initialize Deities into the divided Divine Real Estate
+	wb.initDeities(em)
 
 	return sim, nil
 }
@@ -73,8 +81,4 @@ func (wb *WorldBuilder) initDeities(em *entity.EntityManager) {
 		// NOTE: If em.Entities throws an error, comment that line out and replace it with your
 		// manager's actual addition method signature (e.g., em.Add(d) or em.Entities[d.ID] = d).
 	}
-}
-
-func (wb *WorldBuilder) spawnInitialPopulations(em *entity.EntityManager) {
-	// Use your separate generation loops to populate world cells directly into the manager
 }

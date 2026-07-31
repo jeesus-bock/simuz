@@ -76,7 +76,10 @@ func (g *Generator) generateSettlements() []*entity.Entity {
 		}
 
 		cultureKey := eligibleCultures[g.RNG.Intn(len(eligibleCultures))]
-		culture := cultureMatrix[cultureKey]
+		culture, ok := cultureMatrix[cultureKey]
+		if !ok {
+			culture = cultureMatrix["human"]
+		}
 
 		pfx := culture.namePrefixes[g.RNG.Intn(len(culture.namePrefixes))]
 		sfx := culture.nameSuffixes[g.RNG.Intn(len(culture.nameSuffixes))]
