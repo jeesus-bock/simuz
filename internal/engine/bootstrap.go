@@ -108,6 +108,7 @@ func (wb *WorldBuilder) initDeities(em *entity.EntityManager) {
 		d.Memory["divine_shape"] = def.Shape
 		d.Memory["pantheon"] = def.Pantheon
 		d.Memory["domain"] = def.Domain
+		d.Cause = def.Domain
 
 		// FIX 4: Dynamically append the deity directly to your entity manager's active slice tracking field.
 		// If your manager stores entities in a field called Entities or List, append it directly:

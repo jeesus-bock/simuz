@@ -36,6 +36,7 @@
                 <th>HP</th>
                 <th>Location</th>
                 <th>Faction</th>
+                <th>Cause</th>
                 <th>AI</th>
                 <th>Scripts</th>
             </tr>
@@ -65,11 +66,12 @@
                 </td>
                 <td>{{.LocationID}}</td>
                 <td>{{.Faction}}</td>
+                <td style="color:#ff9800;font-size:0.82em;">{{.Cause}}</td>
                 <td>{{.AI.Type}}</td>
                 <td>{{join .AI.ScriptIDs ", "}}</td>
             </tr>
             {{else}}
-            <tr><td colspan="10">No entities found.</td></tr>
+            <tr><td colspan="11">No entities found.</td></tr>
             {{end}}
         </tbody>
     </table>

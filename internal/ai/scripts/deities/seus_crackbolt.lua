@@ -55,14 +55,21 @@ function do_tick()
     local target_info = world.entity_info(target_id)
 
     -- Polymorph into her species to sire a mortal child
+    local did_polymorph = false
     if self.species ~= target_info.species then
         world.polymorph(self.id, target_info.species)
+        did_polymorph = true
         util.log(self.name .. " assumes the form of a " .. target_info.species)
     end
 
     -- Divine conception
     if world.impregnate(self.id, target_id) then
         util.log("[DIVINE] " .. self.name .. " has impregnated " .. target_info.name .. " (" .. target_info.species .. ")")
+        local cause = self.cause
+        if (not cause or cause == "") then cause = util.mem_get("domain") end
+        if cause and cause ~= "" then
+            world.set_cause(target_id, cause)
+        end
         table.insert(events, util.event("divine", {
             source = self.id,
             data = { mother = target_id, species = target_info.species, event = "divine_conception" }
@@ -72,7 +79,7 @@ function do_tick()
     end
 
     -- Revert polymorph and return to divine realm
-    if self.species ~= "divine" then
+    if did_polymorph then
         world.revert_polymorph(self.id)
     end
     world.move_to(self.home)

@@ -53,6 +53,9 @@
                     {{range $i, $d := .entity.Worship}}{{if $i}}, {{end}}<a href="/entity/{{$d}}" style="color:#b388ff;text-decoration:none;">{{$d}}</a>{{end}}
                 </td></tr>
                 {{end}}
+                {{if .entity.Cause}}
+                <tr><th>Cause</th><td style="color:#ff9800;">{{.entity.Cause}}</td></tr>
+                {{end}}
             </table>
         </div>
 

@@ -17,6 +17,7 @@ type deityDef struct {
 	RealmRoomID string
 	Needs       []string
 	Shape       string
+	WorshippedBy []string // species that worship this deity
 }
 
 var DeityDefs = []deityDef{
@@ -30,6 +31,7 @@ var DeityDefs = []deityDef{
 		Needs:       []string{"cheap_wine", "lard", "melted_copper"},
 		Shape:       "A mountain of a man bound to an unpolished iron chair, whose beard constantly drips grey kitchen ash. His eyes flicker like dying candle stubs.",
 		Attributes:  entity.Attributes{STR: 31, DEX: 22, CON: 38, INT: 24, WIS: 25, CHA: 35},
+		WorshippedBy: []string{"human", "hobbit", "orc", "goblin", "ogre", "lizardfolk", "hobgoblin", "gnoll"},
 	},
 	{
 		ID:          "low_key",
@@ -40,6 +42,7 @@ var DeityDefs = []deityDef{
 		Needs:       []string{"greased_strings", "rotten_eggs", "attention"},
 		Shape:       "A gaunt, twitchy trickster whose shape-shifting is broken. He occasionally gets stuck halfway between an elven merchant and a wet sewer fox.",
 		Attributes:  entity.Attributes{STR: 19, DEX: 35, CON: 22, INT: 35, WIS: 20, CHA: 35},
+		WorshippedBy: []string{"human", "hobbit"},
 	},
 	{
 		ID:          "amater_ashes",
@@ -50,6 +53,7 @@ var DeityDefs = []deityDef{
 		Needs:       []string{"tallow_candles", "blankets", "clear_night"},
 		Shape:       "A shivering goddess wrapped in coarse woolen quilts, clutching a rusted oil lantern that refuses to stay lit for more than ten ticks.",
 		Attributes:  entity.Attributes{STR: 22, DEX: 25, CON: 29, INT: 31, WIS: 36, CHA: 39},
+		WorshippedBy: []string{"elf"},
 	},
 
 	// Room 2: chancery_of_clouds — greek + chinese + norse
@@ -62,6 +66,7 @@ var DeityDefs = []deityDef{
 		Needs:       []string{"ink_vials", "herbal_tea", "wax_candles"},
 		Shape:       "A stern, unblinking woman carrying an excessively heavy stone tablet, constantly sighing and muttering corrections at mortal grammar errors.",
 		Attributes:  entity.Attributes{STR: 24, DEX: 27, CON: 25, INT: 39, WIS: 35, CHA: 28},
+		WorshippedBy: []string{"elf"},
 	},
 	{
 		ID:          "groan_yin",
@@ -72,6 +77,7 @@ var DeityDefs = []deityDef{
 		Needs:       []string{"bandages", "soothing_balm", "quiet_crying"},
 		Shape:       "A weeping entity sitting in a lotus position, who listens to mortal prayers only to sigh heavily and tell them their problems are their own fault.",
 		Attributes:  entity.Attributes{STR: 15, DEX: 19, CON: 27, INT: 35, WIS: 40, CHA: 39},
+		WorshippedBy: []string{"elf"},
 	},
 	{
 		ID:          "froyda_the_thistle",
@@ -82,6 +88,7 @@ var DeityDefs = []deityDef{
 		Needs:       []string{"violet_spores", "honey_pots", "gossip"},
 		Shape:       "A majestic figure whose porcelain skin cracks like dry clay upon close inspection, revealing writhing green stinging nettles beneath her silk dress.",
 		Attributes:  entity.Attributes{STR: 22, DEX: 27, CON: 25, INT: 27, WIS: 28, CHA: 39},
+		WorshippedBy: []string{"elf"},
 	},
 
 	// Room 3: drafty_longhouse — norse + greek + japanese
@@ -94,6 +101,7 @@ var DeityDefs = []deityDef{
 		Needs:       []string{"roasted_marrow", "ale_barrels", "anvil_to_smash"},
 		Shape:       "A massive brawler who cannot speak below a deafening shout. His legendary war-hammer has a loose head that flies off whenever he swings it.",
 		Attributes:  entity.Attributes{STR: 45, DEX: 25, CON: 40, INT: 12, WIS: 15, CHA: 22},
+		WorshippedBy: []string{"dwarf"},
 	},
 	{
 		ID:          "oriz_the_bloodshot",
@@ -104,6 +112,7 @@ var DeityDefs = []deityDef{
 		Needs:       []string{"raw_meat", "bandages", "loud_shouting"},
 		Shape:       "A hyperactive fighter whose rusty plate armor is missing several rivets. He swings an oversized iron sword but frequently trips over his own boots.",
 		Attributes:  entity.Attributes{STR: 39, DEX: 29, CON: 32, INT: 14, WIS: 10, CHA: 16},
+		WorshippedBy: []string{"human", "hobbit", "orc", "goblin", "ogre", "lizardfolk", "hobgoblin", "gnoll"},
 	},
 	{
 		ID:          "snoozanoo",
@@ -114,6 +123,7 @@ var DeityDefs = []deityDef{
 		Needs:       []string{"brackish_water", "dry_pillows", "salted_fish"},
 		Shape:       "A bloated, sleeping sea-spirit resting face down in a puddle of muddy drainage water, snoring with the sound of a small, distant thunderstorm.",
 		Attributes:  entity.Attributes{STR: 35, DEX: 27, CON: 32, INT: 19, WIS: 15, CHA: 25},
+		WorshippedBy: []string{"orc", "goblin", "ogre", "lizardfolk", "hobgoblin", "gnoll"},
 	},
 
 	// Room 4: moldering_root_vault — greek + dnd + japanese
@@ -126,6 +136,7 @@ var DeityDefs = []deityDef{
 		Needs:       []string{"zinc_coins", "rusty_nails", "cold_gruel"},
 		Shape:       "A hunched figure wrapped in canvas potato sacks, sitting on piles of worthless iron coins and sorting through dead people's loose shoes.",
 		Attributes:  entity.Attributes{STR: 27, DEX: 18, CON: 32, INT: 31, WIS: 35, CHA: 25},
+		WorshippedBy: []string{"dwarf"},
 	},
 	{
 		ID:          "tie_o_mat",
@@ -136,6 +147,7 @@ var DeityDefs = []deityDef{
 		Needs:       []string{"copper_scraps", "rotten_meat", "charcoal"},
 		Shape:       "A bloated, lizard-like entity with five small reptile heads that spend all their time biting each other over single scraps of copper wire.",
 		Attributes:  entity.Attributes{STR: 41, DEX: 22, CON: 41, INT: 26, WIS: 25, CHA: 31},
+		WorshippedBy: []string{"dwarf"},
 	},
 	{
 		ID:          "raijin_the_rattler",
@@ -146,6 +158,7 @@ var DeityDefs = []deityDef{
 		Needs:       []string{"raw_hide", "wooden_mallets", "earplugs"},
 		Shape:       "An old oni whose thunder-drums have loose, dry skins. Every time he hits them, they make a sad, hollow rattling sound instead of thunder.",
 		Attributes:  entity.Attributes{STR: 29, DEX: 25, CON: 27, INT: 15, WIS: 19, CHA: 22},
+		WorshippedBy: []string{"dwarf"},
 	},
 
 	// Room 5: the_cluttered_attic — norse + chinese + dnd
@@ -158,6 +171,7 @@ var DeityDefs = []deityDef{
 		Needs:       []string{"secret_journals", "old_cheese", "earplugs"},
 		Shape:       "A paranoid patriarch squinting through a cracked leather eye-patch. He has two mangy ravens that keep biting his ears instead of giving secrets.",
 		Attributes:  entity.Attributes{STR: 29, DEX: 22, CON: 32, INT: 39, WIS: 35, CHA: 28},
+		WorshippedBy: []string{"dwarf"},
 	},
 	{
 		ID:          "wukong_the_mangy",
@@ -168,6 +182,7 @@ var DeityDefs = []deityDef{
 		Needs:       []string{"stolen_peaches", "flea_combs", "stale_bread"},
 		Shape:       "An old baboon wearing an oversized bronze helmet that continuously slips down over his eyes, causing him to hit walls with his quarterstaff.",
 		Attributes:  entity.Attributes{STR: 35, DEX: 41, CON: 31, INT: 26, WIS: 16, CHA: 31},
+		WorshippedBy: []string{"orc", "goblin", "ogre", "lizardfolk", "hobgoblin", "gnoll"},
 	},
 	{
 		ID:          "vaicna_the_unwashed",
@@ -178,6 +193,7 @@ var DeityDefs = []deityDef{
 		Needs:       []string{"stale_bread", "secret_journals", "moldy_cheese"},
 		Shape:       "A gaunt, skeletal lich missing its left earlobe and hand, wearing a moth-eaten woolen sweater and hiding moldy scrolls inside its ribs.",
 		Attributes:  entity.Attributes{STR: 19, DEX: 18, CON: 25, INT: 41, WIS: 36, CHA: 26},
+		WorshippedBy: []string{"orc", "goblin", "ogre", "lizardfolk", "hobgoblin", "gnoll"},
 	},
 
 	// Room 6: the_sump_tank — greek + chinese + dnd
@@ -190,6 +206,7 @@ var DeityDefs = []deityDef{
 		Needs:       []string{"brackish_water", "dead_frogs", "salt_pork"},
 		Shape:       "A shivering, wet humanoid covered in pond scum and smelling of stagnant bogs, holding a bent iron fishing trident he uses as a walking cane.",
 		Attributes:  entity.Attributes{STR: 35, DEX: 20, CON: 35, INT: 21, WIS: 20, CHA: 24},
+		WorshippedBy: []string{"human", "hobbit"},
 	},
 	{
 		ID:          "ooh_huang",
@@ -200,6 +217,7 @@ var DeityDefs = []deityDef{
 		Needs:       []string{"stamped_deeds", "dried_ink", "absolute_silence"},
 		Shape:       "An ancient, unblinking celestial bureaucrat whose fingers are made entirely of brittle, yellowed audit parchment rolls.",
 		Attributes:  entity.Attributes{STR: 31, DEX: 22, CON: 36, INT: 41, WIS: 41, CHA: 36},
+		WorshippedBy: []string{"human", "hobbit"},
 	},
 	{
 		ID:          "baa_hamut",
@@ -210,6 +228,7 @@ var DeityDefs = []deityDef{
 		Needs:       []string{"polishing_wax", "parchment_deeds", "herbal_tea"},
 		Shape:       "A massive platinum-scaled creature whose eyesight is so poor he continuously knocks down ancient marble columns while looking for his glasses.",
 		Attributes:  entity.Attributes{STR: 38, DEX: 22, CON: 38, INT: 31, WIS: 34, CHA: 34},
+		WorshippedBy: []string{"elf"},
 	},
 }
 
@@ -227,82 +246,54 @@ func findRealmForDeity(deityID string) string {
 
 var deityIDs []string
 
-// Species-specific deity pools — mixed pantheons per species.
-// Each species draws from a curated, thematic selection across all pantheons.
-// Elves and dwarves share no deities. Humans and greenskins share 2.
-var (
-	elfDeityPool = []string{
-		"froyda_the_thistle",  // norse — nature, obsessive love
-		"amater_ashes",        // japanese — sun, light
-		"othena_the_pedantic", // greek — wisdom, law
-		"groan_yin",           // chinese — compassion, pity
-		"baa_hamut",           // dnd — justice, scales
-	}
-	dwarfDeityPool = []string{
-		"odd_in",              // norse — wisdom, secrets, scrolls
-		"thurn_the_thumper",   // norse — war, thunder, hammers
-		"haydes_the_hoarder",  // greek — underground, hoarding
-		"raijin_the_rattler",  // japanese — drums, craft noise
-		"tie_o_mat",           // dnd — dungeon, copper, beasts
-	}
-	greenskinDeityPool = []string{
-		"seus_crackbolt",      // greek — thunder, raw power (shared with humans)
-		"oriz_the_bloodshot",  // greek — brawls, brute force (shared with humans)
-		"wukong_the_mangy",    // chinese — mischief, confidence
-		"vaicna_the_unwashed", // dnd — secrets, decay
-		"snoozanoo",           // japanese — laziness, sea
-	}
-	humanDeityPool = []string{
-		"seus_crackbolt",  // greek — thunder, sky (shared with greenskins)
-		"oriz_the_bloodshot", // greek — war (shared with greenskins)
-		"ooh_huang",       // chinese — bureaucracy, order
-		"low_key",         // norse — trickery, trade
-		"posse_eidon",     // greek — sea, earth, wells
-	}
-)
+// speciesWorshipPool is built at init() from DeityDefs.WorshippedBy tags.
+// Maps species → list of deity IDs that species can worship.
+var speciesWorshipPool = map[string][]string{}
+
+// speciesWorshipRange defines min/max deity count per species at seeding time.
+var speciesWorshipRange = map[string][2]int{
+	"elf":      {1, 2},
+	"dwarf":    {1, 2},
+	"human":    {1, 3},
+	"hobbit":   {1, 3},
+	"orc":      {0, 2},
+	"goblin":   {0, 2},
+	"ogre":     {0, 2},
+	"lizardfolk": {0, 2},
+	"hobgoblin": {0, 2},
+	"gnoll":    {0, 2},
+}
 
 func init() {
 	for _, d := range DeityDefs {
 		deityIDs = append(deityIDs, d.ID)
+		for _, sp := range d.WorshippedBy {
+			speciesWorshipPool[sp] = append(speciesWorshipPool[sp], d.ID)
+		}
 	}
 }
 
-// AssignWorship sets the Worship field on an entity based on its species.
-// Each species draws from a curated, pantheon-mixed pool:
-//   - elves: froyda, amater_ashes, othena, groan_yin, baa_hamut
-//   - dwarves: odd_in, thurn, haydes, raijin, tie_o_mat
-//   - greenskins: seus, oriz, wukong, vaicna, snoozanoo
-//   - humans/hobbits: seus, oriz, ooh_huang, low_key, posse_eidon
-//   - humans and greenskins share seus_crackbolt and oriz_the_bloodshot
-//   - elves and dwarves share nothing
-//   - divine/deity: none
+// AssignWorship sets the Worship and Cause fields on an entity.
+// The pool is built from DeityDefs.WorshippedBy tags at init time,
+// so adding a new deity only requires tagging it in the definition.
 func AssignWorship(e *entity.Entity, rng interface{ Intn(int) int }) {
 	if e.Species == "divine" || e.Species == "deity" {
 		return
 	}
-	if len(deityIDs) == 0 {
-		return
+
+	pool := speciesWorshipPool[e.Species]
+	if len(pool) == 0 {
+		pool = deityIDs
 	}
 
-	var pool []string
-	var count int
-
-	switch e.Species {
-	case "elf":
-		pool = elfDeityPool
-		count = 1 + rng.Intn(2) // 1-2
-	case "dwarf":
-		pool = dwarfDeityPool
-		count = 1 + rng.Intn(2) // 1-2
-	case "orc", "goblin", "ogre", "lizardfolk", "hobgoblin", "gnoll":
-		pool = greenskinDeityPool
-		count = rng.Intn(3) // 0-2
-	case "human", "hobbit":
-		pool = humanDeityPool
-		count = 1 + rng.Intn(3) // 1-3
-	default:
-		pool = deityIDs
-		count = rng.Intn(2) // 0-1
+	rngRange := speciesWorshipRange[e.Species]
+	minCount, maxCount := rngRange[0], rngRange[1]
+	if maxCount == 0 {
+		minCount, maxCount = 0, 1
+	}
+	count := minCount
+	if maxCount > minCount {
+		count += rng.Intn(maxCount - minCount)
 	}
 
 	if count == 0 || len(pool) == 0 {
@@ -315,6 +306,15 @@ func AssignWorship(e *entity.Entity, rng interface{ Intn(int) int }) {
 		if !picked[d] {
 			picked[d] = true
 			e.Worship = append(e.Worship, d)
+		}
+	}
+
+	if len(e.Worship) > 0 && e.Cause == "" {
+		for _, dd := range DeityDefs {
+			if dd.ID == e.Worship[0] {
+				e.Cause = dd.Domain
+				break
+			}
 		}
 	}
 }
