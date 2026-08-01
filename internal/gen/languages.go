@@ -138,11 +138,14 @@ func NativeLanguages(speciesID string) []string {
 // AssignLanguages sets native language skills on an entity based on its species.
 // Civilized species get Common at proficiency 5+. Native tongues are set to 7-10.
 // Educated professions (scholar, diplomat, merchant, bard, wizard, priest) may
-// learn additional languages.
+// learn additional languages, scaled by the language's Complexity.
 func AssignLanguages(e *entity.Entity, rng interface{ Intn(int) int }) {
+	if e.LanguageSkills == nil {
+		e.LanguageSkills = make(map[string]int)
+	}
+
 	sp := e.Species
 	if sp == "divine" || sp == "deity" {
-		// Deities speak all languages fluently.
 		for _, ld := range LanguageDefs {
 			e.LanguageSkills[ld.ID] = 10
 		}
@@ -160,9 +163,6 @@ func AssignLanguages(e *entity.Entity, rng interface{ Intn(int) int }) {
 		"human": true, "hobbit": true, "elf": true, "dwarf": true,
 		"orc": true, "goblin": true, "ogre": true, "hobgoblin": true,
 		"gnoll": true, "lizardfolk": true, "kobold": true,
-		"half_orc": true, "half_elf": true, "half_dwarf": true,
-		"half_goblin": true, "half_hobgoblin": true, "half_gnoll": true,
-		"half_kobold": true, "half_fey": true,
 	}
 	if civilized[sp] {
 		if _, has := e.LanguageSkills["common"]; !has {
@@ -170,23 +170,32 @@ func AssignLanguages(e *entity.Entity, rng interface{ Intn(int) int }) {
 		}
 	}
 
-	// Educated professions learn extra languages.
+	// Educated professions learn extra languages contextualized by complexity.
 	educated := map[string]bool{
 		"scholar": true, "diplomat": true, "merchant": true,
 		"bard": true, "wizard": true, "priest": true,
 		"scribe": true, "ambassador": true,
 	}
 	if educated[e.Profession] {
-		candidates := []string{}
+		var candidates []LanguageDef
 		for _, ld := range LanguageDefs {
 			if _, has := e.LanguageSkills[ld.ID]; !has && ld.ID != "beast_speech" && ld.ID != "undercommon" {
-				candidates = append(candidates, ld.ID)
+				candidates = append(candidates, ld)
 			}
 		}
+
 		numExtra := 1 + rng.Intn(2) // 1-2
 		for i := 0; i < numExtra && len(candidates) > 0; i++ {
 			idx := rng.Intn(len(candidates))
-			e.LanguageSkills[candidates[idx]] = 2 + rng.Intn(4) // 2-5 (conversational)
+			chosenLang := candidates[idx]
+
+			// Higher complexity languages scale down the starting proficiency.
+			baseProficiency := 5 - (chosenLang.Complexity / 2)
+			if baseProficiency < 1 {
+				baseProficiency = 1
+			}
+			e.LanguageSkills[chosenLang.ID] = baseProficiency + rng.Intn(3) // +0-2 variability
+
 			candidates = append(candidates[:idx], candidates[idx+1:]...)
 		}
 	}
