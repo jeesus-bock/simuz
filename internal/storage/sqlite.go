@@ -130,6 +130,7 @@ func (s *SQLiteStore) migrate() error {
 		"ALTER TABLE locations ADD COLUMN controlling_faction TEXT DEFAULT ''",
 		"ALTER TABLE locations ADD COLUMN control_strength INTEGER DEFAULT 0",
 		"ALTER TABLE locations ADD COLUMN exits_json TEXT DEFAULT '[]'",
+		"ALTER TABLE entities ADD COLUMN language_skills_json TEXT DEFAULT '{}'",
 	}
 	for _, q := range alterQueries {
 		if _, err := s.db.Exec(q); err != nil {
@@ -194,15 +195,16 @@ func (s *SQLiteStore) Save(sim *engine.Simulation) error {
 		inventoryJSON, _ := json.Marshal(ent.Inventory)
 		equipmentJSON, _ := json.Marshal(ent.Equipment)
 		effectsJSON, _ := json.Marshal(ent.Effects)
+		langSkillsJSON, _ := json.Marshal(ent.LanguageSkills)
 
-		_, err = tx.Exec(`INSERT OR REPLACE INTO entities (id, name, species, level, age, max_age, last_meal, alive, attrs_json, skills_json, hp, max_hp, fp, max_fp, xp, location_id, pos_x, pos_y, ai_json, faction, flags_json, inventory_json, equipment_json, effects_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		_, err = tx.Exec(`INSERT OR REPLACE INTO entities (id, name, species, level, age, max_age, last_meal, alive, attrs_json, skills_json, hp, max_hp, fp, max_fp, xp, location_id, pos_x, pos_y, ai_json, faction, flags_json, inventory_json, equipment_json, effects_json, language_skills_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			ent.ID, ent.Name, ent.Species, ent.Level, ent.Age, ent.MaxAge, ent.LastMealTick, boolInt(ent.Alive),
 			string(attrsJSON), string(skillsJSON),
 			ent.HP, ent.MaxHP, ent.FP, ent.MaxFP, ent.XP,
 			nullString(ent.LocationID), ent.Position.X, ent.Position.Y,
 			string(aiJSON), ent.Faction,
 			string(flagsJSON), string(inventoryJSON), string(equipmentJSON),
-			string(effectsJSON))
+			string(effectsJSON), string(langSkillsJSON))
 		if err != nil {
 			return err
 		}
@@ -322,7 +324,7 @@ func (s *SQLiteStore) Load() (*engine.Simulation, error) {
 	sim.Tick = tick
 	sim.Time = gt
 
-	entRows, err := s.db.Query(`SELECT id, name, species, level, age, max_age, last_meal, alive, attrs_json, skills_json, hp, max_hp, fp, max_fp, xp, location_id, pos_x, pos_y, ai_json, faction, flags_json, inventory_json, equipment_json, effects_json FROM entities`)
+	entRows, err := s.db.Query(`SELECT id, name, species, level, age, max_age, last_meal, alive, attrs_json, skills_json, hp, max_hp, fp, max_fp, xp, location_id, pos_x, pos_y, ai_json, faction, flags_json, inventory_json, equipment_json, effects_json, COALESCE(language_skills_json,'{}') FROM entities`)
 	if err != nil {
 		return nil, fmt.Errorf("read entities: %w", err)
 	}
@@ -331,14 +333,14 @@ func (s *SQLiteStore) Load() (*engine.Simulation, error) {
 	for entRows.Next() {
 		var id, name, species string
 		var level, age, maxAge, lastMeal, alive, hp, maxHp, fp, maxFp, xp int
-		var attrsJSON, skillsJSON, aiJSON, faction, flagsJSON, inventoryJSON, equipmentJSON string
+		var attrsJSON, skillsJSON, aiJSON, faction, flagsJSON, inventoryJSON, equipmentJSON, langSkillsJSON string
 		var effectsJSON sql.NullString
 		var locID sql.NullString
 		var posX, posY float64
 
 		if err := entRows.Scan(&id, &name, &species, &level, &age, &maxAge, &lastMeal, &alive, &attrsJSON, &skillsJSON,
 			&hp, &maxHp, &fp, &maxFp, &xp, &locID, &posX, &posY,
-			&aiJSON, &faction, &flagsJSON, &inventoryJSON, &equipmentJSON, &effectsJSON); err != nil {
+			&aiJSON, &faction, &flagsJSON, &inventoryJSON, &equipmentJSON, &effectsJSON, &langSkillsJSON); err != nil {
 			return nil, fmt.Errorf("scan entity: %w", err)
 		}
 
@@ -400,6 +402,13 @@ func (s *SQLiteStore) Load() (*engine.Simulation, error) {
 			var effects []entity.ActiveEffect
 			if err := json.Unmarshal([]byte(effectsJSON.String), &effects); err == nil {
 				ent.Effects = effects
+			}
+		}
+
+		ent.LanguageSkills = make(map[string]int)
+		if langSkillsJSON != "{}" && langSkillsJSON != "" {
+			if err := json.Unmarshal([]byte(langSkillsJSON), &ent.LanguageSkills); err != nil {
+				return nil, fmt.Errorf("unmarshal language_skills for %s: %w", id, err)
 			}
 		}
 

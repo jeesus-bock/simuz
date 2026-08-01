@@ -44,7 +44,7 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 		}
 	}
 
-	// Always guarantee guard posts and a bard
+	// Always guarantee guard posts, a bard, and a diplomat
 	for i := 0; i < 2+g.RNG.Intn(3); i++ {
 		targetBuildings = append(targetBuildings, architecturalTask{
 			id: townID, profession: "guard", targetRoom: townID,
@@ -52,6 +52,9 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 	}
 	targetBuildings = append(targetBuildings, architecturalTask{
 		id: townID, profession: "bard", targetRoom: townID,
+	})
+	targetBuildings = append(targetBuildings, architecturalTask{
+		id: townID, profession: "diplomat", targetRoom: townID,
 	})
 
 	for _, b := range targetBuildings {
@@ -97,6 +100,7 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 		ent.Profession = b.profession
 
 		AssignWorship(ent, g.RNG)
+		AssignLanguages(ent, g.RNG)
 
 		// Inventory Assignment Engine
 		switch b.profession {
@@ -131,6 +135,12 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 			equipItem(ent, lookup("common_clothes"))
 			addItem(ent, lookup("beer"))
 			giveCurrency(ent, 5+g.RNG.Intn(10), 2+g.RNG.Intn(5), 0)
+
+		case "diplomat":
+			equipItem(ent, lookup("fine_clothes"))
+			addItem(ent, lookup("dagger"))
+			addItem(ent, lookup("herb_pouch"))
+			giveCurrency(ent, 10+g.RNG.Intn(20), 5+g.RNG.Intn(10), 1+g.RNG.Intn(3))
 
 		default:
 			equipItem(ent, lookup("common_clothes"))
@@ -186,10 +196,25 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 	// Ambient population builder loops
 	numCommoners := 10 + g.RNG.Intn(15)
 	for i := 0; i < numCommoners; i++ {
-		professions := []string{"farmer", "fisherman", "herbalist", "courier", "bar_patron", "thief", "ranger", "traveler"}
-		prof := professions[g.RNG.Intn(len(professions))]
 
 		workerSpecies := dominantCulture
+		var professions []string
+		if workerSpecies == "orc" {
+			professions = []string{
+				"flesh_carver",      // Brutal alternative to herbalist/doctor (harvests specimens)
+				"blood_trapper",     // Aggressive hunter tracking lethal territorial beasts
+				"raider_vanguard",   // Direct spearhead courier that loots settlements on route
+				"pit_brawler",       // Heavy replacement for bar_patron (constantly testing strength)
+				"bone_scraper",      // Scavenger variant of thief (strips armor and weapons from corpses)
+				"clan_drummer",      // Intimidating replacement for traveler/bard (sounds war cues)
+				"skull_cleaver",     // Elite combat guard enforcing tribal laws
+				"tribute_collector", // Aggressive merchant shaking down locals for resource taxes
+			}
+		} else {
+			// Fallback array for civilized human/hobbit profiles
+			professions = []string{"farmer", "fisherman", "herbalist", "courier", "bar_patron", "thief", "ranger", "traveler"}
+		}
+		prof := professions[g.RNG.Intn(len(professions))]
 		if g.RNG.Intn(100) < 15 {
 			allPossibleSpecies := []string{"human", "orc", "elf", "dwarf", "hobbit"}
 			workerSpecies = allPossibleSpecies[g.RNG.Intn(len(allPossibleSpecies))]
@@ -223,8 +248,55 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 		ent.Faction = "civilian"
 		ent.Profession = prof
 		AssignWorship(ent, g.RNG)
-		equipItem(ent, lookup("common_clothes"))
-		giveCurrency(ent, 1+g.RNG.Intn(5), 0, 0)
+		AssignLanguages(ent, g.RNG)
+
+		switch prof {
+		case "flesh_carver":
+			equipItem(ent, lookup("work_tunic"))
+			addItem(ent, lookup("dagger"))
+			addItem(ent, lookup("herb_pouch"))
+			giveCurrency(ent, 2+g.RNG.Intn(5), 0, 0)
+		case "blood_trapper":
+			equipItem(ent, lookup("leather_armor"))
+			equipItem(ent, lookup("iron_spear"))
+			addItem(ent, lookup("herb"))
+			giveCurrency(ent, 3+g.RNG.Intn(8), 0, 0)
+		case "raider_vanguard":
+			ent.AI.Brave = true
+			equipItem(ent, lookup("leather_armor"))
+			equipItem(ent, lookup("orc_cleaver"))
+			addItem(ent, lookup("grain"))
+			giveCurrency(ent, 5+g.RNG.Intn(10), 0, 0)
+		case "pit_brawler":
+			ent.AI.Brave = true
+			equipItem(ent, lookup("work_tunic"))
+			addItem(ent, lookup("herb_pouch"))
+			giveCurrency(ent, 1+g.RNG.Intn(3), 0, 0)
+		case "bone_scraper":
+			equipItem(ent, lookup("leather_armor"))
+			equipItem(ent, lookup("dagger"))
+			addItem(ent, lookup("sickle"))
+			giveCurrency(ent, 2+g.RNG.Intn(4), 0, 0)
+		case "clan_drummer":
+			equipItem(ent, lookup("common_clothes"))
+			addItem(ent, lookup("herb"))
+			giveCurrency(ent, 2+g.RNG.Intn(5), 0, 0)
+		case "skull_cleaver":
+			ent.AI.Brave = true
+			equipItem(ent, lookup("leather_armor"))
+			equipItem(ent, lookup("orc_cleaver"))
+			equipItem(ent, lookup("iron_shield"))
+			addItem(ent, lookup("herb_pouch"))
+			giveCurrency(ent, 3+g.RNG.Intn(7), 0, 0)
+		case "tribute_collector":
+			equipItem(ent, lookup("common_clothes"))
+			equipItem(ent, lookup("cudgel"))
+			addItem(ent, lookup("iron_ore"))
+			giveCurrency(ent, 8+g.RNG.Intn(15), 2+g.RNG.Intn(5), 0)
+		default:
+			equipItem(ent, lookup("common_clothes"))
+			giveCurrency(ent, 1+g.RNG.Intn(5), 0, 0)
+		}
 		entities = append(entities, ent)
 	}
 

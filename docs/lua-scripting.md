@@ -38,13 +38,16 @@ Key methods on self:
 - has_relationship(other_id) – checks whether a relationship exists.
 - set_faction(new_faction) – changes the entity's faction.
 - set_profession(new_profession) – changes the entity's profession.
+- get_languages() – returns a table of language ID → proficiency level.
+- speak_language(lang_id, min_level) – checks if the entity can speak a language (default min_level=1).
+- learn_language(lang_id, level) – sets the entity's proficiency in a language (0-10).
 
 ### world
 
 The world table provides access to the simulation world, locations, entities, weather, and combat functions. It includes functions such as:
 
 - nearby_entities() – returns a list of entity IDs in the same location.
-- entity_info(entity_id) – returns a table with basic info about an entity.
+- entity_info(entity_id) – returns a table with basic info about an entity, including a `languages` sub-table.
 - move_to(location_id) – attempts to move the entity to a new location.
 - exits_from(location_id) – returns a list of adjacent location IDs.
 - weather(location_id) – returns current weather data for a location.
@@ -69,6 +72,11 @@ The world table provides access to the simulation world, locations, entities, we
 - is_leashed(target_id) – checks whether an entity is being dragged.
 - start_rescue(target_id) – begins a rescue operation.
 - complete_rescue(target_id) – finishes a rescue.
+- say_to(speaker_id, listener_id, text, lang_id) – speak to another entity in a language (default "common"). Returns "ok", "speaker_cannot_speak", "listener_cannot_understand", or "target_not_found".
+- listen_to(listener_id, speaker_id) – returns the best shared language between two entities, or "" if none.
+- can_communicate(entity_a, entity_b, min_level) – checks if two entities share a language at the given proficiency.
+- best_shared_language(entity_a, entity_b) – returns the language ID with highest combined proficiency.
+- set_language(entity_id, lang_id, level) – sets an entity's proficiency in a language (0-10).
 
 ### util
 

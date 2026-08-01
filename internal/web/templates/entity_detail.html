@@ -53,6 +53,15 @@
                     {{range $i, $d := .entity.Worship}}{{if $i}}, {{end}}<a href="/entity/{{$d}}" style="color:#b388ff;text-decoration:none;">{{$d}}</a>{{end}}
                 </td></tr>
                 {{end}}
+                {{if .entity.LanguageSkills}}
+                <tr><th>Languages</th><td>
+                    {{range $lang, $level := .entity.LanguageSkills}}
+                        <span style="display:inline-block;padding:1px 6px;border-radius:3px;background:#1a2a3a;color:#8cf;font-size:0.82em;margin:1px;">
+                            {{$lang}} <span style="color:#aaa;">({{$level}})</span>
+                        </span>
+                    {{end}}
+                </td></tr>
+                {{end}}
             </table>
         </div>
 

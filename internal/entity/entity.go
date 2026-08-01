@@ -96,6 +96,7 @@ type Entity struct {
 	Immortal             bool                          `json:"immortal"`
 	Attributes           Attributes                    `json:"attributes"`
 	Skills               map[string]int                `json:"skills"`
+	LanguageSkills       map[string]int                `json:"language_skills,omitempty"` // lang ID → proficiency (0-10)
 	MaxHP                int                           `json:"max_hp"`
 	HP                   int                           `json:"hp"`
 	MaxFP                int                           `json:"max_fp"`
@@ -153,7 +154,8 @@ func NewEntity(id, name, speciesID string, attrs Attributes, level int, rel rela
 		Alive:         true,
 		Conscious:     true,
 		Attributes:    attrs,
-		Skills:        make(map[string]int),
+		Skills:          make(map[string]int),
+		LanguageSkills:  make(map[string]int),
 		MaxHP:         maxHP,
 		HP:            maxHP,
 		MaxFP:         maxFP,
@@ -457,4 +459,56 @@ func (e *Entity) GetPartner() (EntityRelationship, bool) {
 		}
 	}
 	return EntityRelationship{}, false
+}
+
+// CanSpeak returns true if the entity has proficiency >= minLevel in the given language.
+func (e *Entity) CanSpeak(langID string, minLevel int) bool {
+	if e.LanguageSkills == nil {
+		return false
+	}
+	return e.LanguageSkills[langID] >= minLevel
+}
+
+// SpokenLanguages returns a list of language IDs the entity can speak (proficiency >= 1).
+func (e *Entity) SpokenLanguages() []string {
+	var langs []string
+	for id, level := range e.LanguageSkills {
+		if level >= 1 {
+			langs = append(langs, id)
+		}
+	}
+	return langs
+}
+
+// CanCommunicateWith checks whether two entities share at least one language
+// at the given minimum proficiency level.
+func (e *Entity) CanCommunicateWith(other *Entity, minLevel int) bool {
+	for langID, level := range e.LanguageSkills {
+		if level >= minLevel && other.LanguageSkills[langID] >= minLevel {
+			return true
+		}
+	}
+	return false
+}
+
+// BestSharedLanguage returns the language ID with the highest combined proficiency
+// between two entities, or "" if none.
+func (e *Entity) BestSharedLanguage(other *Entity) string {
+	bestLang := ""
+	bestScore := 0
+	for langID, myLevel := range e.LanguageSkills {
+		if myLevel < 1 {
+			continue
+		}
+		otherLevel := other.LanguageSkills[langID]
+		if otherLevel < 1 {
+			continue
+		}
+		score := myLevel + otherLevel
+		if score > bestScore {
+			bestScore = score
+			bestLang = langID
+		}
+	}
+	return bestLang
 }
