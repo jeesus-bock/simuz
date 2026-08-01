@@ -2,12 +2,33 @@ package gen
 
 import (
 	"fmt"
+	"math/rand"
 	"simuz/internal/entity"
 	"simuz/internal/relation"
 	"simuz/internal/species"
 	"simuz/internal/world"
 	"strings"
 )
+
+// variedAttrs creates species-appropriate attributes with random variation.
+// Each stat is the species base ± 0-3, clamped to 3-20.
+func variedAttrs(sp species.Species, rng *rand.Rand) entity.Attributes {
+	vary := func(base int) int {
+		v := base + rng.Intn(4) - rng.Intn(2)
+		if v < 3 {
+			v = 3
+		}
+		if v > 20 {
+			v = 20
+		}
+		return v
+	}
+	b := sp.BaseAttrs
+	return entity.Attributes{
+		STR: vary(b.STR), DEX: vary(b.DEX), CON: vary(b.CON),
+		INT: vary(b.INT), WIS: vary(b.WIS), CHA: vary(b.CHA),
+	}
+}
 
 // generateNPCs procedurally generates a living population customized to the town's culture and structural layout nodes.
 func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entity.Entity {
@@ -79,7 +100,7 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 		npcID := fmt.Sprintf("%s_%s_%d", b.id, b.profession, g.RNG.Intn(1000))
 
 		// FIX: Safe instantiation syntax
-		ent := entity.NewEntity(npcID, npcName, workerSpecies, entity.Attributes{STR: 10, DEX: 10}, 1, relation.CivilianRelation)
+		ent := entity.NewEntity(npcID, npcName, workerSpecies, variedAttrs(specDef, g.RNG), 1, relation.CivilianRelation)
 		ent.LocationID = b.targetRoom
 		ent.Gender = gender
 
@@ -174,9 +195,15 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 
 			case "orc":
 				ent.AI.Brave = true
-				equipItem(ent, lookup("spiked_leather_harness"))
-				equipItem(ent, lookup("orc_cleaver"))
-				equipItem(ent, lookup("barbed_javelin"))
+				if ent.Attributes.STR >= 16 {
+					equipItem(ent, lookup("plate_mail"))
+					equipItem(ent, lookup("plate_helmet"))
+					equipItem(ent, lookup("great_axe"))
+				} else {
+					equipItem(ent, lookup("spiked_leather_harness"))
+					equipItem(ent, lookup("orc_cleaver"))
+					equipItem(ent, lookup("barbed_javelin"))
+				}
 				addItem(ent, lookup("smoked_meat"))
 				addItem(ent, lookup("crude_bandage"))
 
@@ -197,10 +224,17 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 				addItem(ent, lookup("pocket_watch"))
 
 			default: // human combat
-				equipItem(ent, lookup("chainmail"))
-				equipItem(ent, lookup("iron_helmet"))
-				equipItem(ent, lookup("iron_sword"))
-				equipItem(ent, lookup("wooden_shield"))
+				if ent.Attributes.STR >= 16 {
+					equipItem(ent, lookup("plate_mail"))
+					equipItem(ent, lookup("plate_helmet"))
+					equipItem(ent, lookup("plate_boots"))
+					equipItem(ent, lookup("longsword"))
+				} else {
+					equipItem(ent, lookup("chainmail"))
+					equipItem(ent, lookup("iron_helmet"))
+					equipItem(ent, lookup("iron_sword"))
+					equipItem(ent, lookup("wooden_shield"))
+				}
 				addItem(ent, lookup("iron_rations"))
 				addItem(ent, lookup("torch"))
 			}
@@ -245,7 +279,7 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 		npcName := specDef.GetRandomName(gender, g.RNG)
 		npcID := fmt.Sprintf("%s_%s_%d", townID, prof, i)
 
-		ent := entity.NewEntity(npcID, npcName, workerSpecies, entity.Attributes{STR: 10, DEX: 10}, 1, relation.CivilianRelation)
+		ent := entity.NewEntity(npcID, npcName, workerSpecies, variedAttrs(specDef, g.RNG), 1, relation.CivilianRelation)
 		ent.LocationID = townID
 		ent.Gender = gender
 		ent.BioProfile = &specDef
