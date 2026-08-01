@@ -22,8 +22,10 @@ local function try_divine_conception(events)
     if #females == 0 then world.move_to(self.home) return end
     local target_id = females[util.rand_int(#females) + 1]
     local target_info = world.entity_info(target_id)
+    local did_polymorph = false
     if self.species ~= target_info.species then
         world.polymorph(self.id, target_info.species)
+        did_polymorph = true
     end
     if world.impregnate(self.id, target_id) then
         util.log("[DIVINE] " .. self.name .. " has impregnated " .. target_info.name .. " (" .. target_info.species .. ")")
@@ -32,7 +34,7 @@ local function try_divine_conception(events)
             data = { mother = target_id, species = target_info.species, event = "divine_conception" }
         }))
     end
-    if self.species ~= "divine" then
+    if did_polymorph then
         world.revert_polymorph(self.id)
     end
     world.move_to(self.home)

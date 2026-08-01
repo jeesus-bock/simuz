@@ -55,8 +55,10 @@ function do_tick()
     local target_info = world.entity_info(target_id)
 
     -- Polymorph into her species to sire a mortal child
+    local did_polymorph = false
     if self.species ~= target_info.species then
         world.polymorph(self.id, target_info.species)
+        did_polymorph = true
         util.log(self.name .. " assumes the form of a " .. target_info.species)
     end
 
@@ -72,7 +74,7 @@ function do_tick()
     end
 
     -- Revert polymorph and return to divine realm
-    if self.species ~= "divine" then
+    if did_polymorph then
         world.revert_polymorph(self.id)
     end
     world.move_to(self.home)
