@@ -1,6 +1,35 @@
 -- diplomat.lua
--- Machiavellian Statecraft Script: Realpolitik negotiation, 
+-- Machiavellian Statecraft Script: Realpolitik negotiation,
 -- calculated alliance shifts, and strategic destabilization.
+-- Diplomats carry diplomatic immunity and seek out politicians.
+
+local function find_politicians()
+    local nearby = world.nearby_entities()
+    if not nearby then return {} end
+    local politicians = {}
+    for _, eid in ipairs(nearby) do
+        if eid ~= self.id then
+            local info = world.entity_info(eid)
+            if info and info.alive and info.profession == "politician" then
+                table.insert(politicians, info)
+            end
+        end
+    end
+    return politicians
+end
+
+local function negotiate_with_politician(pol)
+    if world.can_communicate(pol.id) then
+        world.say_to(pol.id, "I bring propositions from distant lands. Shall we discuss terms?")
+        util.log(self.name .. " engages politician " .. pol.name .. " in formal diplomacy.")
+        util.set_mood("diplomatic", 25)
+        return true
+    else
+        util.log(self.name .. " presents written credentials to " .. pol.name .. ".")
+        util.set_mood("formal", 15)
+        return true
+    end
+end
 
 local function practice_statecraft()
     local nearby = world.nearby_entities()
@@ -26,13 +55,16 @@ local function practice_statecraft()
         if eid ~= self.id then
             local info = world.entity_info(eid)
             if info and info.alive then
-                if info.hp > max_hp then
-                    max_hp = info.hp
-                    strongest_entity = info
-                end
-                if info.hp < min_hp then
-                    min_hp = info.hp
-                    weakest_entity = info
+                -- Skip diplomats and politicians for power assessment
+                if info.profession ~= "diplomat" and info.profession ~= "politician" then
+                    if info.hp > max_hp then
+                        max_hp = info.hp
+                        strongest_entity = info
+                    end
+                    if info.hp < min_hp then
+                        min_hp = info.hp
+                        weakest_entity = info
+                    end
                 end
             end
         end
@@ -44,6 +76,9 @@ end
 local function negotiate(strongest, weakest)
     if strongest and strongest.id ~= self.id then
         -- Flattery: Defer to the strongest entity present
+        if world.can_communicate(strongest.id) then
+            world.say_to(strongest.id, "Your strength precedes you. Perhaps we might find mutual benefit.")
+        end
         util.log(self.name .. " addresses " .. strongest.name .. " with calculated deference.")
         util.set_mood("diplomatic", 20)
         return true
@@ -51,6 +86,9 @@ local function negotiate(strongest, weakest)
 
     if weakest and weakest.id ~= self.id and weakest.faction ~= self.faction then
         -- Destabilization: Seed distrust in the weakest non-aligned entity
+        if world.can_communicate(weakest.id) then
+            world.say_to(weakest.id, "I hear troubling whispers about your rivals...")
+        end
         util.log(self.name .. " whispers veiled threats to " .. weakest.name .. ".")
         util.set_mood("scheming", 20)
         return true
@@ -63,9 +101,18 @@ function do_tick()
     local acted = false
 
     if world.tick % 20 == 0 then
-        local strongest, weakest = practice_statecraft()
-        if strongest and type(strongest) == "table" then
-            acted = negotiate(strongest, weakest)
+        -- Priority 1: Seek out politicians for formal diplomacy
+        local politicians = find_politicians()
+        if #politicians > 0 then
+            acted = negotiate_with_politician(politicians[1])
+        end
+
+        -- Priority 2: General statecraft with non-politician entities
+        if not acted then
+            local strongest, weakest = practice_statecraft()
+            if strongest and type(strongest) == "table" then
+                acted = negotiate(strongest, weakest)
+            end
         end
 
         if not acted then
