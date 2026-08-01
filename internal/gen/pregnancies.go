@@ -26,6 +26,12 @@ func GenerateRelationships(entities []*entity.Entity, count int, tick uint64) {
 	for i := 0; i < len(entities)-1 && created < count; i += 2 {
 		e := entities[i]
 		other := entities[i+1]
+		if e.Relationships == nil {
+			e.Relationships = make(map[string]entity.EntityRelationship)
+		}
+		if other.Relationships == nil {
+			other.Relationships = make(map[string]entity.EntityRelationship)
+		}
 		e.Relationships[other.ID] = entity.EntityRelationship{
 			OtherID:   other.ID,
 			Type:      entity.RelationshipType("spouse"),
