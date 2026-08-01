@@ -17,13 +17,13 @@ import (
 type Species struct {
 	ID                  string     `json:"id"`
 	Name                string     `json:"name"`
-	MaxAge              int        `json:"max_age"`     // game-days: natural lifespan
-	AdultAge            int        `json:"adult_age"`   // game-days: age at which entity can reproduce
+	MaxAge              int        `json:"max_age"`     // years: natural lifespan
+	AdultAge            int        `json:"adult_age"`   // years: age at which entity can reproduce
 	CanLevelUp          bool       `json:"can_level_up"`
 	CanReproduce        bool       `json:"can_reproduce"`
 	IsCaveman           bool       `json:"is_caveman"`
 	IsImmortal          bool       `json:"is_immortal"`
-	GestationTicks      int        `json:"gestation_ticks"` // simulation ticks: pregnancy duration
+	GestationTicks      int        `json:"gestation_ticks"` // simulation ticks: pregnancy duration (1 tick = 1 sec at speed 1)
 	DefaultScripts      []string   `json:"default_scripts,omitempty"`
 	DefaultSleepCycle   string     `json:"default_sleep_cycle"` // "diurnal", "nocturnal", "none"
 	AutoFeed            bool       `json:"auto_feed"`

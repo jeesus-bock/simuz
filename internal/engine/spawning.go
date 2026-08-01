@@ -584,25 +584,12 @@ func clampAttr(v int) int {
 	return v
 }
 
-// SpeciesGestationTicks maps species to their gestation period in ticks.
-var SpeciesGestationTicks = map[string]int{
-	"human":  280,
-	"orc":    200,
-	"elf":    300,
-	"goblin": 100,
-	"kobold": 80,
-	"wolf":   60,
-	"bear":   90,
-	"boar":   70,
-	"rat":    30,
-	"spider": 40,
-}
-
 // GestationTicksForSpecies returns the gestation period for a species in ticks.
-// Falls back to 200 ticks if the species has no entry in the map.
-func GestationTicksForSpecies(species string) int {
-	if ticks, ok := SpeciesGestationTicks[species]; ok {
-		return ticks
+// Reads from the species registry (Species.GestationTicks). Falls back to 200
+// ticks if the species has no entry.
+func GestationTicksForSpecies(sp string) int {
+	if s, ok := species.GetByID(sp); ok && s.GestationTicks > 0 {
+		return s.GestationTicks
 	}
 	return 200
 }
