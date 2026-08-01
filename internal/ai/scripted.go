@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"simuz/internal/combat"
+	"simuz/internal/dialog"
 	"simuz/internal/economy"
 	"simuz/internal/entity"
 	"simuz/internal/events"
@@ -1324,6 +1325,31 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.EntityManager, tm *worl
 
 		log.Printf("[speech] %s says to %s in %s: %q", speaker.Name, listener.Name, langID, text)
 		L.Push(lua.LString("ok"))
+		return 1
+	}))
+
+	worldTbl.RawSetString("dialog", L.NewFunction(func(L *lua.LState) int {
+		speakerID := L.ToString(1)
+		listenerID := L.ToString(2)
+		dialogType := L.ToString(3)
+
+		speaker := em.Get(speakerID)
+		listener := em.Get(listenerID)
+		if speaker == nil || listener == nil {
+			L.Push(lua.LString("target_not_found"))
+			return 1
+		}
+
+		dType := dialog.DialogueType(dialogType)
+		d, err := dialog.NewDialogue(speaker, listener, rng, dType)
+		if err != nil {
+			L.Push(lua.LString("no_common_language"))
+			return 1
+		}
+
+		text := d.GenerateText()
+		log.Printf("[dialog] %s -> %s (%s): %q", speaker.Name, listener.Name, dialogType, text)
+		L.Push(lua.LString(text))
 		return 1
 	}))
 

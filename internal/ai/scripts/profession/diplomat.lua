@@ -20,7 +20,7 @@ end
 
 local function negotiate_with_politician(pol)
     if world.can_communicate(pol.id) then
-        world.say_to(pol.id, "I bring propositions from distant lands. Shall we discuss terms?")
+        world.dialog(self.id, pol.id, "negotiation")
         util.log(self.name .. " engages politician " .. pol.name .. " in formal diplomacy.")
         util.set_mood("diplomatic", 25)
         return true
