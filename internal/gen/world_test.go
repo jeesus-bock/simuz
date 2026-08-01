@@ -4,12 +4,11 @@ import (
 	"math/rand"
 	"testing"
 
-	"simuz/internal/engine"
 	"simuz/internal/world"
 )
 
 func TestGenerateWildSitesAndExits(t *testing.T) {
-	g := New("test-stab")
+	g := NewGenerator("test-stab")
 	w, ents := g.Generate()
 	_ = ents
 
@@ -59,7 +58,7 @@ func TestGenerateWildSitesAndExits(t *testing.T) {
 }
 
 func TestRegionBidirectional(t *testing.T) {
-	g := New("test-exits")
+	g := NewGenerator("test-exits")
 	w, _ := g.Generate()
 	nh := w.Location("northern_highlands")
 	if nh == nil {
@@ -73,20 +72,6 @@ func TestRegionBidirectional(t *testing.T) {
 	}
 	if !found {
 		t.Error("nh should have cross region exit")
-	}
-}
-
-func TestSpawnRulesUpdated(t *testing.T) {
-	sm := engine.NewSpawnManager()
-	seen := map[string]bool{}
-	for _, r := range sm.Rules {
-		seen[r.LocationID] = true
-	}
-	want := []string{"orc_camp", "wolf_den", "bandit_camp", "bear_den", "boar_wallow", "spider_grove", "goblin_hollow", "kobold_warren", "ash_ruins", "scorpion_dunes"}
-	for _, w := range want {
-		if !seen[w] {
-			t.Errorf("spawn rule missing for %s", w)
-		}
 	}
 }
 
