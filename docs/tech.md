@@ -856,7 +856,7 @@ Accept: text/event-stream
 | `combat_update` | `{combat_id, round, log_entry}` | On combat actions |
 | `quest_update` | `{entity_id, quest_id, stage, objective_progress}` | On quest state change |
 
-**Event Stream Format:**
+**SSE Event Stream Format:**
 
 ```
 event: clock
@@ -888,22 +888,6 @@ All error responses use the standard envelope with `ok: false`:
 | 409 | Conflict — action cannot be performed (e.g., quest already accepted) |
 | 422 | Unprocessable entity — prerequisites not met |
 | 500 | Internal server error |
-
-## Web UI Routes
-
-Mounted at `/` (separate from `/api/v1`):
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/` | Dashboard |
-| GET | `/locations` | World / location browser |
-| GET | `/locations/:id` | Location detail page |
-| GET | `/entities` | Entity list with filters |
-| GET | `/entities/:id` | Entity detail page |
-| GET | `/combat` | Combat instances view |
-| GET | `/quests` | Quest journal |
-| GET | `/ai` | AI debug console |
-| GET | `/api/v1/ui/events` | SSE endpoint for real-time updates |
 
 ## Concurrency
 
