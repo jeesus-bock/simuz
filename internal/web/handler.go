@@ -70,6 +70,19 @@ func (h *Handler) SetSpeedPost(c *gin.Context) {
 	h.Sim.Lock()
 	h.Sim.Time.SetSpeed(speed)
 	h.Sim.Unlock()
+
+	// HTMX requests get a fragment update instead of a redirect,
+	// so the page does not reload and the select dropdown stays open.
+	if c.GetHeader("HX-Request") == "true" {
+		if err := h.Tmpls.ExecuteTemplate(c.Writer, "speed_control", gin.H{
+			"speed":         speed,
+			"ticks_per_day": h.Sim.Time.TicksPerGameDayFor(),
+		}); err != nil {
+			_ = c.Error(err)
+		}
+		return
+	}
+
 	c.Redirect(http.StatusSeeOther, "/")
 }
 
