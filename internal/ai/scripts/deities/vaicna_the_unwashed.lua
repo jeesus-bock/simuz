@@ -22,6 +22,7 @@ local function try_divine_conception(events)
     if #females == 0 then world.move_to(self.home) return end
     local target_id = females[util.rand_int(#females) + 1]
     local target_info = world.entity_info(target_id)
+    if not target_info then world.move_to(self.home) return end
     local did_polymorph = false
     if self.species ~= target_info.species then
         world.polymorph(self.id, target_info.species)
