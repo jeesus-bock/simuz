@@ -40,8 +40,8 @@ func main() {
 	log.Println("Bootstrapping Complete. Engine running smoothly.")
 
 	// 5. Generate test data for pregnancies and relationships
-	gen.GeneratePregnancies(sim, 5)
-	gen.GenerateRelationships(sim, 3)
+	gen.GeneratePregnancies(em.All(), 5, sim.Tick)
+	gen.GenerateRelationships(em.All(), 3, sim.Tick)
 
 	// 6. Start the tick loop in a goroutine
 	go sim.Start()
