@@ -141,6 +141,12 @@ func NewSpawnManager() *SpawnManager {
 		factionID := defaultFactionForSpecies(sp.ID)
 		profession := defaultProfessionForSpecies(sp.ID)
 
+		// Use MaxAge as a proxy for max level when MaxLevel is not available on the Species struct.
+		maxLvl := sp.MaxAge
+		if maxLvl <= 0 {
+			maxLvl = 10
+		}
+
 		rule := SpawnRule{
 			ID:           "default_" + sp.ID,
 			LocationID:   locID,
@@ -151,7 +157,7 @@ func NewSpawnManager() *SpawnManager {
 			DesiredCount: 2,
 			Interval:     0, // spawn once at init
 			MinLevel:     1,
-			MaxLevel:     sp.MaxLevel,
+			MaxLevel:     maxLvl,
 		}
 		sm.Rules = append(sm.Rules, rule)
 		covered[sp.ID] = true
@@ -295,8 +301,6 @@ func defaultFactionForSpecies(speciesID string) string {
 		return "undead"
 	case "dragon":
 		return "dragon"
-	case "wyvern":
-		return "dragon"
 	case "golem", "construct":
 		return "construct"
 	case "deity":
@@ -311,7 +315,7 @@ func defaultProfessionForSpecies(speciesID string) string {
 	switch speciesID {
 	case "orc", "half_orc", "half_hobgoblin", "half_gnoll", "bugbear", "ogre", "troll", "giant", "minotaur", "centaur", "lizardfolk", "werewolf", "werebear", "goliath":
 		return "warrior"
-	case "wolf", "bear", "boar", "rat", "spider", "wyvern", "basilisk", "harpy", "slime", "mimic", "golem", "construct":
+	case "wolf", "bear", "boar", "rat", "spider", "basilisk", "harpy", "slime", "mimic", "golem", "construct":
 		return ""
 	case "goblin":
 		return "gatherer"
@@ -326,8 +330,6 @@ func defaultProfessionForSpecies(speciesID string) string {
 	case "vampire":
 		return "politician"
 	case "dragon":
-		return ""
-	case "wyvern":
 		return ""
 	case "deity":
 		return "priest"
@@ -559,7 +561,7 @@ func equipSpawn(ent *entity.Entity, rule *SpawnRule, rng *rand.Rand) {
 		equipSpawnItem(ent, "tusks")
 	case "spider", "rat", "slime":
 		equipSpawnItem(ent, "fangs")
-	case "dragon", "wyvern":
+	case "dragon":
 		equipSpawnItem(ent, "dragon_breath")
 	case "ogre":
 		equipSpawnItem(ent, "great_club")
@@ -685,8 +687,6 @@ func baseSpeciesAttrs(species string, rng *rand.Rand) entity.Attributes {
 		return entity.Attributes{STR: 18 + rng.Intn(4), DEX: 12 + rng.Intn(3), CON: 16 + rng.Intn(4), INT: 14 + rng.Intn(4), WIS: 16 + rng.Intn(4), CHA: 16 + rng.Intn(4)}
 	case "lizardfolk":
 		return entity.Attributes{STR: 13 + rng.Intn(3), DEX: 11 + rng.Intn(3), CON: 12 + rng.Intn(3), INT: 8 + rng.Intn(3), WIS: 9 + rng.Intn(3), CHA: 7 + rng.Intn(3)}
-	case "wyvern":
-		return entity.Attributes{STR: 14 + rng.Intn(3), DEX: 15 + rng.Intn(3), CON: 12 + rng.Intn(3), INT: 6 + rng.Intn(2), WIS: 8 + rng.Intn(3), CHA: 8 + rng.Intn(3)}
 	case "basilisk":
 		return entity.Attributes{STR: 12 + rng.Intn(3), DEX: 10 + rng.Intn(3), CON: 12 + rng.Intn(3), INT: 8 + rng.Intn(3), WIS: 10 + rng.Intn(3), CHA: 6 + rng.Intn(3)}
 	// Small races
@@ -765,7 +765,6 @@ func generateName(species string, rng *rand.Rand) string {
 	// Dragons & reptiles
 	dragonNames := []string{"Smaug", "Vermithrax", "Draco", "Pyroth", "Frostclaw", "Stormwing", "Ember", "Shadowscale"}
 	lizardfolkNames := []string{"Scales", "Thornscale", "Riptide", "Swampscale", "Coldscale", "Duskscale", "Brightscale", "Fangjaw"}
-	wyvernNames := []string{"Skydrake", "Stormwing", "Frostclaw", "Emberwing", "Shadowwing", "Thornwing", "Razorclaw", "Venomwing"}
 	basiliskNames := []string{"Stonegaze", "Petra", "Gorgon", "Serpentis", "Duskfang", "Coil", "Slither", "Basil"}
 	// Small races
 	gnomeNames := []string{"Tinker", "Gizmo", "Blix", "Zep", "Flick", "Dust", "Pip", "Nix"}
@@ -805,8 +804,7 @@ func generateName(species string, rng *rand.Rand) string {
 		"fairy": fairyNames, "dryad": dryadNames, "satyr": satyrNames,
 		"pixie": pixieNames, "treant": treantNames,
 		// Dragons & reptiles
-		"dragon": dragonNames, "lizardfolk": lizardfolkNames, "wyvern": wyvernNames,
-		"basilisk": basiliskNames,
+		"dragon": dragonNames, "lizardfolk": lizardfolkNames, "basilisk": basiliskNames,
 		// Small races
 		"gnome": gnomeNames, "halfling": halflingNames, "tiefling": tieflingNames,
 		"aasimar": aasimarNames, "goliath": goliathNames,
