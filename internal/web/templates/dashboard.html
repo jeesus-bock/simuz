@@ -1,4 +1,23 @@
 {{define "dashboard"}}
+<div class="card" style="margin-bottom:12px;">
+    <div class="stat"><span>Speed</span><span>{{.speed}} game-min/tick ({{.ticks_per_day}} ticks/day)</span></div>
+    <form method="POST" action="/speed" style="display:flex;gap:8px;align-items:center;margin-top:6px;">
+        <label style="color:#888;font-size:0.85rem;">Speed:</label>
+        <select name="speed" style="padding:4px 8px;background:#0f1a2e;border:1px solid #333;border-radius:4px;color:var(--text);font-size:0.85rem;">
+            <option value="1" {{if eq .speed 1}}selected{{end}}>1 (1440 ticks/day)</option>
+            <option value="6" {{if eq .speed 6}}selected{{end}}>6 (240 ticks/day)</option>
+            <option value="12" {{if eq .speed 12}}selected{{end}}>12 (120 ticks/day)</option>
+            <option value="24" {{if eq .speed 24}}selected{{end}}>24 (60 ticks/day)</option>
+            <option value="60" {{if eq .speed 60}}selected{{end}}>60 (24 ticks/day)</option>
+            <option value="120" {{if eq .speed 120}}selected{{end}}>120 (12 ticks/day)</option>
+            <option value="360" {{if eq .speed 360}}selected{{end}}>360 (4 ticks/day)</option>
+            <option value="720" {{if eq .speed 720}}selected{{end}}>720 (2 ticks/day)</option>
+            <option value="1440" {{if eq .speed 1440}}selected{{end}}>1440 (1 tick/day)</option>
+        </select>
+        <button type="submit" style="padding:4px 10px;background:#20304f;color:#8fb0ff;border:1px solid #444;border-radius:4px;cursor:pointer;font-size:0.85rem;">Set</button>
+    </form>
+</div>
+
 <div hx-ext="sse" sse-connect="/api/v1/ui/events">
     <div id="dashboard-content" hx-get="/api/v1/ui/fragments/dashboard" hx-trigger="sse:tick" hx-target="#dashboard-content" hx-swap="morph">
         {{template "dashboard_stats" .}}
@@ -16,24 +35,6 @@
     <div class="stat"><span>Season</span><span>{{.season}}</span></div>
     <div class="stat"><span>Entities</span><span><a href="/entities" style="color:var(--accent);text-decoration:none;">{{.entities}}</a></span></div>
     <div class="stat"><span>Locations</span><span><a href="/locations" style="color:var(--accent);text-decoration:none;">{{.locations}}</a></span></div>
-    <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);">
-        <div class="stat"><span>Speed</span><span>{{.speed}} game-min/tick ({{.ticks_per_day}} ticks/day)</span></div>
-        <form method="POST" action="/speed" style="display:flex;gap:8px;align-items:center;margin-top:6px;">
-            <label style="color:#888;font-size:0.85rem;">Speed:</label>
-            <select name="speed" style="padding:4px 8px;background:#0f1a2e;border:1px solid #333;border-radius:4px;color:var(--text);font-size:0.85rem;">
-                <option value="1" {{if eq .speed 1}}selected{{end}}>1 (1440 ticks/day)</option>
-                <option value="6" {{if eq .speed 6}}selected{{end}}>6 (240 ticks/day)</option>
-                <option value="12" {{if eq .speed 12}}selected{{end}}>12 (120 ticks/day)</option>
-                <option value="24" {{if eq .speed 24}}selected{{end}}>24 (60 ticks/day)</option>
-                <option value="60" {{if eq .speed 60}}selected{{end}}>60 (24 ticks/day)</option>
-                <option value="120" {{if eq .speed 120}}selected{{end}}>120 (12 ticks/day)</option>
-                <option value="360" {{if eq .speed 360}}selected{{end}}>360 (4 ticks/day)</option>
-                <option value="720" {{if eq .speed 720}}selected{{end}}>720 (2 ticks/day)</option>
-                <option value="1440" {{if eq .speed 1440}}selected{{end}}>1440 (1 tick/day)</option>
-            </select>
-            <button type="submit" style="padding:4px 10px;background:#20304f;color:#8fb0ff;border:1px solid #444;border-radius:4px;cursor:pointer;font-size:0.85rem;">Set</button>
-        </form>
-    </div>
 </div>
 
 {{if .active_quests}}
