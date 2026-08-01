@@ -39,16 +39,20 @@
         <button onclick="setEntityStatus('dead')" class="entity-status-btn" data-status="dead"
             style="padding:4px 10px;border:1px solid #444;border-radius:4px;background:none;color:var(--text-dim);cursor:pointer;font-size:0.75rem;">Dead</button>
     </div>
-    {{if .species_list}}
     <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
-        <button onclick="setEntitySpecies('')" class="entity-species-btn active" data-species=""
-            style="padding:4px 10px;border:1px solid #6a6aff;border-radius:4px;background:none;color:#6a6aff;cursor:pointer;font-size:0.75rem;">All Species</button>
-        {{range .species_list}}
-        <button onclick="setEntitySpecies('{{.}}')" class="entity-species-btn" data-species="{{.}}"
-            style="padding:4px 10px;border:1px solid #444;border-radius:4px;background:none;color:var(--text-dim);cursor:pointer;font-size:0.75rem;">{{.}}</button>
-        {{end}}
+        <button onclick="setEntityGroup('')" class="entity-group-btn active" data-group=""
+            style="padding:4px 10px;border:1px solid #6a6aff;border-radius:4px;background:none;color:#6a6aff;cursor:pointer;font-size:0.75rem;">All</button>
+        <button onclick="setEntityGroup('greenskins')" class="entity-group-btn" data-group="greenskins"
+            style="padding:4px 10px;border:1px solid #444;border-radius:4px;background:none;color:var(--text-dim);cursor:pointer;font-size:0.75rem;">Greenskins</button>
+        <button onclick="setEntityGroup('humanoids')" class="entity-group-btn" data-group="humanoids"
+            style="padding:4px 10px;border:1px solid #444;border-radius:4px;background:none;color:var(--text-dim);cursor:pointer;font-size:0.75rem;">Humanoids</button>
+        <button onclick="setEntityGroup('undead')" class="entity-group-btn" data-group="undead"
+            style="padding:4px 10px;border:1px solid #444;border-radius:4px;background:none;color:var(--text-dim);cursor:pointer;font-size:0.75rem;">Undead</button>
+        <button onclick="setEntityGroup('beasts')" class="entity-group-btn" data-group="beasts"
+            style="padding:4px 10px;border:1px solid #444;border-radius:4px;background:none;color:var(--text-dim);cursor:pointer;font-size:0.75rem;">Beasts</button>
+        <button onclick="setEntityGroup('monsters')" class="entity-group-btn" data-group="monsters"
+            style="padding:4px 10px;border:1px solid #444;border-radius:4px;background:none;color:var(--text-dim);cursor:pointer;font-size:0.75rem;">Monsters</button>
     </div>
-    {{end}}
     <table>
         <thead>
             <tr>
@@ -102,11 +106,22 @@
             {{end}}
         </tbody>
     </table>
+    <div id="entity-pagination" style="display:flex;justify-content:center;gap:8px;margin-top:12px;flex-wrap:wrap;"></div>
 </div>
 
 <script>
 var currentEntityStatus = '';
-var currentEntitySpecies = '';
+var currentEntityGroup = '';
+var ENTITY_PAGE_SIZE = 50;
+var currentEntityPage = 1;
+
+var speciesGroups = {
+    'greenskins': ['orc', 'goblin', 'hobgoblin', 'half_orc', 'half_goblin', 'half_hobgoblin', 'bugbear'],
+    'humanoids': ['human', 'dwarf', 'elf', 'hobbit', 'half_elf', 'half_dwarf', 'half_fey', 'fey'],
+    'undead': ['skeleton', 'zombie', 'ghoul', 'lich', 'wraith', 'vampire'],
+    'beasts': ['wolf', 'bear', 'boar', 'rat', 'spider', 'sheep'],
+    'monsters': ['troll', 'ogre', 'ettin', 'cyclops', 'hydra', 'basilisk', 'cockatrice', 'manticore', 'griffin', 'wyvern', 'medusa', 'beholder', 'mind_flayer', 'floating_eye', 'rat_king']
+};
 
 function setEntityStatus(status) {
     currentEntityStatus = status;
@@ -116,17 +131,19 @@ function setEntityStatus(status) {
         b.style.color = isActive ? 'var(--accent)' : 'var(--text-dim)';
         b.style.borderColor = isActive ? 'var(--accent)' : '#444';
     });
+    currentEntityPage = 1;
     filterEntities();
 }
 
-function setEntitySpecies(species) {
-    currentEntitySpecies = species;
-    var btns = document.querySelectorAll('.entity-species-btn');
+function setEntityGroup(group) {
+    currentEntityGroup = group;
+    var btns = document.querySelectorAll('.entity-group-btn');
     btns.forEach(function(b) {
-        var isActive = b.getAttribute('data-species') === species;
+        var isActive = b.getAttribute('data-group') === group;
         b.style.color = isActive ? '#6a6aff' : 'var(--text-dim)';
         b.style.borderColor = isActive ? '#6a6aff' : '#444';
     });
+    currentEntityPage = 1;
     filterEntities();
 }
 
@@ -134,15 +151,65 @@ function filterEntities() {
     var q = (document.getElementById('entity-filter') || {}).value || '';
     q = q.toLowerCase();
     var rows = document.querySelectorAll('.entity-row');
+    var visibleCount = 0;
+    var matchGroup = currentEntityGroup ? speciesGroups[currentEntityGroup] : null;
+
     rows.forEach(function(row) {
         var search = (row.getAttribute('data-search') || '').toLowerCase();
         var status = row.getAttribute('data-status') || '';
         var species = row.getAttribute('data-species') || '';
         var matchSearch = !q || search.indexOf(q) !== -1;
         var matchStatus = !currentEntityStatus || status === currentEntityStatus;
-        var matchSpecies = !currentEntitySpecies || species === currentEntitySpecies;
-        row.style.display = (matchSearch && matchStatus && matchSpecies) ? '' : 'none';
+        var matchSp = !matchGroup || matchGroup.indexOf(species) !== -1;
+        var visible = matchSearch && matchStatus && matchSp;
+        row.style.display = visible ? '' : 'none';
+        if (visible) visibleCount++;
     });
+
+    applyPagination(visibleCount);
 }
+
+function applyPagination(visibleCount) {
+    var totalPages = Math.max(1, Math.ceil(visibleCount / ENTITY_PAGE_SIZE));
+    if (currentEntityPage > totalPages) currentEntityPage = totalPages;
+
+    var rows = document.querySelectorAll('.entity-row');
+    var idx = 0;
+    rows.forEach(function(row) {
+        if (row.style.display === 'none') return;
+        idx++;
+        var page = Math.ceil(idx / ENTITY_PAGE_SIZE);
+        row.style.display = (page === currentEntityPage) ? '' : 'none';
+    });
+
+    var pag = document.getElementById('entity-pagination');
+    if (!pag) return;
+    if (totalPages <= 1) { pag.innerHTML = ''; return; }
+
+    var html = '';
+    if (currentEntityPage > 1) {
+        html += '<button onclick="goEntityPage(' + (currentEntityPage - 1) + ')" style="padding:4px 10px;border:1px solid #444;border-radius:4px;background:none;color:var(--text-dim);cursor:pointer;font-size:0.75rem;">Prev</button>';
+    }
+    for (var p = 1; p <= totalPages; p++) {
+        if (totalPages > 7 && p > 2 && p < totalPages - 1 && Math.abs(p - currentEntityPage) > 1) {
+            if (p === 3 || p === totalPages - 2) html += '<span style="color:var(--text-dim);padding:4px;">...</span>';
+            continue;
+        }
+        var isActive = p === currentEntityPage;
+        html += '<button onclick="goEntityPage(' + p + ')" style="padding:4px 10px;border:1px solid ' + (isActive ? 'var(--accent)' : '#444') + ';border-radius:4px;background:none;color:' + (isActive ? 'var(--accent)' : 'var(--text-dim)') + ';cursor:pointer;font-size:0.75rem;">' + p + '</button>';
+    }
+    if (currentEntityPage < totalPages) {
+        html += '<button onclick="goEntityPage(' + (currentEntityPage + 1) + ')" style="padding:4px 10px;border:1px solid #444;border-radius:4px;background:none;color:var(--text-dim);cursor:pointer;font-size:0.75rem;">Next</button>';
+    }
+    pag.innerHTML = html;
+}
+
+function goEntityPage(page) {
+    currentEntityPage = page;
+    filterEntities();
+    window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+filterEntities();
 </script>
 {{end}}
