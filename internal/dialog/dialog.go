@@ -165,19 +165,27 @@ func (d *Dialogue) obfuscateForComprehension(text string, proficiency int) strin
 	}
 
 	for i, word := range words {
-		// Clean up punctuation attached to words for isolated randomization checks
+		// Strip leading and trailing punctuation to isolate the core word,
+		// then re-attach it after replacement so sentence structure is preserved.
 		cleanWord := strings.Trim(word, ".,?!\"()*")
 		if len(cleanWord) <= 2 {
-			continue // Skip processing tiny structural particle words
+			continue
 		}
 
 		if d.RNG.Intn(100) > comprehensionChance {
-			// Replace the word with randomized linguistic static gibberish placeholders
+			// Find leading/trailing punctuation by trimming one side at a time
+			leading := strings.TrimRight(word, ".,?!\"()*")
+			leading = leading[:len(leading)-len(cleanWord)]
+			trailing := strings.TrimLeft(word, ".,?!\"()*")
+			trailing = trailing[len(cleanWord):]
+
+			var replacement string
 			if d.RNG.Intn(2) == 0 {
-				words[i] = "..."
+				replacement = "..."
 			} else {
-				words[i] = d.scrambleString(cleanWord)
+				replacement = d.scrambleString(cleanWord)
 			}
+			words[i] = leading + replacement + trailing
 		}
 	}
 
