@@ -1,6 +1,6 @@
 {{define "ai"}}
 <div hx-ext="sse" sse-connect="/api/v1/ui/events">
-    <div id="ai-content" hx-get="/api/v1/ui/fragments/ai" hx-trigger="sse:tick" hx-target="#ai-content" hx-swap="innerHTML">
+    <div id="ai-content" hx-get="/api/v1/ui/fragments/ai" hx-trigger="sse:tick" hx-target="#ai-content" hx-swap="morph">
         {{template "ai_status" .}}
     </div>
 </div>

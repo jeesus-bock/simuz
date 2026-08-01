@@ -1,6 +1,6 @@
 {{define "deities"}}
 <div hx-ext="sse" sse-connect="/api/v1/ui/events">
-    <div id="deities-content" hx-get="/api/v1/ui/fragments/deities" hx-trigger="sse:tick" hx-target="#deities-content" hx-swap="innerHTML">
+    <div id="deities-content" hx-get="/api/v1/ui/fragments/deities" hx-trigger="sse:tick" hx-target="#deities-content" hx-swap="morph">
         {{template "deities_list" .}}
     </div>
 </div>

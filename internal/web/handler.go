@@ -2143,6 +2143,7 @@ type factionView struct {
 	VaultGold       int
 	HQLocationID    string
 	LeaderEntityID  string
+	LeaderName      string
 	MemberCount     int
 	MaxCapacity     int
 	Relations       []factionRelationView
@@ -2150,12 +2151,29 @@ type factionView struct {
 	Stockpile       map[string]int
 }
 
+var factionDisplayNames = map[string]string{
+	"smog_iron_cartel":      "Smog-Iron Cartel",
+	"withered_root":         "Court of the Withered Root",
+	"coffin_nail":           "Coffin-Nail Brotherhood",
+	"astrological_assembly": "Astrological Assembly",
+	"bread_weavers":         "Bread-Weavers",
+	"salt_vow_corsairs":     "Salt-Vow Corsairs",
+	"bleeding_quill":        "Bleeding Quill",
+	"rust_walkers":          "Rust-Walkers",
+	"needle_eye_ring":       "Needle-Eye Ring",
+	"mire_blood_pack":       "Mire-Blood Pack",
+}
+
 func buildFactionViews(sim *engine.Simulation) []factionView {
 	var out []factionView
 	for _, fac := range faction.FactionRegistry {
+		displayName := fac.ID
+		if n, ok := factionDisplayNames[fac.ID]; ok {
+			displayName = n
+		}
 		fv := factionView{
 			ID:               fac.ID,
-			Name:             fac.ID,
+			Name:             displayName,
 			CurrentState:     fac.CurrentState,
 			PrimaryObjective: fac.PrimaryObjective,
 			WealthTier:       fac.WealthTier,
@@ -2164,6 +2182,12 @@ func buildFactionViews(sim *engine.Simulation) []factionView {
 			LeaderEntityID:   fac.LeaderEntityID,
 			MaxCapacity:      fac.MaxCapacity,
 			Stockpile:        fac.Stockpile,
+		}
+		// Resolve leader name
+		if fac.LeaderEntityID != "" {
+			if leader := sim.Entities.Get(fac.LeaderEntityID); leader != nil {
+				fv.LeaderName = leader.Name
+			}
 		}
 		if fac.MemberIDs != nil {
 			fv.MemberCount = len(fac.MemberIDs)

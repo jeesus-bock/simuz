@@ -1,6 +1,6 @@
 {{define "dashboard"}}
 <div hx-ext="sse" sse-connect="/api/v1/ui/events">
-    <div id="dashboard-content" hx-get="/api/v1/ui/fragments/dashboard" hx-trigger="sse:tick" hx-target="#dashboard-content" hx-swap="innerHTML">
+    <div id="dashboard-content" hx-get="/api/v1/ui/fragments/dashboard" hx-trigger="sse:tick" hx-target="#dashboard-content" hx-swap="morph">
         {{template "dashboard_stats" .}}
     </div>
 </div>

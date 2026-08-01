@@ -1,6 +1,6 @@
 {{define "events"}}
 <div hx-ext="sse" sse-connect="/api/v1/ui/events">
-    <div id="events-content" hx-get="/api/v1/ui/fragments/events" hx-trigger="sse:tick" hx-target="#events-content" hx-swap="innerHTML">
+    <div id="events-content" hx-get="/api/v1/ui/fragments/events" hx-trigger="sse:tick" hx-target="#events-content" hx-swap="morph">
         {{template "events_list" .}}
     </div>
 </div>

@@ -1,6 +1,6 @@
 {{define "factions"}}
 <div hx-ext="sse" sse-connect="/api/v1/ui/events">
-    <div id="factions-content" hx-get="/api/v1/ui/fragments/factions" hx-trigger="sse:tick" hx-target="#factions-content" hx-swap="innerHTML">
+    <div id="factions-content" hx-get="/api/v1/ui/fragments/factions" hx-trigger="sse:tick" hx-target="#factions-content" hx-swap="morph">
         {{template "factions_list" .}}
     </div>
 </div>
@@ -30,7 +30,7 @@
     <div class="stat"><span>HQ</span><span><a href="/location/{{.HQLocationID}}" style="color:var(--accent)">{{.HQLocationID}}</a></span></div>
     {{end}}
     {{if .LeaderEntityID}}
-    <div class="stat"><span>Leader</span><span><a href="/entity/{{.LeaderEntityID}}" style="color:var(--accent)">{{.LeaderEntityID}}</a></span></div>
+    <div class="stat"><span>Leader</span><span><a href="/entity/{{.LeaderEntityID}}" style="color:var(--accent)">{{if .LeaderName}}{{.LeaderName}}{{else}}{{.LeaderEntityID}}{{end}}</a></span></div>
     {{end}}
     <div class="stat"><span>Members</span><span>{{.MemberCount}}{{if .MaxCapacity}} / {{.MaxCapacity}}{{end}}</span></div>
 

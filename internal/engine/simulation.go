@@ -300,6 +300,8 @@ func (s *Simulation) TickOnce() {
 		s.Events.ProcessTick(s.Tick, s.World, s.RNG, s.Entities.All())
 	}
 
+	TickFactions(s)
+
 	s.Emit(events.SimEvent{
 		Type: events.EventTick,
 		Tick: s.Tick,

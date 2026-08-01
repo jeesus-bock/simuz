@@ -1,6 +1,6 @@
 {{define "entity_detail"}}
 <div hx-ext="sse" sse-connect="/api/v1/ui/events">
-    <div id="entity-detail-content" hx-get="/api/v1/ui/fragments/entity/{{.entity.ID}}" hx-trigger="sse:tick" hx-target="#entity-detail-content" hx-swap="innerHTML">
+    <div id="entity-detail-content" hx-get="/api/v1/ui/fragments/entity/{{.entity.ID}}" hx-trigger="sse:tick" hx-target="#entity-detail-content" hx-swap="morph">
         {{template "entity_detail_status" .}}
     </div>
 </div>

@@ -8,6 +8,7 @@ import (
 	"simuz/internal/combat"
 	"simuz/internal/entity"
 	"simuz/internal/events"
+	"simuz/internal/faction"
 	"simuz/internal/quest"
 	"simuz/internal/relation"
 	"simuz/internal/species"
@@ -1360,6 +1361,82 @@ func questKilled(sim *Simulation, target *entity.Entity) {
 					}
 				}
 			}
+		}
+	}
+}
+
+
+// TickFactions recomputes dynamic faction state from entity data.
+// Called once per tick to keep the UI faction view current.
+func TickFactions(sim *Simulation) {
+	for _, fac := range faction.FactionRegistry {
+		fac.MemberIDs = make(map[string]bool)
+		fac.VaultGold = 0
+		fac.WealthTier = 0
+		fac.ControlledZones = make(map[string]float64)
+		fac.LeaderEntityID = ""
+
+		memberLocations := make(map[string]int)
+
+		for _, ent := range sim.Entities.All() {
+			if !ent.Alive {
+				continue
+			}
+			if ent.Faction == "" || ent.Faction == "civilian" {
+				continue
+			}
+			if ent.Faction != fac.ID {
+				continue
+			}
+
+			fac.MemberIDs[ent.ID] = true
+			memberLocations[ent.LocationID]++
+
+			// Accumulate vault gold from entity currency
+			for _, inst := range ent.Inventory {
+				if inst.Def != nil && inst.Def.Type == 6 { // TypeCurrency = 6
+					fac.VaultGold += inst.Def.Value * inst.Count
+				}
+			}
+
+			// Track leader: prefer politicians, fallback to highest-level member
+			if ent.Profession == "politician" {
+				fac.LeaderEntityID = ent.ID
+			}
+		}
+
+		// Compute controlled zones: locations where >50% of entities belong to this faction
+		for locID, count := range memberLocations {
+			total := len(sim.Entities.ByLocation(locID))
+			if total > 0 {
+				pct := float64(count) / float64(total) * 100
+				if pct > 30 {
+					fac.ControlledZones[locID] = pct
+				}
+			}
+		}
+
+		// Compute wealth tier from vault gold
+		switch {
+		case fac.VaultGold >= 10000:
+			fac.WealthTier = 5
+		case fac.VaultGold >= 5000:
+			fac.WealthTier = 4
+		case fac.VaultGold >= 2000:
+			fac.WealthTier = 3
+		case fac.VaultGold >= 500:
+			fac.WealthTier = 2
+		case fac.VaultGold > 0:
+			fac.WealthTier = 1
+		}
+
+		// Set faction state based on member count and wealth
+		if len(fac.MemberIDs) == 0 {
+			fac.CurrentState = "dormant"
+		} else if fac.WealthTier == 0 {
+			fac.CurrentState = "struggling"
+		} else {
+			fac.CurrentState = "active"
 		}
 	}
 }

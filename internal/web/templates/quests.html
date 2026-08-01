@@ -1,6 +1,6 @@
 {{define "quests"}}
 <div hx-ext="sse" sse-connect="/api/v1/ui/events">
-    <div id="quests-content" hx-get="/api/v1/ui/fragments/quests" hx-trigger="sse:tick" hx-target="#quests-content" hx-swap="innerHTML">
+    <div id="quests-content" hx-get="/api/v1/ui/fragments/quests" hx-trigger="sse:tick" hx-target="#quests-content" hx-swap="morph">
         {{template "quests_list" .}}
     </div>
 </div>

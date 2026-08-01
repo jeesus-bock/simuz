@@ -1,6 +1,6 @@
 {{define "location_detail"}}
 <div hx-ext="sse" sse-connect="/api/v1/ui/events">
-    <div id="location-detail-content" hx-get="/api/v1/ui/fragments/location/{{.loc.ID}}" hx-trigger="sse:tick" hx-target="#location-detail-content" hx-swap="innerHTML">
+    <div id="location-detail-content" hx-get="/api/v1/ui/fragments/location/{{.loc.ID}}" hx-trigger="sse:tick" hx-target="#location-detail-content" hx-swap="morph">
         {{template "location_detail_status" .}}
     </div>
 </div>
