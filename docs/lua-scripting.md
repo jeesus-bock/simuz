@@ -38,6 +38,8 @@ Key methods on self:
 - has_relationship(other_id) – checks whether a relationship exists.
 - set_faction(new_faction) – changes the entity's faction.
 - set_profession(new_profession) – changes the entity's profession.
+- get_cause() – returns the entity's cause (ideological alignment from deity worship).
+- set_cause(new_cause) – changes the entity's cause.
 
 ### world
 
@@ -69,6 +71,8 @@ The world table provides access to the simulation world, locations, entities, we
 - is_leashed(target_id) – checks whether an entity is being dragged.
 - start_rescue(target_id) – begins a rescue operation.
 - complete_rescue(target_id) – finishes a rescue.
+- get_cause(entity_id) – returns an entity's cause.
+- set_cause(entity_id, cause) – sets an entity's cause.
 
 ### util
 

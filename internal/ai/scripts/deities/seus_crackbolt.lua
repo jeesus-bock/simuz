@@ -65,6 +65,9 @@ function do_tick()
     -- Divine conception
     if world.impregnate(self.id, target_id) then
         util.log("[DIVINE] " .. self.name .. " has impregnated " .. target_info.name .. " (" .. target_info.species .. ")")
+        if self.cause and self.cause ~= "" then
+            world.set_cause(target_id, self.cause)
+        end
         table.insert(events, util.event("divine", {
             source = self.id,
             data = { mother = target_id, species = target_info.species, event = "divine_conception" }
