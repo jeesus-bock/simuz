@@ -132,7 +132,7 @@ func NewSpawnManager() *SpawnManager {
 	// 3. Add a default spawn rule for every species not already covered.
 	//    This ensures all registered species can appear during initialization,
 	//    fixing the issue where only a subset of species were being generated.
-	for _, sp := range species.GetAll() {
+	for _, sp := range species.Registry {
 		if covered[sp.ID] {
 			continue
 		}
@@ -289,11 +289,13 @@ func defaultFactionForSpecies(speciesID string) string {
 		return "orc"
 	case "wolf", "bear", "boar", "rat", "spider", "goblin", "kobold", "bugbear", "ogre", "troll", "giant", "slime", "mimic":
 		return "beast"
-	case "human", "half_elf", "half_dwarf", "half_goblin", "half_kobold", "half_fey", "gnome", "halfling", "tiefling", "aasimar", "goliath", "minotaur", "centaur", "merfolk", "harpy", "werewolf", "werebear", "lizardfolk", "wyvern", "basilisk", "dryad", "satyr", "pixie", "treant", "fairy":
+	case "human", "half_elf", "half_dwarf", "half_goblin", "half_kobold", "half_fey", "gnome", "halfling", "tiefling", "aasimar", "goliath", "minotaur", "centaur", "merfolk", "harpy", "werewolf", "werebear", "lizardfolk", "basilisk", "dryad", "satyr", "pixie", "treant", "fairy":
 		return ""
 	case "skeleton", "zombie", "ghost", "wraith", "lich", "vampire":
 		return "undead"
-	case "dragon", "wyvern":
+	case "dragon":
+		return "dragon"
+	case "wyvern":
 		return "dragon"
 	case "golem", "construct":
 		return "construct"
@@ -324,6 +326,8 @@ func defaultProfessionForSpecies(speciesID string) string {
 	case "vampire":
 		return "politician"
 	case "dragon":
+		return ""
+	case "wyvern":
 		return ""
 	case "deity":
 		return "priest"
