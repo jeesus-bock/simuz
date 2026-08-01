@@ -26,16 +26,16 @@ func GenerateRelationships(entities []*entity.Entity, count int, tick uint64) {
 	for i := 0; i < len(entities)-1 && created < count; i += 2 {
 		e := entities[i]
 		other := entities[i+1]
-		e.Relationships = append(e.Relationships, entity.EntityRelationship{
+		e.Relationships[other.ID] = entity.EntityRelationship{
 			OtherID:   other.ID,
 			Type:      entity.RelationshipType("spouse"),
 			SinceTick: tick,
-		})
-		other.Relationships = append(other.Relationships, entity.EntityRelationship{
+		}
+		other.Relationships[e.ID] = entity.EntityRelationship{
 			OtherID:   e.ID,
 			Type:      entity.RelationshipType("spouse"),
 			SinceTick: tick,
-		})
+		}
 		created++
 	}
 }
