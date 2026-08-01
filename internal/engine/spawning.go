@@ -159,35 +159,96 @@ func equipSpawn(ent *entity.Entity, rule *SpawnRule, rng *rand.Rand) {
 	}
 	switch rule.Species {
 	case "orc":
-		equipSpawnItem(ent, "leather_armor")
-		if rng.Intn(100) < 40 {
-			equipSpawnItem(ent, "leather_helmet")
-		}
-		roll := rng.Intn(100)
-		switch {
-		case roll < 35:
-			equipSpawnItem(ent, "orc_cleaver")
-		case roll < 60:
-			equipSpawnItem(ent, "iron_axe")
-		case roll < 80:
-			equipSpawnItem(ent, "iron_spear")
-		default:
-			equipSpawnItem(ent, "iron_sword")
+		if ent.Attributes.STR >= 17 {
+			equipSpawnItem(ent, "plate_mail")
+			equipSpawnItem(ent, "plate_helmet")
+			equipSpawnItem(ent, "plate_boots")
+			roll := rng.Intn(100)
+			switch {
+			case roll < 30:
+				equipSpawnItem(ent, "great_axe")
+			case roll < 60:
+				equipSpawnItem(ent, "two_handed_sword")
+			default:
+				equipSpawnItem(ent, "battle_axe")
+			}
+		} else if ent.Attributes.STR >= 15 {
+			equipSpawnItem(ent, "studded_leather")
+			if rng.Intn(100) < 30 {
+				equipSpawnItem(ent, "iron_helmet")
+			}
+			roll := rng.Intn(100)
+			switch {
+			case roll < 30:
+				equipSpawnItem(ent, "orc_cleaver")
+			case roll < 55:
+				equipSpawnItem(ent, "battle_axe")
+			case roll < 75:
+				equipSpawnItem(ent, "great_axe")
+			default:
+				equipSpawnItem(ent, "two_handed_sword")
+			}
+		} else {
+			equipSpawnItem(ent, "leather_armor")
+			if rng.Intn(100) < 40 {
+				equipSpawnItem(ent, "leather_helmet")
+			}
+			roll := rng.Intn(100)
+			switch {
+			case roll < 35:
+				equipSpawnItem(ent, "orc_cleaver")
+			case roll < 60:
+				equipSpawnItem(ent, "hand_axe")
+			case roll < 80:
+				equipSpawnItem(ent, "iron_spear")
+			default:
+				equipSpawnItem(ent, "iron_sword")
+			}
 		}
 	case "human":
 		if rule.Profession == "bandit" {
-			equipSpawnItem(ent, "leather_armor")
-			equipSpawnItem(ent, "leather_boots")
-			roll := rng.Intn(100)
-			switch {
-			case roll < 40:
-				equipSpawnItem(ent, "iron_sword")
-			case roll < 65:
-				equipSpawnItem(ent, "short_sword")
-			case roll < 85:
-				equipSpawnItem(ent, "iron_axe")
-			default:
-				equipSpawnItem(ent, "iron_spear")
+			if ent.Attributes.STR >= 16 {
+				equipSpawnItem(ent, "plate_mail")
+				equipSpawnItem(ent, "plate_boots")
+				roll := rng.Intn(100)
+				switch {
+				case roll < 30:
+					equipSpawnItem(ent, "two_handed_sword")
+				case roll < 55:
+					equipSpawnItem(ent, "great_axe")
+				case roll < 75:
+					equipSpawnItem(ent, "battle_axe")
+				default:
+					equipSpawnItem(ent, "longsword")
+				}
+			} else if ent.Attributes.STR >= 14 {
+				equipSpawnItem(ent, "hard_leather_armor")
+				equipSpawnItem(ent, "leather_boots")
+				roll := rng.Intn(100)
+				switch {
+				case roll < 30:
+					equipSpawnItem(ent, "longsword")
+				case roll < 55:
+					equipSpawnItem(ent, "battle_axe")
+				case roll < 75:
+					equipSpawnItem(ent, "mace")
+				default:
+					equipSpawnItem(ent, "two_handed_sword")
+				}
+			} else {
+				equipSpawnItem(ent, "leather_armor")
+				equipSpawnItem(ent, "leather_boots")
+				roll := rng.Intn(100)
+				switch {
+				case roll < 30:
+					equipSpawnItem(ent, "short_sword")
+				case roll < 55:
+					equipSpawnItem(ent, "hand_axe")
+				case roll < 75:
+					equipSpawnItem(ent, "hunting_knife")
+				default:
+					equipSpawnItem(ent, "cudgel")
+				}
 			}
 		}
 		if rule.Profession == "bard" {
