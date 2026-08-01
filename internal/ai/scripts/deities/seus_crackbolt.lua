@@ -53,7 +53,7 @@ function do_tick()
     -- Pick a random female
     local target_id = females[util.rand_int(#females) + 1]
     local target_info = world.entity_info(target_id)
-    if not target_info then world.move_to(self.home) return end
+    if not target_info then world.move_to(self.home) return events end
 
     -- Polymorph into her species to sire a mortal child
     if self.species ~= target_info.species then

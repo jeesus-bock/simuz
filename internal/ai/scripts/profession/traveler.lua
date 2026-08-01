@@ -25,7 +25,7 @@ function do_tick()
             local dest = exits[util.rand_int(#exits) + 1]
             if dest ~= self.loc_id then
                 world.move_to(dest)
-            return {util.event("profession_action", {profession = "traveler"})}
+                return {util.event("profession_action", {profession = "traveler"})}
             end
         end
     end

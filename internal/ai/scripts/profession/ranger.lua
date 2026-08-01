@@ -66,7 +66,7 @@ local function sell_goods()
                     local result = world.try_sell(target_id, good)
                     if result and result.done then
                         util.log(self.name .. " sold " .. good .. " to " .. info.name)
-        return {util.event("profession_action", {profession = "ranger"})}
+                        return true
                     end
                 end
             end
