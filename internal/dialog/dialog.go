@@ -28,7 +28,7 @@ type Dialogue struct {
 	LanguageID string       // The specific language being spoken during this interaction
 	Dialect    string       // The specific dialect variant used by the speaker
 	Type       DialogueType // The psychological/social framework of the conversation
-	RNG        *rand.Rand   // Thread-safe scoped random instance
+	RNG        *rand.Rand   // Caller-scoped RNG; NOT safe for concurrent use
 }
 
 // NewDialogue instantiates a conversation session, automatically choosing the optimal shared language.
