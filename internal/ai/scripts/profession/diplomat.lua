@@ -2,6 +2,11 @@
 -- Machiavellian Statecraft Script: Realpolitik negotiation,
 -- calculated alliance shifts, and strategic destabilization.
 -- Diplomats carry diplomatic immunity and seek out politicians.
+--
+-- Sub-categories:
+--   diplomat   - Standard diplomatic rank (humans, half-elves, half-dwarves)
+--   ambassador - Elite diplomatic rank (elves, dwarves) — stronger negotiation,
+--                stronghold defense coordination, and diplomatic immunity enforcement
 
 local function find_politicians()
     local nearby = world.nearby_entities()
@@ -97,17 +102,129 @@ local function negotiate(strongest, weakest)
     return false
 end
 
+-- -----------------------------------------------------------------------
+-- Ambassador sub-category: elite diplomatic behavior
+-- -----------------------------------------------------------------------
+local function is_ambassador()
+    return self.diplomatic_rank == "ambassador"
+end
+
+local function find_ambassador_targets()
+    local nearby = world.nearby_entities()
+    if not nearby then return {} end
+    local targets = {}
+    for _, eid in ipairs(nearby) do
+        if eid ~= self.id then
+            local info = world.entity_info(eid)
+            if info and info.alive then
+                -- Ambassadors prioritize treaty negotiations and stronghold defense
+                if info.profession == "diplomat" or info.profession == "politician" then
+                    table.insert(targets, {id = eid, info = info, priority = 1})
+                elseif info.profession == "merchant" or info.profession == "courier" then
+                    table.insert(targets, {id = eid, info = info, priority = 2})
+                end
+            end
+        end
+    end
+    table.sort(targets, function(a, b) return a.priority < b.priority end)
+    return targets
+end
+
+local function coordinate_stronghold_defense()
+    local nearby = world.nearby_entities()
+    if not nearby then return false end
+
+    local allies_nearby = 0
+    for _, eid in ipairs(nearby) do
+        if eid ~= self.id then
+            local info = world.entity_info(eid)
+            if info and info.alive and info.faction == self.faction then
+                allies_nearby = allies_nearby + 1
+            end
+        end
+    end
+
+    if allies_nearby >= 2 then
+        util.log(self.name .. " rallies the stronghold defenders! +" .. (allies_nearby * 5) .. "% defensive coordination")
+        util.set_mood("authoritative", 20)
+        return true
+    end
+    return false
+end
+
+local function enforce_diplomatic_immunity()
+    local nearby = world.nearby_entities()
+    if not nearby then return false end
+
+    for _, eid in ipairs(nearby) do
+        if eid ~= self.id then
+            local info = world.entity_info(eid)
+            if info and info.alive and not world.is_hostile(self.faction, info.faction) then
+                if info.profession == "thief" or info.profession == "bandit_chief" then
+                    util.log(self.name .. " invokes diplomatic immunity against " .. info.name)
+                    util.set_mood("authoritative", 15)
+                end
+            end
+        end
+    end
+    return false
+end
+
+local function escort_ally()
+    local nearby = world.nearby_entities()
+    if not nearby then return false end
+
+    for _, eid in ipairs(nearby) do
+        if eid ~= self.id then
+            local info = world.entity_info(eid)
+            if info and info.alive and info.faction == self.faction then
+                if info.hp < info.max_hp * 0.5 or info.level < 5 then
+                    if self.loc_id ~= self.home then
+                        world.move_to(self.home)
+                        util.log(self.name .. " escorts " .. info.name .. " to the stronghold")
+                        return true
+                    end
+                end
+            end
+        end
+    end
+    return false
+end
+
 function do_tick()
     local acted = false
 
+    -- Ambassadors get additional elite behaviors
+    if is_ambassador() then
+        -- Priority 1: Enforce diplomatic immunity
+        if world.tick % 5 == 0 then
+            enforce_diplomatic_immunity()
+        end
+
+        -- Priority 2: Coordinate stronghold defense
+        if world.tick % 15 == 0 then
+            if coordinate_stronghold_defense() then
+                acted = true
+            end
+        end
+
+        -- Priority 3: Escort wounded allies
+        if world.tick % 20 == 0 then
+            if escort_ally() then
+                acted = true
+            end
+        end
+    end
+
+    -- Standard diplomat behaviors
     if world.tick % 20 == 0 then
-        -- Priority 1: Seek out politicians for formal diplomacy
+        -- Priority: Seek out politicians for formal diplomacy
         local politicians = find_politicians()
         if #politicians > 0 then
             acted = negotiate_with_politician(politicians[1])
         end
 
-        -- Priority 2: General statecraft with non-politician entities
+        -- Priority: General statecraft with non-politician entities
         if not acted then
             local strongest, weakest = practice_statecraft()
             if strongest ~= nil and type(strongest) == "table" then
@@ -130,7 +247,7 @@ function do_tick()
     end
 
     if acted then
-        return {util.event("profession_action", {profession = "diplomat"})}
+        return {util.event("profession_action", {profession = "diplomat", rank = self.diplomatic_rank or "diplomat"})}
     end
     return {}
 end

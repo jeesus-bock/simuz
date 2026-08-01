@@ -27,6 +27,8 @@ var Registry = map[string]Species{
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"plains", "forest"},
 		PoliticalIdeology:   "capitalist",
+		DiplomaticRank:      "diplomat",
+		DefensiveBonus:      5,
 	},
 	"orc": {
 		ID:                  "orc",
@@ -48,6 +50,8 @@ var Registry = map[string]Species{
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"waste", "swamp", "highlands"},
 		PoliticalIdeology:   "communist",
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 
 	// =========================================================================
@@ -72,6 +76,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 9, DEX: 13, CON: 9, INT: 13, WIS: 12, CHA: 11},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"forest"},
+		DiplomaticRank:      "ambassador",
+		DefensiveBonus:      15,
 	},
 	"dwarf": {
 		ID:                  "dwarf",
@@ -92,6 +98,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 12, DEX: 8, CON: 14, INT: 11, WIS: 10, CHA: 7},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"highlands"},
+		DiplomaticRank:      "ambassador",
+		DefensiveBonus:      20,
 	},
 	"hobbit": {
 		ID:                  "hobbit",
@@ -112,6 +120,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 7, DEX: 13, CON: 11, INT: 9, WIS: 11, CHA: 12},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"plains"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 
 	// =========================================================================
@@ -136,6 +146,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 5, DEX: 15, CON: 8, INT: 12, WIS: 10, CHA: 14},
 		FluidBiology:        true,
 		PreferredBiomes:     []string{"forest", "swamp"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"kobold": {
 		ID:                  "kobold",
@@ -157,6 +169,8 @@ var Registry = map[string]Species{
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"highlands", "waste"},
 		PoliticalIdeology:   "anarchist",
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"minotaur": {
 		ID:                  "minotaur",
@@ -177,6 +191,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 18, DEX: 8, CON: 16, INT: 5, WIS: 9, CHA: 4},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"waste", "highlands"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"goblin": {
 		ID:                  "goblin",
@@ -197,6 +213,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 8, DEX: 13, CON: 10, INT: 9, WIS: 7, CHA: 6},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"forest", "swamp"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 
 	// =========================================================================
@@ -221,13 +239,15 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 15, DEX: 14, CON: 12, INT: 14, WIS: 11, CHA: 15},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"swamp", "forest"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
-	"werewolf": {ID: "werewolf", Name: "Werewolf", MaxAge: 90, AdultAge: 16, CanLevelUp: true, CanReproduce: true, IsCaveman: true, IsImmortal: false, GestationTicks: 1000, DefaultScripts: []string{"werewolf"}, DefaultSleepCycle: "nocturnal", AutoFeed: true, StarvationThreshold: 172800, MaleNames: []string{"Hundi", "Kriimsilm", "Võsavillem", "Murru", "Kutsu", "Ugu", "Hunts", "Kihv"}, FemaleNames: []string{"Ema-hunt", "Võsapiiga", "Kriima", "Murra", "Kutsika", "Uga", "Kihva", "Teravhamb"}, BaseAttrs: Attributes{STR: 16, DEX: 12, CON: 15, INT: 7, WIS: 8, CHA: 5}, FluidBiology: true, PreferredBiomes: []string{"forest", "highlands"}},
+	"werewolf": {ID: "werewolf", Name: "Werewolf", MaxAge: 90, AdultAge: 16, CanLevelUp: true, CanReproduce: true, IsCaveman: true, IsImmortal: false, GestationTicks: 1000, DefaultScripts: []string{"werewolf"}, DefaultSleepCycle: "nocturnal", AutoFeed: true, StarvationThreshold: 172800, MaleNames: []string{"Hundi", "Kriimsilm", "Võsavillem", "Murru", "Kutsu", "Ugu", "Hunts", "Kihv"}, FemaleNames: []string{"Ema-hunt", "Võsapiiga", "Kriima", "Murra", "Kutsika", "Uga", "Kihva", "Teravhamb"}, BaseAttrs: Attributes{STR: 16, DEX: 12, CON: 15, INT: 7, WIS: 8, CHA: 5}, FluidBiology: true, PreferredBiomes: []string{"forest", "highlands"}, DiplomaticRank: "", DefensiveBonus: 0},
 	// =========================================================================
 	// // 5. WILDLIFE ECOSYSTEM TIERS
-	"wolf":  {ID: "wolf", Name: "Wolf", MaxAge: 15, AdultAge: 2, CanLevelUp: false, CanReproduce: true, IsCaveman: true, IsImmortal: false, GestationTicks: 300, DefaultScripts: []string{"defensive"}, DefaultSleepCycle: "nocturnal", AutoFeed: true, StarvationThreshold: 172800, MaleNames: []string{"Hallard", "Võsa", "Villem", "Susi", "Kriim", "Kõri"}, FemaleNames: []string{"Halli", "Võsu", "Sillem", "Suse", "Kriima", "Kõra"}, BaseAttrs: Attributes{STR: 10, DEX: 12, CON: 11, INT: 3, WIS: 8, CHA: 2}, FluidBiology: false, PreferredBiomes: []string{"forest", "highlands", "plains"}},
-	"sheep": {ID: "sheep", Name: "Sheep", MaxAge: 12, AdultAge: 1, CanLevelUp: false, CanReproduce: true, IsCaveman: false, IsImmortal: false, GestationTicks: 250, DefaultScripts: []string{"defensive"}, DefaultSleepCycle: "diurnal", AutoFeed: true, StarvationThreshold: 86400, MaleNames: []string{"Oinas", "Villak", "Päss", "Uru", "Murdja", "Tutt"}, FemaleNames: []string{"Struu", "Kee", "Mää", "Mute", "Villane", "Utte", "Tutta"}, BaseAttrs: Attributes{STR: 4, DEX: 6, CON: 8, INT: 1, WIS: 4, CHA: 5}, FluidBiology: false, PreferredBiomes: []string{"plains"}},
-	"bear":  {ID: "bear", Name: "Bear", MaxAge: 30, AdultAge: 4, CanLevelUp: false, CanReproduce: true, IsCaveman: true, IsImmortal: false, GestationTicks: 400, DefaultScripts: []string{"defensive"}, DefaultSleepCycle: "diurnal", AutoFeed: true, StarvationThreshold: 400000, MaleNames: []string{"Karu", "Ott", "Mesikäpp", "Päts", "Mõmm", "Kõvamees", "Pruun"}, FemaleNames: []string{"Ema-karu", "Oti", "Mesikäpa", "Pätsi", "Mõmmi", "Pruuni", "Mesine"}, BaseAttrs: Attributes{STR: 16, DEX: 7, CON: 16, INT: 3, WIS: 9, CHA: 3}, FluidBiology: false, PreferredBiomes: []string{"highlands", "forest"}},
+	"wolf":  {ID: "wolf", Name: "Wolf", MaxAge: 15, AdultAge: 2, CanLevelUp: false, CanReproduce: true, IsCaveman: true, IsImmortal: false, GestationTicks: 300, DefaultScripts: []string{"defensive"}, DefaultSleepCycle: "nocturnal", AutoFeed: true, StarvationThreshold: 172800, MaleNames: []string{"Hallard", "Võsa", "Villem", "Susi", "Kriim", "Kõri"}, FemaleNames: []string{"Halli", "Võsu", "Sillem", "Suse", "Kriima", "Kõra"}, BaseAttrs: Attributes{STR: 10, DEX: 12, CON: 11, INT: 3, WIS: 8, CHA: 2}, FluidBiology: false, PreferredBiomes: []string{"forest", "highlands", "plains"}, DiplomaticRank: "", DefensiveBonus: 0},
+	"sheep": {ID: "sheep", Name: "Sheep", MaxAge: 12, AdultAge: 1, CanLevelUp: false, CanReproduce: true, IsCaveman: false, IsImmortal: false, GestationTicks: 250, DefaultScripts: []string{"defensive"}, DefaultSleepCycle: "diurnal", AutoFeed: true, StarvationThreshold: 86400, MaleNames: []string{"Oinas", "Villak", "Päss", "Uru", "Murdja", "Tutt"}, FemaleNames: []string{"Struu", "Kee", "Mää", "Mute", "Villane", "Utte", "Tutta"}, BaseAttrs: Attributes{STR: 4, DEX: 6, CON: 8, INT: 1, WIS: 4, CHA: 5}, FluidBiology: false, PreferredBiomes: []string{"plains"}, DiplomaticRank: "", DefensiveBonus: 0},
+	"bear":  {ID: "bear", Name: "Bear", MaxAge: 30, AdultAge: 4, CanLevelUp: false, CanReproduce: true, IsCaveman: true, IsImmortal: false, GestationTicks: 400, DefaultScripts: []string{"defensive"}, DefaultSleepCycle: "diurnal", AutoFeed: true, StarvationThreshold: 400000, MaleNames: []string{"Karu", "Ott", "Mesikäpp", "Päts", "Mõmm", "Kõvamees", "Pruun"}, FemaleNames: []string{"Ema-karu", "Oti", "Mesikäpa", "Pätsi", "Mõmmi", "Pruuni", "Mesine"}, BaseAttrs: Attributes{STR: 16, DEX: 7, CON: 16, INT: 3, WIS: 9, CHA: 3}, FluidBiology: false, PreferredBiomes: []string{"highlands", "forest"}, DiplomaticRank: "", DefensiveBonus: 0},
 
 	// =========================================================================
 	// 6. BEASTIAL MONSTERS & ABERRATIONS
@@ -251,6 +271,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 15, DEX: 13, CON: 13, INT: 8, WIS: 9, CHA: 8},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"forest", "highlands", "waste"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"hobgoblin": {
 		ID:                  "hobgoblin",
@@ -271,6 +293,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 13, DEX: 12, CON: 12, INT: 11, WIS: 10, CHA: 10},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"highlands", "plains", "waste"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"lizardfolk": {
 		ID:                  "lizardfolk",
@@ -292,6 +316,8 @@ var Registry = map[string]Species{
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"swamp", "forest"},
 		PoliticalIdeology:   "anarchist",
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"gnoll": {
 		ID:                  "gnoll",
@@ -313,6 +339,8 @@ var Registry = map[string]Species{
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"plains", "waste"},
 		PoliticalIdeology:   "anarchist",
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"griffin": {
 		ID:                  "griffin",
@@ -333,6 +361,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 17, DEX: 14, CON: 15, INT: 5, WIS: 12, CHA: 8},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"highlands", "mountains"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"wyvern": {
 		ID:                  "wyvern",
@@ -353,6 +383,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 18, DEX: 13, CON: 16, INT: 6, WIS: 12, CHA: 8},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"waste", "highlands", "cave"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"hydra": {
 		ID:                  "hydra",
@@ -373,6 +405,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 20, DEX: 10, CON: 20, INT: 4, WIS: 11, CHA: 5},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"swamp", "waste"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"basilisk": {
 		ID:                  "basilisk",
@@ -393,6 +427,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 14, DEX: 8, CON: 16, INT: 2, WIS: 10, CHA: 6},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"waste", "highlands"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"cockatrice": {
 		ID:                  "cockatrice",
@@ -413,6 +449,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 6, DEX: 12, CON: 11, INT: 2, WIS: 9, CHA: 5},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"plains", "forest", "waste"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"manticore": {
 		ID:                  "manticore",
@@ -433,6 +471,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 17, DEX: 13, CON: 15, INT: 7, WIS: 10, CHA: 8},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"waste", "forest", "highlands"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"skeleton": {
 		ID:                  "skeleton",
@@ -453,6 +493,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 11, DEX: 12, CON: 0, INT: 3, WIS: 8, CHA: 3},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"waste", "highlands", "cave"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"zombie": {
 		ID:                  "zombie",
@@ -473,6 +515,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 13, DEX: 6, CON: 0, INT: 2, WIS: 6, CHA: 3},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"waste", "swamp", "forest"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"ghoul": {
 		ID:                  "ghoul",
@@ -493,6 +537,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 13, DEX: 14, CON: 0, INT: 9, WIS: 11, CHA: 6},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"waste", "highlands", "cave"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"lich": {
 		ID:                  "lich",
@@ -513,6 +559,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 12, DEX: 11, CON: 0, INT: 22, WIS: 18, CHA: 16},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"waste", "highlands", "cave"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"wraith": {
 		ID:                  "wraith",
@@ -533,6 +581,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 0, DEX: 16, CON: 0, INT: 12, WIS: 12, CHA: 15},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"waste", "forest", "cave"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"mind_flayer": {
 		ID:                  "mind_flayer",
@@ -553,6 +603,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 11, DEX: 12, CON: 12, INT: 19, WIS: 17, CHA: 17},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"waste", "swamp", "underdark"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"beholder": {
 		ID:                  "beholder",
@@ -573,6 +625,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 10, DEX: 14, CON: 18, INT: 17, WIS: 15, CHA: 17},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"waste", "highlands", "cave"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"troll": {
 		ID:                  "troll",
@@ -593,6 +647,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 19, DEX: 11, CON: 18, INT: 6, WIS: 9, CHA: 6},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"forest", "swamp", "waste"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"ogre": {
 		ID:                  "ogre",
@@ -613,6 +669,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 17, DEX: 9, CON: 15, INT: 7, WIS: 8, CHA: 7},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"waste", "highlands", "plains"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"ettin": {
 		ID:                  "ettin",
@@ -633,6 +691,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 20, DEX: 7, CON: 17, INT: 6, WIS: 10, CHA: 7},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"highlands", "waste", "cave"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"cyclops": {
 		ID:                  "cyclops",
@@ -653,6 +713,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 22, DEX: 10, CON: 18, INT: 9, WIS: 12, CHA: 9},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"mountains", "waste", "highlands"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"medusa": {
 		ID:                  "medusa",
@@ -673,6 +735,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 18, DEX: 10, CON: 14, INT: 14, WIS: 16, CHA: 14},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"cave", "waste", "highlands"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"floating_eye": {
 		ID:                  "floating_eye",
@@ -693,6 +757,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 0, DEX: 10, CON: 0, INT: 14, WIS: 16, CHA: 12},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"swamp", "cave", "underdark"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"half_orc": {
 		ID:                  "half_orc",
@@ -714,6 +780,8 @@ var Registry = map[string]Species{
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"plains", "highlands", "waste"},
 		PoliticalIdeology:   "communist",
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"half_elf": {
 		ID:                  "half_elf",
@@ -734,6 +802,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 10, DEX: 11, CON: 10, INT: 11, WIS: 11, CHA: 11},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"forest", "plains"},
+		DiplomaticRank:      "diplomat",
+		DefensiveBonus:      5,
 	},
 	"half_dwarf": {
 		ID:                  "half_dwarf",
@@ -754,6 +824,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 12, DEX: 8, CON: 14, INT: 8, WIS: 9, CHA: 8},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"highlands", "mountains", "plains"},
+		DiplomaticRank:      "diplomat",
+		DefensiveBonus:      10,
 	},
 	"half_goblin": {
 		ID:                  "half_goblin",
@@ -774,6 +846,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 8, DEX: 13, CON: 9, INT: 5, WIS: 7, CHA: 7},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"waste", "plains", "forest"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"half_hobgoblin": {
 		ID:                  "half_hobgoblin",
@@ -794,6 +868,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 12, DEX: 10, CON: 12, INT: 7, WIS: 8, CHA: 7},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"highlands", "plains", "waste"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"half_gnoll": {
 		ID:                  "half_gnoll",
@@ -815,6 +891,8 @@ var Registry = map[string]Species{
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"plains", "waste"},
 		PoliticalIdeology:   "anarchist",
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"half_kobold": {
 		ID:                  "half_kobold",
@@ -836,6 +914,8 @@ var Registry = map[string]Species{
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"underground", "cave", "waste"},
 		PoliticalIdeology:   "anarchist",
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 	"half_fey": {
 		ID:                  "half_fey",
@@ -856,6 +936,8 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 8, DEX: 12, CON: 9, INT: 10, WIS: 12, CHA: 13},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"forest", "swamp", "plains"},
+		DiplomaticRank:      "",
+		DefensiveBonus:      0,
 	},
 }
 
