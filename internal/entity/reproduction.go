@@ -58,7 +58,7 @@ func (r *Reproduction) StartPregnancy(fatherID string, currentTick uint64, mothe
 // Returns a slice of SimEvents for any events that occurred this tick.
 func (r *Reproduction) MaintainPregnancy(currentTick uint64, gestationTicks int, e *Entity) []event.SimEvent {
 	if !r.Pregnant {
-		return nil
+		return []event.SimEvent{}
 	}
 
 	// If gestationTicks is invalid, treat as immediate birth.
@@ -175,5 +175,5 @@ func (r *Reproduction) MaintainPregnancy(currentTick uint64, gestationTicks int,
 	}
 
 	// Pregnancy is still in progress — no event this tick.
-	return nil
+	return []event.SimEvent{}
 }
