@@ -3,6 +3,7 @@ package dialog
 import (
 	"fmt"
 	"math/rand"
+	"sort"
 	"strings"
 
 	"simuz/internal/entity"
@@ -35,13 +36,20 @@ func NewDialogue(speaker, listener *entity.Entity, rng *rand.Rand, dType Dialogu
 	chosenLang := "none"
 	bestScore := -1
 
-	// 1. Contextual Language Arbitration: Find the language that maximizes shared understanding
-	for langID, speakerProf := range speaker.LanguageSkills {
+	// 1. Contextual Language Arbitration: Find the language that maximizes shared understanding.
+	// Iterate over sorted IDs for deterministic tie-breaking.
+	langIDs := make([]string, 0, len(speaker.LanguageSkills))
+	for langID := range speaker.LanguageSkills {
+		langIDs = append(langIDs, langID)
+	}
+	sort.Strings(langIDs)
+
+	for _, langID := range langIDs {
+		speakerProf := speaker.LanguageSkills[langID]
 		listenerProf, has := listener.LanguageSkills[langID]
 		if has {
-			// Scoring favors the language where BOTH characters have high capability
 			combinedScore := speakerProf + listenerProf
-			if combinedScore > bestScore {
+			if combinedScore > bestScore || (combinedScore == bestScore && langID < chosenLang) {
 				bestScore = combinedScore
 				chosenLang = langID
 			}
