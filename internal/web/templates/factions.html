@@ -33,6 +33,13 @@
     <div class="stat"><span>Leader</span><span><a href="/entity/{{.LeaderEntityID}}" style="color:var(--accent)">{{if .LeaderName}}{{.LeaderName}}{{else}}{{.LeaderEntityID}}{{end}}</a></span></div>
     {{end}}
     <div class="stat"><span>Members</span><span>{{.MemberCount}}{{if .MaxCapacity}} / {{.MaxCapacity}}{{end}}</span></div>
+    {{if .Members}}
+    <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;">
+        {{range .Members}}
+        <a href="/entity/{{.ID}}" style="padding:2px 6px;background:#0f1a2e;border-radius:3px;font-size:0.75rem;color:var(--accent);text-decoration:none;">{{.Name}}</a>
+        {{end}}
+    </div>
+    {{end}}
 
     {{if .Relations}}
     <div style="margin-top:10px;">

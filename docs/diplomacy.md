@@ -57,7 +57,7 @@ Fine clothes, dagger, herb pouch, 10-30 cp / 5-15 sp / 1-4 gp.
 **Script:** `internal/ai/scripts/profession/politician.lua`
 
 Politicians are species-specific political leaders. They interact with diplomats,
-manage faction relations, and control diplomatic immunity. Only civilized species
+lsmanage faction relations, and control diplomatic immunity. Only civilized species
 (human, orc, dwarf, elf) can be politicians.
 
 ### Species Variants

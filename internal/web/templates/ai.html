@@ -26,15 +26,15 @@
         <tbody>
             {{range .entities_list}}
             <tr>
-                <td>{{.Name}}</td>
+                <td><a href="/entity/{{.ID}}" style="color:var(--accent);text-decoration:none;">{{.Name}}</a></td>
                 <td>{{.Species}}</td>
                 <td style="font-size:0.85rem;color:var(--text-dim)">{{.Activity.Type}}</td>
                 <td>{{.AI.Type}}</td>
                 <td>{{.Faction}}</td>
-                <td>{{.LocationID}}</td>
+                <td><a href="/location/{{.LocationID}}" style="color:var(--accent);text-decoration:none;">{{.LocationID}}</a></td>
             </tr>
             {{else}}
-            <tr><td colspan="5">No AI entities found.</td></tr>
+            <tr><td colspan="6">No AI entities found.</td></tr>
             {{end}}
         </tbody>
     </table>

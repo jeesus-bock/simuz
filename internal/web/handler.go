@@ -2166,6 +2166,11 @@ type controlledZoneView struct {
 	Influence  float64
 }
 
+type factionMemberView struct {
+	ID   string
+	Name string
+}
+
 type factionView struct {
 	ID              string
 	Name            string
@@ -2178,6 +2183,7 @@ type factionView struct {
 	LeaderName      string
 	MemberCount     int
 	MaxCapacity     int
+	Members         []factionMemberView
 	Relations       []factionRelationView
 	ControlledZones []controlledZoneView
 	Stockpile       map[string]int
@@ -2223,6 +2229,16 @@ func buildFactionViews(sim *engine.Simulation) []factionView {
 		}
 		if fac.MemberIDs != nil {
 			fv.MemberCount = len(fac.MemberIDs)
+			for memberID := range fac.MemberIDs {
+				name := memberID
+				if ent := sim.Entities.Get(memberID); ent != nil {
+					name = ent.Name
+				}
+				fv.Members = append(fv.Members, factionMemberView{ID: memberID, Name: name})
+			}
+			sort.SliceStable(fv.Members, func(i, j int) bool {
+				return fv.Members[i].Name < fv.Members[j].Name
+			})
 		}
 		if fac.ControlledZones != nil {
 			for locID, influence := range fac.ControlledZones {

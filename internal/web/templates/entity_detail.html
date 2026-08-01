@@ -40,7 +40,7 @@
             <table>
                 <tr><th>ID</th><td>{{.entity.ID}}</td></tr>
                 <tr><th>Species</th><td>{{.entity.Species}}</td></tr>
-                <tr><th>Faction</th><td>{{.entity.Faction}}</td></tr>
+                <tr><th>Faction</th><td><a href="/factions" style="color:var(--accent);text-decoration:none;">{{.entity.Faction}}</a></td></tr>
                 <tr><th>Level</th><td>{{.entity.Level}}</td></tr>
                 <tr><th>XP</th><td>{{.entity.XP}} / {{.xp_for_next}}{{if .can_level_up}} <span style="color:#4caf50">(LEVEL UP!)</span>{{end}}</td></tr>
                 <tr><th>Mood</th><td>{{.entity.Mood}}{{if .mood_mods_str}} <span style="color:#888;font-size:0.85em">({{.mood_mods_str}})</span>{{end}}</td></tr>
