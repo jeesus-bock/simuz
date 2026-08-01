@@ -72,21 +72,50 @@ func (h *Handler) SetSpeedPost(c *gin.Context) {
 	c.Redirect(http.StatusSeeOther, "/")
 }
 
+type speciesCount struct {
+	Name  string
+	Count int
+}
+
+func computeSpeciesCounts(entities []*entity.Entity) ([]speciesCount, []string) {
+	counts := make(map[string]int)
+	for _, e := range entities {
+		if e.Species != "" {
+			counts[e.Species]++
+		}
+	}
+	var result []speciesCount
+	for name, count := range counts {
+		result = append(result, speciesCount{Name: name, Count: count})
+	}
+	sort.SliceStable(result, func(i, j int) bool {
+		return result[i].Count > result[j].Count
+	})
+	var names []string
+	for _, sc := range result {
+		names = append(names, sc.Name)
+	}
+	return result, names
+}
+
 func (h *Handler) EntitiesPage(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
 	all := h.Sim.Entities.All()
 	sortEntitiesForDisplay(all)
+	speciesCounts, speciesList := computeSpeciesCounts(all)
 	if err := h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
-		"title":         "Entities",
-		"page":          "entities",
-		"tick":          h.Sim.Tick,
-		"time":          h.Sim.Time.String(),
-		"phase":         h.Sim.Time.Phase().String(),
-		"season":        h.Sim.Time.Season().String(),
-		"entities":      len(all),
-		"entities_list": all,
-		"locations":     len(h.Sim.World.AllLocations()),
+		"title":          "Entities",
+		"page":           "entities",
+		"tick":           h.Sim.Tick,
+		"time":           h.Sim.Time.String(),
+		"phase":          h.Sim.Time.Phase().String(),
+		"season":         h.Sim.Time.Season().String(),
+		"entities":       len(all),
+		"entities_list":  all,
+		"locations":      len(h.Sim.World.AllLocations()),
+		"species_counts": speciesCounts,
+		"species_list":   speciesList,
 	}); err != nil {
 		_ = c.Error(err)
 	}
@@ -871,12 +900,15 @@ func (h *Handler) EntitiesFragment(c *gin.Context) {
 	defer h.Sim.RUnlock()
 	all := h.Sim.Entities.All()
 	sortEntitiesForDisplay(all)
+	speciesCounts, speciesList := computeSpeciesCounts(all)
 	if err := h.Tmpls.ExecuteTemplate(c.Writer, "entities_table", gin.H{
-		"tick":          h.Sim.Tick,
-		"time":          h.Sim.Time.String(),
-		"entities":      len(all),
-		"entities_list": all,
-		"locations":     len(h.Sim.World.AllLocations()),
+		"tick":           h.Sim.Tick,
+		"time":           h.Sim.Time.String(),
+		"entities":       len(all),
+		"entities_list":  all,
+		"locations":      len(h.Sim.World.AllLocations()),
+		"species_counts": speciesCounts,
+		"species_list":   speciesList,
 	}); err != nil {
 		_ = c.Error(err)
 	}
