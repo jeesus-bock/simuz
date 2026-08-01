@@ -1,6 +1,10 @@
 package entity
 
-import "math/rand"
+import (
+	"math/rand"
+
+	"simuz/internal/event"
+)
 
 type PregnancyOutcome string
 
@@ -29,21 +33,32 @@ type Reproduction struct {
 }
 
 // StartPregnancy initiates a pregnancy for the entity, recording the father
-// and incrementing the conception counter.
-func (r *Reproduction) StartPregnancy(fatherID string, currentTick uint64) {
+// and incrementing the conception counter. Returns a SimEvent for the pregnancy start.
+func (r *Reproduction) StartPregnancy(fatherID string, currentTick uint64, motherID string) []event.SimEvent {
 	r.Pregnant = true
 	r.PregnantSinceTick = currentTick
 	r.FatherID = fatherID
 	r.ConceptionsCount++
+
+	return []event.SimEvent{
+		{
+			Tick:   currentTick,
+			Type:   "pregnancy_start",
+			Entity: motherID,
+			Data: map[string]interface{}{
+				"father_id": fatherID,
+			},
+		},
+	}
 }
 
 // MaintainPregnancy updates the pregnancy state each tick, handling gestation
 // progression, complications (miscarriage, stillbirth), and outcomes.
 // Call this each simulation tick for pregnant entities.
-// Returns true if the pregnancy has resulted in a live birth.
-func (r *Reproduction) MaintainPregnancy(currentTick uint64, gestationTicks int, e *Entity) (birthOccurred bool) {
+// Returns a slice of SimEvents for any events that occurred this tick.
+func (r *Reproduction) MaintainPregnancy(currentTick uint64, gestationTicks int, e *Entity) []event.SimEvent {
 	if !r.Pregnant {
-		return false
+		return nil
 	}
 
 	// If gestationTicks is invalid, treat as immediate birth.
@@ -55,7 +70,17 @@ func (r *Reproduction) MaintainPregnancy(currentTick uint64, gestationTicks int,
 			Outcome:       OutcomeLiveBirth,
 			Notes:         "Instant birth (zero gestation)",
 		})
-		return true
+		return []event.SimEvent{
+			{
+				Tick:   currentTick,
+				Type:   "birth",
+				Entity: e.ID,
+				Data: map[string]interface{}{
+					"father_id": r.FatherID,
+					"outcome":   OutcomeLiveBirth,
+				},
+			},
+		}
 	}
 
 	// If the mother has died during pregnancy, the pregnancy ends in stillbirth.
@@ -67,7 +92,18 @@ func (r *Reproduction) MaintainPregnancy(currentTick uint64, gestationTicks int,
 			Outcome:       OutcomeStillbirth,
 			Notes:         "Mother died during pregnancy",
 		})
-		return false
+		return []event.SimEvent{
+			{
+				Tick:   currentTick,
+				Type:   "stillbirth",
+				Entity: e.ID,
+				Data: map[string]interface{}{
+					"father_id": r.FatherID,
+					"outcome":   OutcomeStillbirth,
+					"notes":     "Mother died during pregnancy",
+				},
+			},
+		}
 	}
 
 	gestationProgress := currentTick - r.PregnantSinceTick
@@ -79,7 +115,17 @@ func (r *Reproduction) MaintainPregnancy(currentTick uint64, gestationTicks int,
 			FatherID:      r.FatherID,
 			Outcome:       OutcomeLiveBirth,
 		})
-		return true
+		return []event.SimEvent{
+			{
+				Tick:   currentTick,
+				Type:   "birth",
+				Entity: e.ID,
+				Data: map[string]interface{}{
+					"father_id": r.FatherID,
+					"outcome":   OutcomeLiveBirth,
+				},
+			},
+		}
 	}
 
 	// During pregnancy there is a small chance of complications.
@@ -93,7 +139,18 @@ func (r *Reproduction) MaintainPregnancy(currentTick uint64, gestationTicks int,
 			Outcome:       OutcomeMiscarriage,
 			Notes:         "Spontaneous miscarriage",
 		})
-		return false
+		return []event.SimEvent{
+			{
+				Tick:   currentTick,
+				Type:   "miscarriage",
+				Entity: e.ID,
+				Data: map[string]interface{}{
+					"father_id": r.FatherID,
+					"outcome":   OutcomeMiscarriage,
+					"notes":     "Spontaneous miscarriage",
+				},
+			},
+		}
 	}
 	if roll < 8 {
 		r.Pregnant = false
@@ -103,9 +160,20 @@ func (r *Reproduction) MaintainPregnancy(currentTick uint64, gestationTicks int,
 			Outcome:       OutcomeStillbirth,
 			Notes:         "Late-term complication",
 		})
-		return false
+		return []event.SimEvent{
+			{
+				Tick:   currentTick,
+				Type:   "stillbirth",
+				Entity: e.ID,
+				Data: map[string]interface{}{
+					"father_id": r.FatherID,
+					"outcome":   OutcomeStillbirth,
+					"notes":     "Late-term complication",
+				},
+			},
+		}
 	}
 
 	// Pregnancy is still in progress — no event this tick.
-	return false
+	return nil
 }
