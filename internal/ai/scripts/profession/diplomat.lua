@@ -4,7 +4,7 @@
 
 local function practice_statecraft()
     local nearby = world.nearby_entities()
-    if not nearby then return false end
+    if not nearby then return nil, nil end
 
     -- Realpolitik: "He who adapts his policy to the times prospers."
     -- If critically wounded, retreat immediately. Preservation of the state (self) is paramount.
@@ -13,7 +13,7 @@ local function practice_statecraft()
         util.set_mood("calculating", 15)
         local exits = world.exits_from(self.loc_id)
         if exits and #exits > 0 then world.move_to(exits[util.rand_int(#exits) + 1]) end
-        return true
+        return nil, nil
     end
 
     local strongest_entity = nil
@@ -64,7 +64,7 @@ function do_tick()
 
     if world.tick % 20 == 0 then
         local strongest, weakest = practice_statecraft()
-        if strongest ~= nil then
+        if strongest and type(strongest) == "table" then
             acted = negotiate(strongest, weakest)
         end
 
