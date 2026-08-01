@@ -75,11 +75,12 @@ local function do_tick()
         if self.home and self.loc_id ~= self.home then
             world.move_to(self.home)
         end
-        return
+        return {}
     end
 
     local target_id, target_info = find_hostile()
-    if target_id then
+    -- Fail-safe: Only interact if a target and target_info were successfully found
+    if target_id and target_info then
         local attacked = util.rand_int(100) < 60
         if attacked then
             local hit = world.attack(self.id, target_id)
@@ -91,18 +92,25 @@ local function do_tick()
         if target_info.species == "human" then
             do_charm(target_id)
         end
-        return
+        return {}
     end
 
-    if world.tick % WANDER_INTERVAL == 0 then
-        local exits = world.exits_from(self.loc_id)
-        if exits and #exits > 0 then
-            local dest = exits[util.rand_int(#exits) + 1]
-            if dest ~= self.loc_id then
-                world.move_to(dest)
+    -- Safe-navigation check for world.tick and WANDER_INTERVAL
+    if world.tick and WANDER_INTERVAL and (world.tick % WANDER_INTERVAL == 0) then
+        -- Ensure we have a valid location ID to query exits from
+        if self.loc_id then
+            local exits = world.exits_from(self.loc_id)
+            if exits and #exits > 0 then
+                local dest = exits[util.rand_int(#exits) + 1]
+                -- Explicit nil check for the picked destination
+                if dest and dest ~= self.loc_id then
+                    world.move_to(dest)
+                    return {util.event("move", {})}
+                end
             end
         end
     end
+    return {}
 end
 
-do_tick()
+return do_tick()

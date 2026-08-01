@@ -16,8 +16,8 @@ local function find_inn()
 end
 
 local function play_for_reward()
-    -- Simple “play” action: try to get money, bread, or wine.
-    -- In a real game this would involve dialogue or a mini‑game;
+    -- Simple "play" action: try to get money, bread, or wine.
+    -- In a real game this would involve dialogue or a mini-game;
     -- here we just log the attempt and assume a reward.
     util.log(self.name .. " plays for money, bread, or wine")
     -- Example reward: add some gold (or other items) to the entity.
@@ -53,7 +53,7 @@ local function do_tick()
     if phase == "night" then
         travel_to_next_town()
         rest()
-        return
+        return {}
     end
 
     -- Day: look for an inn and play.
@@ -64,6 +64,8 @@ local function do_tick()
         -- No inn nearby – just rest on the field.
         rest()
     end
+
+    return {}
 end
 
-do_tick()
+return do_tick()
