@@ -52,6 +52,10 @@ func NewSpawnManager() *SpawnManager {
 			{ID: "ash_orcs", LocationID: "ash_ruins", Species: "orc", Faction: "", Profession: "warrior", FactionID: "orc", DesiredCount: 2, Interval: 180, MinLevel: 2, MaxLevel: 4},
 			{ID: "town_bard", LocationID: "tavern", Species: "human", Faction: "", Profession: "bard", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 1, MaxLevel: 3},
 			{ID: "town_priest", LocationID: "temple", Species: "human", Faction: "", Profession: "priest", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 1, MaxLevel: 3},
+			{ID: "human_politician", LocationID: "tavern", Species: "human", Faction: "", Profession: "politician", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 3, MaxLevel: 5},
+			{ID: "orc_chief", LocationID: "orc_camp", Species: "orc", Faction: "", Profession: "politician", FactionID: "orc", DesiredCount: 1, Interval: 0, MinLevel: 4, MaxLevel: 6},
+			{ID: "dwarf_thane", LocationID: "dwarf_keep", Species: "dwarf", Faction: "", Profession: "politician", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 4, MaxLevel: 6},
+			{ID: "elf_archon", LocationID: "fey_glade", Species: "elf", Faction: "", Profession: "politician", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 5, MaxLevel: 7},
 		},
 	}
 }

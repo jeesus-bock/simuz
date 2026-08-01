@@ -306,6 +306,19 @@ func (g *Generator) generateHostiles() []*entity.Entity {
 		log.Printf("[gen] created fallback location: %s in %s", feyGladeID, feyGladeRegion)
 	}
 
+	dwarfKeepID := "dwarf_keep"
+	if existing := g.World.Location(dwarfKeepID); existing == nil {
+		highlandsRegion := regionByBiome["highlands"]
+		if highlandsRegion == "" {
+			highlandsRegion = orcCampRegion
+		}
+		keepLoc := world.NewLocation(dwarfKeepID, "Dwarven Keep", world.LocBuilding, highlandsRegion, world.Position{X: -10, Y: 15})
+		keepLoc.IsOutside = false
+		keepLoc.Tags = []string{"forge", "dwarf", "keep"}
+		g.World.AddLocation(keepLoc)
+		log.Printf("[gen] created fallback location: %s in %s", dwarfKeepID, highlandsRegion)
+	}
+
 	orcDefs := []struct {
 		id, name, locID string
 	}{
