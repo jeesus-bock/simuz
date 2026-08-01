@@ -1366,8 +1366,31 @@ func questKilled(sim *Simulation, target *entity.Entity) {
 }
 
 
+// bestFactionFor returns the faction ID whose SpeciesRelation + ProfessionRelation
+// gives the entity the highest positive combined score, or "" if none are positive.
+func bestFactionFor(ent *entity.Entity) string {
+	bestID := ""
+	bestScore := 0
+	for id, fac := range faction.FactionRegistry {
+		score := 0
+		if sr, ok := fac.SpeciesRelation[ent.Species]; ok {
+			score += sr.Int()
+		}
+		if pr, ok := fac.ProfessionRelation[ent.Profession]; ok {
+			score += pr.Int()
+		}
+		if score > bestScore {
+			bestScore = score
+			bestID = id
+		}
+	}
+	return bestID
+}
+
 // TickFactions recomputes dynamic faction state from entity data.
 // Called once per tick to keep the UI faction view current.
+// Entities are assigned to the named faction whose SpeciesRelation +
+// ProfessionRelation gives the best positive match.
 func TickFactions(sim *Simulation) {
 	for _, fac := range faction.FactionRegistry {
 		fac.MemberIDs = make(map[string]bool)
@@ -1382,10 +1405,12 @@ func TickFactions(sim *Simulation) {
 			if !ent.Alive {
 				continue
 			}
-			if ent.Faction == "" || ent.Faction == "civilian" {
+			if ent.Faction == "civilian" && ent.Profession == "" {
 				continue
 			}
-			if ent.Faction != fac.ID {
+
+			assignedFaction := bestFactionFor(ent)
+			if assignedFaction != fac.ID {
 				continue
 			}
 
@@ -1400,12 +1425,12 @@ func TickFactions(sim *Simulation) {
 			}
 
 			// Track leader: prefer politicians, fallback to highest-level member
-			if ent.Profession == "politician" {
+			if ent.Profession == "politician" || fac.LeaderEntityID == "" {
 				fac.LeaderEntityID = ent.ID
 			}
 		}
 
-		// Compute controlled zones: locations where >50% of entities belong to this faction
+		// Compute controlled zones: locations where >30% of entities belong to this faction
 		for locID, count := range memberLocations {
 			total := len(sim.Entities.ByLocation(locID))
 			if total > 0 {
