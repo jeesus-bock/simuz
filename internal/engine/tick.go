@@ -1391,48 +1391,65 @@ func bestFactionFor(ent *entity.Entity) string {
 // Called once per tick to keep the UI faction view current.
 // Entities are assigned to the named faction whose SpeciesRelation +
 // ProfessionRelation gives the best positive match.
+// Iterates entities once (O(F·E) instead of O(F²·E)).
 func TickFactions(sim *Simulation) {
+	// Reset all factions
 	for _, fac := range faction.FactionRegistry {
 		fac.MemberIDs = make(map[string]bool)
 		fac.VaultGold = 0
 		fac.WealthTier = 0
 		fac.ControlledZones = make(map[string]float64)
 		fac.LeaderEntityID = ""
+	}
 
-		memberLocations := make(map[string]int)
+	// Track per-location entity totals for controlled zone computation
+	locTotals := make(map[string]int)
+	// Track per-faction per-location member counts
+	facLocCounts := make(map[string]map[string]int) // facID -> locID -> count
 
-		for _, ent := range sim.Entities.All() {
-			if !ent.Alive {
-				continue
-			}
-			if ent.Faction == "civilian" && ent.Profession == "" {
-				continue
-			}
+	// Single pass over entities
+	for _, ent := range sim.Entities.All() {
+		if !ent.Alive {
+			continue
+		}
+		if ent.Faction == "civilian" && ent.Profession == "" {
+			continue
+		}
 
-			assignedFaction := bestFactionFor(ent)
-			if assignedFaction != fac.ID {
-				continue
-			}
+		facID := bestFactionFor(ent)
+		if facID == "" {
+			continue
+		}
+		fac, ok := faction.FactionRegistry[facID]
+		if !ok {
+			continue
+		}
 
-			fac.MemberIDs[ent.ID] = true
-			memberLocations[ent.LocationID]++
+		fac.MemberIDs[ent.ID] = true
+		locTotals[ent.LocationID]++
 
-			// Accumulate vault gold from entity currency
-			for _, inst := range ent.Inventory {
-				if inst.Def != nil && inst.Def.Type == 6 { // TypeCurrency = 6
-					fac.VaultGold += inst.Def.Value * inst.Count
-				}
-			}
+		if facLocCounts[facID] == nil {
+			facLocCounts[facID] = make(map[string]int)
+		}
+		facLocCounts[facID][ent.LocationID]++
 
-			// Track leader: prefer politicians, fallback to highest-level member
-			if ent.Profession == "politician" || fac.LeaderEntityID == "" {
-				fac.LeaderEntityID = ent.ID
+		// Accumulate vault gold from entity currency
+		for _, inst := range ent.Inventory {
+			if inst.Def != nil && inst.Def.Type == 6 { // TypeCurrency = 6
+				fac.VaultGold += inst.Def.Value * inst.Count
 			}
 		}
 
-		// Compute controlled zones: locations where >30% of entities belong to this faction
-		for locID, count := range memberLocations {
-			total := len(sim.Entities.ByLocation(locID))
+		// Track leader: prefer politicians, fallback to any member
+		if ent.Profession == "politician" || fac.LeaderEntityID == "" {
+			fac.LeaderEntityID = ent.ID
+		}
+	}
+
+	// Post-pass: compute controlled zones, wealth tier, and state per faction
+	for facID, fac := range faction.FactionRegistry {
+		for locID, count := range facLocCounts[facID] {
+			total := locTotals[locID]
 			if total > 0 {
 				pct := float64(count) / float64(total) * 100
 				if pct > 30 {
@@ -1441,7 +1458,6 @@ func TickFactions(sim *Simulation) {
 			}
 		}
 
-		// Compute wealth tier from vault gold
 		switch {
 		case fac.VaultGold >= 10000:
 			fac.WealthTier = 5
@@ -1455,7 +1471,6 @@ func TickFactions(sim *Simulation) {
 			fac.WealthTier = 1
 		}
 
-		// Set faction state based on member count and wealth
 		if len(fac.MemberIDs) == 0 {
 			fac.CurrentState = "dormant"
 		} else if fac.WealthTier == 0 {
