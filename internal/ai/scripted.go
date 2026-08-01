@@ -964,6 +964,40 @@ func questKilledLua(qm *quest.Manager, em *entity.EntityManager, target *entity.
 	}
 }
 
+// hasDiplomaticImmunity checks whether the target has diplomatic immunity.
+// Diplomats are protected from attack unless:
+// 1. The attacker has a direct negative entity-level relation with the target
+//    (set by a politician via world.set_entity_relation), OR
+// 2. A nearby politician of the attacker's faction has declared the target hostile.
+func hasDiplomaticImmunity(em *entity.EntityManager, caller, attacker, target *entity.Entity) bool {
+	if target.Profession != "diplomat" {
+		return false
+	}
+	// If the script-caller (the entity running the current script) has explicit
+	// negative entity-relation toward the target, a politician has revoked immunity.
+	if caller.Relation.GetEntityRelation(target.ID) < 0 {
+		return false
+	}
+	// If the attacker itself has negative entity-relation, also bypass.
+	if attacker.Relation.GetEntityRelation(target.ID) < 0 {
+		return false
+	}
+	// Check if any nearby politician of the attacker's faction has set hostility
+	// toward this diplomat.
+	nearby := em.ByLocation(attacker.LocationID)
+	for _, other := range nearby {
+		if other == nil || other.ID == attacker.ID || !other.Alive {
+			continue
+		}
+		if other.Profession == "politician" && other.Faction == attacker.Faction {
+			if other.Relation.GetEntityRelation(target.ID) < 0 {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func bindWorld(L *lua.LState, w *world.World, em *entity.EntityManager, tm *world.GameTime, rng *rand.Rand, ent *entity.Entity, qm *quest.Manager) {
 	worldTbl := L.NewTable()
 	worldTbl.RawSetString("time", lua.LString(tm.String()))
@@ -1400,11 +1434,57 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.EntityManager, tm *worl
 		return 0
 	}))
 
+	worldTbl.RawSetString("set_entity_relation", L.NewFunction(func(L *lua.LState) int {
+		targetID := L.ToString(1)
+		rel := L.ToString(2)
+		target := em.Get(targetID)
+		if target == nil {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		var r relation.HostilityRelation
+		switch rel {
+		case "hostile":
+			r = -10
+		case "friendly":
+			r = 10
+		default:
+			r = 0
+		}
+		ent.Relation.SetEntityRelation(targetID, r)
+		log.Printf("[lua] %s set entity relation %s -> %s = %s", ent.Name, ent.ID, targetID, rel)
+		L.Push(lua.LTrue)
+		return 1
+	}))
+
+	worldTbl.RawSetString("get_entity_relation", L.NewFunction(func(L *lua.LState) int {
+		targetID := L.ToString(1)
+		target := em.Get(targetID)
+		if target == nil {
+			L.Push(lua.LString("neutral"))
+			return 1
+		}
+		rel := ent.Relation.Relation(target)
+		var relStr string
+		if rel < 0 {
+			relStr = "hostile"
+		} else if rel > 0 {
+			relStr = "friendly"
+		} else {
+			relStr = "neutral"
+		}
+		L.Push(lua.LString(relStr))
+		return 1
+	}))
+
 	worldTbl.RawSetString("defend_self", L.NewFunction(func(L *lua.LState) int {
 		nearby := em.ByLocation(ent.LocationID)
 		hostiles := make([]*entity.Entity, 0, len(nearby))
 		for _, other := range nearby {
 			if other == nil || other.ID == ent.ID || !other.Alive || other.Immortal {
+				continue
+			}
+			if hasDiplomaticImmunity(em, ent, ent, other) {
 				continue
 			}
 			if ent.Relation.Relation(other) >= 0 {
@@ -1436,6 +1516,11 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.EntityManager, tm *worl
 		attacker := em.Get(attackerID)
 		target := em.Get(targetID)
 		if attacker == nil || target == nil || !attacker.Alive || !attacker.Conscious || !target.Alive {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		if hasDiplomaticImmunity(em, ent, attacker, target) {
+			log.Printf("[diplomacy] %s blocked from attacking %s (diplomatic immunity)", attacker.Name, target.Name)
 			L.Push(lua.LFalse)
 			return 1
 		}
