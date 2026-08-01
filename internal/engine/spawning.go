@@ -44,6 +44,7 @@ func NewSpawnManager() *SpawnManager {
 
 	// 1. Add hardcoded rules for species with location-specific spawning.
 	sm.Rules = []SpawnRule{
+		// --- Core species ---
 		{ID: "orc_patrol", LocationID: "orc_camp", Species: "orc", Faction: "", Profession: "warrior", FactionID: "orc", DesiredCount: 4, Interval: 120, MinLevel: 1, MaxLevel: 3},
 		{ID: "wolf_pack", LocationID: "wolf_den", Species: "wolf", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 4, Interval: 90, MinLevel: 1, MaxLevel: 2},
 		{ID: "bandit_camp", LocationID: "bandit_camp", Species: "human", Faction: "", Profession: "bandit", FactionID: "bandit", DesiredCount: 4, Interval: 150, MinLevel: 1, MaxLevel: 2},
@@ -62,6 +63,64 @@ func NewSpawnManager() *SpawnManager {
 		{ID: "orc_chief", LocationID: "orc_camp", Species: "orc", Faction: "", Profession: "politician", FactionID: "orc", DesiredCount: 1, Interval: 0, MinLevel: 4, MaxLevel: 6},
 		{ID: "dwarf_thane", LocationID: "dwarf_keep", Species: "dwarf", Faction: "", Profession: "politician", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 4, MaxLevel: 6},
 		{ID: "elf_archon", LocationID: "fey_glade", Species: "elf", Faction: "", Profession: "politician", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 5, MaxLevel: 7},
+
+		// --- Half-species ---
+		{ID: "half_orc_warrior", LocationID: "orc_camp", Species: "half_orc", Faction: "", Profession: "warrior", FactionID: "orc", DesiredCount: 2, Interval: 0, MinLevel: 1, MaxLevel: 4},
+		{ID: "half_elf_scholar", LocationID: "fey_glade", Species: "half_elf", Faction: "", Profession: "scholar", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 1, MaxLevel: 5},
+		{ID: "half_dwarf_miner", LocationID: "dwarf_keep", Species: "half_dwarf", Faction: "", Profession: "miner", FactionID: "", DesiredCount: 2, Interval: 0, MinLevel: 1, MaxLevel: 4},
+		{ID: "half_goblin_scavenger", LocationID: "goblin_hollow", Species: "half_goblin", Faction: "", Profession: "gatherer", FactionID: "goblin", DesiredCount: 2, Interval: 0, MinLevel: 1, MaxLevel: 2},
+		{ID: "half_hobgoblin_soldier", LocationID: "orc_camp", Species: "half_hobgoblin", Faction: "", Profession: "warrior", FactionID: "orc", DesiredCount: 2, Interval: 0, MinLevel: 2, MaxLevel: 5},
+		{ID: "half_gnoll_marauder", LocationID: "orc_camp", Species: "half_gnoll", Faction: "", Profession: "warrior", FactionID: "orc", DesiredCount: 2, Interval: 0, MinLevel: 1, MaxLevel: 3},
+		{ID: "half_kobold_scout", LocationID: "kobold_warren", Species: "half_kobold", Faction: "", Profession: "scout", FactionID: "kobold", DesiredCount: 2, Interval: 0, MinLevel: 1, MaxLevel: 2},
+		{ID: "half_fey_druid", LocationID: "fey_glade", Species: "half_fey", Faction: "", Profession: "druid", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 2, MaxLevel: 5},
+
+		// --- Undead ---
+		{ID: "skeleton_graveyard", LocationID: "graveyard", Species: "skeleton", Faction: "", Profession: "warrior", FactionID: "undead", DesiredCount: 4, Interval: 120, MinLevel: 1, MaxLevel: 3},
+		{ID: "zombie_moat", LocationID: "castle_dungeon", Species: "zombie", Faction: "", Profession: "", FactionID: "undead", DesiredCount: 3, Interval: 90, MinLevel: 1, MaxLevel: 2},
+		{ID: "ghost_keep", LocationID: "castle_keep", Species: "ghost", Faction: "", Profession: "", FactionID: "undead", DesiredCount: 2, Interval: 150, MinLevel: 3, MaxLevel: 5},
+		{ID: "wraith_crypt", LocationID: "crypt", Species: "wraith", Faction: "", Profession: "", FactionID: "undead", DesiredCount: 2, Interval: 180, MinLevel: 4, MaxLevel: 6},
+		{ID: "lich_tower", LocationID: "dark_tower", Species: "lich", Faction: "", Profession: "necromancer", FactionID: "undead", DesiredCount: 1, Interval: 0, MinLevel: 7, MaxLevel: 9},
+		{ID: "vampire_mansion", LocationID: "mansion", Species: "vampire", Faction: "", Profession: "politician", FactionID: "undead", DesiredCount: 1, Interval: 0, MinLevel: 5, MaxLevel: 7},
+
+		// --- Fey & magical ---
+		{ID: "fairy_grove", LocationID: "fey_glade", Species: "fairy", Faction: "", Profession: "", FactionID: "fey", DesiredCount: 3, Interval: 120, MinLevel: 1, MaxLevel: 3},
+		{ID: "dryad_forest", LocationID: "ancient_forest", Species: "dryad", Faction: "", Profession: "", FactionID: "fey", DesiredCount: 2, Interval: 150, MinLevel: 2, MaxLevel: 4},
+		{ID: "satyr_cavern", LocationID: "mountain_cave", Species: "satyr", Faction: "", Profession: "", FactionID: "fey", DesiredCount: 2, Interval: 140, MinLevel: 2, MaxLevel: 4},
+		{ID: "pixie_mushroom", LocationID: "mushroom_forest", Species: "pixie", Faction: "", Profession: "", FactionID: "fey", DesiredCount: 4, Interval: 100, MinLevel: 1, MaxLevel: 2},
+		{ID: "treant_wood", LocationID: "ancient_forest", Species: "treant", Faction: "", Profession: "", FactionID: "fey", DesiredCount: 1, Interval: 0, MinLevel: 5, MaxLevel: 7},
+
+		// --- Dragons & reptiles ---
+		{ID: "dragon_lair", LocationID: "dragon_cave", Species: "dragon", Faction: "", Profession: "", FactionID: "dragon", DesiredCount: 1, Interval: 0, MinLevel: 8, MaxLevel: 10},
+		{ID: "lizardfolk_swamp", LocationID: "swamp", Species: "lizardfolk", Faction: "", Profession: "warrior", FactionID: "lizardfolk", DesiredCount: 3, Interval: 150, MinLevel: 2, MaxLevel: 4},
+		{ID: "wyvern_peak", LocationID: "mountain_peak", Species: "wyvern", Faction: "", Profession: "", FactionID: "dragon", DesiredCount: 2, Interval: 180, MinLevel: 3, MaxLevel: 5},
+		{ID: "basilisk_lair", LocationID: "cave_system", Species: "basilisk", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 1, Interval: 0, MinLevel: 4, MaxLevel: 6},
+
+		// --- Fey & small races ---
+		{ID: "gnome_hollow", LocationID: "gnome_hollow", Species: "gnome", Faction: "", Profession: "miner", FactionID: "gnome", DesiredCount: 3, Interval: 150, MinLevel: 1, MaxLevel: 3},
+		{ID: "halfling_village", LocationID: "halfling_village", Species: "halfling", Faction: "", Profession: "farmer", FactionID: "halfling", DesiredCount: 4, Interval: 0, MinLevel: 1, MaxLevel: 3},
+		{ID: "tiefling_city", LocationID: "city_slums", Species: "tiefling", Faction: "", Profession: "warrior", FactionID: "tiefling", DesiredCount: 2, Interval: 0, MinLevel: 1, MaxLevel: 4},
+		{ID: "aasimar_shrine", LocationID: "shrine", Species: "aasimar", Faction: "", Profession: "priest", FactionID: "aasimar", DesiredCount: 1, Interval: 0, MinLevel: 3, MaxLevel: 5},
+		{ID: "goliath_mountain", LocationID: "mountain_peak", Species: "goliath", Faction: "", Profession: "warrior", FactionID: "goliath", DesiredCount: 2, Interval: 0, MinLevel: 3, MaxLevel: 5},
+
+		// --- Beastfolk & hybrids ---
+		{ID: "minotaur_labyrinth", LocationID: "labyrinth", Species: "minotaur", Faction: "", Profession: "warrior", FactionID: "beastfolk", DesiredCount: 2, Interval: 0, MinLevel: 4, MaxLevel: 6},
+		{ID: "centaur_plain", LocationID: "open_plains", Species: "centaur", Faction: "", Profession: "warrior", FactionID: "beastfolk", DesiredCount: 3, Interval: 0, MinLevel: 2, MaxLevel: 4},
+		{ID: "merfolk_coast", LocationID: "coastal_cave", Species: "merfolk", Faction: "", Profession: "", FactionID: "beastfolk", DesiredCount: 3, Interval: 0, MinLevel: 1, MaxLevel: 3},
+		{ID: "harpy_cliff", LocationID: "cliff_nest", Species: "harpy", Faction: "", Profession: "", FactionID: "beastfolk", DesiredCount: 2, Interval: 120, MinLevel: 2, MaxLevel: 4},
+		{ID: "werewolf_forest", LocationID: "dark_forest", Species: "werewolf", Faction: "", Profession: "warrior", FactionID: "beastfolk", DesiredCount: 2, Interval: 0, MinLevel: 3, MaxLevel: 5},
+		{ID: "werebear_mountain", LocationID: "mountain_cave", Species: "werebear", Faction: "", Profession: "", FactionID: "beastfolk", DesiredCount: 1, Interval: 0, MinLevel: 4, MaxLevel: 6},
+
+		// --- Monstrous ---
+		{ID: "bugbear_cave", LocationID: "goblin_hollow", Species: "bugbear", Faction: "", Profession: "warrior", FactionID: "goblin", DesiredCount: 2, Interval: 0, MinLevel: 3, MaxLevel: 5},
+		{ID: "ogre_mountain", LocationID: "ogre_stronghold", Species: "ogre", Faction: "", Profession: "warrior", FactionID: "ogre", DesiredCount: 2, Interval: 0, MinLevel: 4, MaxLevel: 6},
+		{ID: "troll_bridge", LocationID: "swamp", Species: "troll", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 1, Interval: 0, MinLevel: 5, MaxLevel: 7},
+		{ID: "giant_peak", LocationID: "mountain_peak", Species: "giant", Faction: "", Profession: "warrior", FactionID: "giant", DesiredCount: 1, Interval: 0, MinLevel: 6, MaxLevel: 8},
+		{ID: "mimic_chest", LocationID: "dungeon", Species: "mimic", Faction: "", Profession: "", FactionID: "monster", DesiredCount: 1, Interval: 0, MinLevel: 3, MaxLevel: 5},
+		{ID: "slime_cave", LocationID: "cave_system", Species: "slime", Faction: "", Profession: "", FactionID: "vermin", DesiredCount: 4, Interval: 60, MinLevel: 1, MaxLevel: 2},
+		{ID: "golem_ruins", LocationID: "ancient_ruins", Species: "golem", Faction: "", Profession: "", FactionID: "construct", DesiredCount: 1, Interval: 0, MinLevel: 5, MaxLevel: 7},
+
+		// --- Divine ---
+		{ID: "deity_shrine", LocationID: "temple", Species: "deity", Faction: "", Profession: "priest", FactionID: "divine", DesiredCount: 1, Interval: 0, MinLevel: 8, MaxLevel: 10},
 	}
 
 	// 2. Track which species already have at least one rule.
@@ -142,6 +201,82 @@ func defaultLocationForSpecies(speciesID string) string {
 		return "kobold_warren"
 	case "half_fey":
 		return "fey_glade"
+	// Undead
+	case "skeleton":
+		return "graveyard"
+	case "zombie":
+		return "castle_dungeon"
+	case "ghost":
+		return "castle_keep"
+	case "wraith":
+		return "crypt"
+	case "lich":
+		return "dark_tower"
+	case "vampire":
+		return "mansion"
+	// Fey & magical
+	case "fairy":
+		return "fey_glade"
+	case "dryad":
+		return "ancient_forest"
+	case "satyr":
+		return "mountain_cave"
+	case "pixie":
+		return "mushroom_forest"
+	case "treant":
+		return "ancient_forest"
+	// Dragons & reptiles
+	case "dragon":
+		return "dragon_cave"
+	case "lizardfolk":
+		return "swamp"
+	case "wyvern":
+		return "mountain_peak"
+	case "basilisk":
+		return "cave_system"
+	// Small races
+	case "gnome":
+		return "gnome_hollow"
+	case "halfling":
+		return "halfling_village"
+	case "tiefling":
+		return "city_slums"
+	case "aasimar":
+		return "shrine"
+	case "goliath":
+		return "mountain_peak"
+	// Beastfolk & hybrids
+	case "minotaur":
+		return "labyrinth"
+	case "centaur":
+		return "open_plains"
+	case "merfolk":
+		return "coastal_cave"
+	case "harpy":
+		return "cliff_nest"
+	case "werewolf":
+		return "dark_forest"
+	case "werebear":
+		return "mountain_cave"
+	// Monstrous
+	case "bugbear":
+		return "goblin_hollow"
+	case "ogre":
+		return "ogre_stronghold"
+	case "troll":
+		return "swamp"
+	case "giant":
+		return "mountain_peak"
+	case "mimic":
+		return "dungeon"
+	case "slime":
+		return "cave_system"
+	case "golem":
+		return "ancient_ruins"
+	// Divine
+	case "deity":
+		return "temple"
+	// Fallback
 	default:
 		return "tavern"
 	}
@@ -152,10 +287,18 @@ func defaultFactionForSpecies(speciesID string) string {
 	switch speciesID {
 	case "orc", "half_orc", "half_hobgoblin", "half_gnoll":
 		return "orc"
-	case "wolf", "bear", "boar", "rat", "spider", "goblin", "kobold":
+	case "wolf", "bear", "boar", "rat", "spider", "goblin", "kobold", "bugbear", "ogre", "troll", "giant", "slime", "mimic":
 		return "beast"
-	case "human", "half_elf", "half_dwarf", "half_goblin", "half_kobold", "half_fey":
+	case "human", "half_elf", "half_dwarf", "half_goblin", "half_kobold", "half_fey", "gnome", "halfling", "tiefling", "aasimar", "goliath", "minotaur", "centaur", "merfolk", "harpy", "werewolf", "werebear", "lizardfolk", "wyvern", "basilisk", "dryad", "satyr", "pixie", "treant", "fairy":
 		return ""
+	case "skeleton", "zombie", "ghost", "wraith", "lich", "vampire":
+		return "undead"
+	case "dragon", "wyvern":
+		return "dragon"
+	case "golem", "construct":
+		return "construct"
+	case "deity":
+		return "divine"
 	default:
 		return ""
 	}
@@ -164,16 +307,26 @@ func defaultFactionForSpecies(speciesID string) string {
 // defaultProfessionForSpecies returns a default profession for a species.
 func defaultProfessionForSpecies(speciesID string) string {
 	switch speciesID {
-	case "orc", "half_orc", "half_hobgoblin", "half_gnoll":
+	case "orc", "half_orc", "half_hobgoblin", "half_gnoll", "bugbear", "ogre", "troll", "giant", "minotaur", "centaur", "lizardfolk", "werewolf", "werebear", "goliath":
 		return "warrior"
-	case "wolf", "bear", "boar", "rat", "spider":
+	case "wolf", "bear", "boar", "rat", "spider", "wyvern", "basilisk", "harpy", "slime", "mimic", "golem", "construct":
 		return ""
 	case "goblin":
 		return "gatherer"
-	case "kobold":
+	case "kobold", "half_kobold":
 		return "warrior"
-	case "human", "half_elf", "half_dwarf", "half_goblin", "half_kobold", "half_fey":
+	case "human", "half_elf", "half_dwarf", "half_goblin", "half_fey", "gnome", "halfling", "tiefling", "aasimar", "dryad", "satyr", "pixie", "treant", "fairy", "merfolk":
 		return ""
+	case "skeleton", "zombie", "ghost", "wraith":
+		return "warrior"
+	case "lich":
+		return "necromancer"
+	case "vampire":
+		return "politician"
+	case "dragon":
+		return ""
+	case "deity":
+		return "priest"
 	default:
 		return ""
 	}
@@ -396,12 +549,72 @@ func equipSpawn(ent *entity.Entity, rule *SpawnRule, rng *rand.Rand) {
 		default:
 			equipSpawnItem(ent, "goblin_shiv")
 		}
-	case "wolf", "bear":
+	case "wolf", "bear", "werewolf", "werebear":
 		equipSpawnItem(ent, "claws")
 	case "boar":
 		equipSpawnItem(ent, "tusks")
-	case "spider", "rat":
+	case "spider", "rat", "slime":
 		equipSpawnItem(ent, "fangs")
+	case "dragon", "wyvern":
+		equipSpawnItem(ent, "dragon_breath")
+	case "ogre":
+		equipSpawnItem(ent, "great_club")
+	case "troll":
+		equipSpawnItem(ent, "club")
+	case "giant":
+		equipSpawnItem(ent, "boulder")
+	case "minotaur":
+		equipSpawnItem(ent, "axe")
+	case "golem":
+		equipSpawnItem(ent, "stone_fist")
+	case "bugbear":
+		equipSpawnItem(ent, "morningstar")
+	case "harpy":
+		equipSpawnItem(ent, "talons")
+	case "centaur":
+		equipSpawnItem(ent, "short_sword")
+	case "merfolk":
+		equipSpawnItem(ent, "trident")
+	case "skeleton":
+		equipSpawnItem(ent, "rusty_sword")
+	case "zombie":
+		equipSpawnItem(ent, "rusty_axe")
+	case "ghost":
+		equipSpawnItem(ent, "ethereal_touch")
+	case "wraith":
+		equipSpawnItem(ent, "soul_scythe")
+	case "lich":
+		equipSpawnItem(ent, "staff_of_death")
+	case "vampire":
+		equipSpawnItem(ent, "fangs")
+	case "fairy":
+		equipSpawnItem(ent, "wand")
+	case "dryad":
+		equipSpawnItem(ent, "staff_of_vines")
+	case "satyr":
+		equipSpawnItem(ent, "pan_flute")
+	case "pixie":
+		equipSpawnItem(ent, "tiny_dagger")
+	case "treant":
+		equipSpawnItem(ent, "branch")
+	case "gnome":
+		equipSpawnItem(ent, "pickaxe")
+	case "halfling":
+		equipSpawnItem(ent, "short_sword")
+	case "tiefling":
+		equipSpawnItem(ent, "horn")
+	case "aasimar":
+		equipSpawnItem(ent, "holy_symbol")
+	case "goliath":
+		equipSpawnItem(ent, "greatclub")
+	case "lizardfolk":
+		equipSpawnItem(ent, "spear")
+	case "basilisk":
+		equipSpawnItem(ent, "petrifying_gaze")
+	case "mimic":
+		equipSpawnItem(ent, "bite")
+	case "deity":
+		equipSpawnItem(ent, "divine_scepter")
 	}
 }
 
@@ -423,6 +636,92 @@ func baseSpeciesAttrs(species string, rng *rand.Rand) entity.Attributes {
 		return entity.Attributes{STR: 8 + rng.Intn(3), DEX: 12 + rng.Intn(3), CON: 10 + rng.Intn(3), INT: 8 + rng.Intn(3), WIS: 6 + rng.Intn(3), CHA: 6 + rng.Intn(3)}
 	case "kobold":
 		return entity.Attributes{STR: 8 + rng.Intn(3), DEX: 14 + rng.Intn(3), CON: 9 + rng.Intn(3), INT: 8 + rng.Intn(3), WIS: 7 + rng.Intn(3), CHA: 6 + rng.Intn(3)}
+	case "half_orc":
+		return entity.Attributes{STR: 13 + rng.Intn(4), DEX: 10 + rng.Intn(3), CON: 12 + rng.Intn(3), INT: 6 + rng.Intn(3), WIS: 6 + rng.Intn(3), CHA: 5 + rng.Intn(3)}
+	case "half_elf":
+		return entity.Attributes{STR: 10 + rng.Intn(3), DEX: 11 + rng.Intn(3), CON: 10 + rng.Intn(3), INT: 10 + rng.Intn(3), WIS: 10 + rng.Intn(3), CHA: 11 + rng.Intn(3)}
+	case "half_dwarf":
+		return entity.Attributes{STR: 12 + rng.Intn(3), DEX: 10 + rng.Intn(3), CON: 14 + rng.Intn(3), INT: 8 + rng.Intn(3), WIS: 9 + rng.Intn(3), CHA: 8 + rng.Intn(3)}
+	case "half_goblin":
+		return entity.Attributes{STR: 9 + rng.Intn(3), DEX: 13 + rng.Intn(3), CON: 10 + rng.Intn(3), INT: 9 + rng.Intn(3), WIS: 7 + rng.Intn(3), CHA: 7 + rng.Intn(3)}
+	case "half_hobgoblin":
+		return entity.Attributes{STR: 13 + rng.Intn(3), DEX: 11 + rng.Intn(3), CON: 12 + rng.Intn(3), INT: 7 + rng.Intn(3), WIS: 7 + rng.Intn(3), CHA: 6 + rng.Intn(3)}
+	case "half_gnoll":
+		return entity.Attributes{STR: 12 + rng.Intn(3), DEX: 11 + rng.Intn(3), CON: 11 + rng.Intn(3), INT: 5 + rng.Intn(3), WIS: 6 + rng.Intn(3), CHA: 5 + rng.Intn(3)}
+	case "half_kobold":
+		return entity.Attributes{STR: 9 + rng.Intn(3), DEX: 13 + rng.Intn(3), CON: 9 + rng.Intn(3), INT: 9 + rng.Intn(3), WIS: 8 + rng.Intn(3), CHA: 7 + rng.Intn(3)}
+	case "half_fey":
+		return entity.Attributes{STR: 8 + rng.Intn(3), DEX: 13 + rng.Intn(3), CON: 9 + rng.Intn(3), INT: 11 + rng.Intn(3), WIS: 12 + rng.Intn(3), CHA: 13 + rng.Intn(3)}
+	// Undead
+	case "skeleton":
+		return entity.Attributes{STR: 10 + rng.Intn(3), DEX: 10 + rng.Intn(3), CON: 8 + rng.Intn(3), INT: 3 + rng.Intn(2), WIS: 4 + rng.Intn(2), CHA: 2 + rng.Intn(2)}
+	case "zombie":
+		return entity.Attributes{STR: 12 + rng.Intn(3), DEX: 6 + rng.Intn(2), CON: 12 + rng.Intn(3), INT: 2 + rng.Intn(2), WIS: 3 + rng.Intn(2), CHA: 2 + rng.Intn(2)}
+	case "ghost":
+		return entity.Attributes{STR: 6 + rng.Intn(2), DEX: 14 + rng.Intn(3), CON: 6 + rng.Intn(2), INT: 10 + rng.Intn(3), WIS: 12 + rng.Intn(3), CHA: 10 + rng.Intn(3)}
+	case "wraith":
+		return entity.Attributes{STR: 8 + rng.Intn(2), DEX: 15 + rng.Intn(3), CON: 7 + rng.Intn(2), INT: 12 + rng.Intn(3), WIS: 14 + rng.Intn(3), CHA: 11 + rng.Intn(3)}
+	case "lich":
+		return entity.Attributes{STR: 10 + rng.Intn(3), DEX: 12 + rng.Intn(3), CON: 10 + rng.Intn(3), INT: 18 + rng.Intn(4), WIS: 16 + rng.Intn(4), CHA: 14 + rng.Intn(3)}
+	case "vampire":
+		return entity.Attributes{STR: 12 + rng.Intn(3), DEX: 14 + rng.Intn(3), CON: 11 + rng.Intn(3), INT: 10 + rng.Intn(3), WIS: 12 + rng.Intn(3), CHA: 13 + rng.Intn(3)}
+	// Fey & magical
+	case "fairy":
+		return entity.Attributes{STR: 4 + rng.Intn(2), DEX: 16 + rng.Intn(4), CON: 6 + rng.Intn(2), INT: 10 + rng.Intn(3), WIS: 12 + rng.Intn(3), CHA: 14 + rng.Intn(3)}
+	case "dryad":
+		return entity.Attributes{STR: 8 + rng.Intn(2), DEX: 12 + rng.Intn(3), CON: 10 + rng.Intn(3), INT: 12 + rng.Intn(3), WIS: 14 + rng.Intn(3), CHA: 13 + rng.Intn(3)}
+	case "satyr":
+		return entity.Attributes{STR: 10 + rng.Intn(3), DEX: 13 + rng.Intn(3), CON: 10 + rng.Intn(3), INT: 9 + rng.Intn(3), WIS: 10 + rng.Intn(3), CHA: 12 + rng.Intn(3)}
+	case "pixie":
+		return entity.Attributes{STR: 3 + rng.Intn(2), DEX: 17 + rng.Intn(4), CON: 5 + rng.Intn(2), INT: 11 + rng.Intn(3), WIS: 13 + rng.Intn(3), CHA: 15 + rng.Intn(3)}
+	case "treant":
+		return entity.Attributes{STR: 18 + rng.Intn(3), DEX: 6 + rng.Intn(2), CON: 18 + rng.Intn(3), INT: 10 + rng.Intn(3), WIS: 14 + rng.Intn(3), CHA: 8 + rng.Intn(3)}
+	// Dragons & reptiles
+	case "dragon":
+		return entity.Attributes{STR: 18 + rng.Intn(4), DEX: 12 + rng.Intn(3), CON: 16 + rng.Intn(4), INT: 14 + rng.Intn(4), WIS: 16 + rng.Intn(4), CHA: 16 + rng.Intn(4)}
+	case "lizardfolk":
+		return entity.Attributes{STR: 13 + rng.Intn(3), DEX: 11 + rng.Intn(3), CON: 12 + rng.Intn(3), INT: 8 + rng.Intn(3), WIS: 9 + rng.Intn(3), CHA: 7 + rng.Intn(3)}
+	case "wyvern":
+		return entity.Attributes{STR: 14 + rng.Intn(3), DEX: 15 + rng.Intn(3), CON: 12 + rng.Intn(3), INT: 6 + rng.Intn(2), WIS: 8 + rng.Intn(3), CHA: 8 + rng.Intn(3)}
+	case "basilisk":
+		return entity.Attributes{STR: 12 + rng.Intn(3), DEX: 10 + rng.Intn(3), CON: 12 + rng.Intn(3), INT: 8 + rng.Intn(3), WIS: 10 + rng.Intn(3), CHA: 6 + rng.Intn(3)}
+	// Small races
+	case "gnome":
+		return entity.Attributes{STR: 7 + rng.Intn(2), DEX: 11 + rng.Intn(3), CON: 9 + rng.Intn(2), INT: 14 + rng.Intn(4), WIS: 12 + rng.Intn(3), CHA: 10 + rng.Intn(3)}
+	case "halfling":
+		return entity.Attributes{STR: 8 + rng.Intn(2), DEX: 14 + rng.Intn(3), CON: 9 + rng.Intn(2), INT: 10 + rng.Intn(3), WIS: 11 + rng.Intn(3), CHA: 10 + rng.Intn(3)}
+	case "tiefling":
+		return entity.Attributes{STR: 10 + rng.Intn(3), DEX: 12 + rng.Intn(3), CON: 10 + rng.Intn(3), INT: 11 + rng.Intn(3), WIS: 10 + rng.Intn(3), CHA: 12 + rng.Intn(3)}
+	case "aasimar":
+		return entity.Attributes{STR: 10 + rng.Intn(3), DEX: 11 + rng.Intn(3), CON: 10 + rng.Intn(3), INT: 12 + rng.Intn(3), WIS: 14 + rng.Intn(3), CHA: 13 + rng.Intn(3)}
+	case "goliath":
+		return entity.Attributes{STR: 16 + rng.Intn(4), DEX: 10 + rng.Intn(3), CON: 15 + rng.Intn(3), INT: 8 + rng.Intn(3), WIS: 10 + rng.Intn(3), CHA: 8 + rng.Intn(3)}
+	// Beastfolk & hybrids
+	case "minotaur":
+		return entity.Attributes{STR: 16 + rng.Intn(3), DEX: 10 + rng.Intn(3), CON: 14 + rng.Intn(3), INT: 6 + rng.Intn(3), WIS: 8 + rng.Intn(3), CHA: 6 + rng.Intn(3)}
+	case "centaur":
+		return entity.Attributes{STR: 14 + rng.Intn(3), DEX: 13 + rng.Intn(3), CON: 12 + rng.Intn(3), INT: 8 + rng.Intn(3), WIS: 10 + rng.Intn(3), CHA: 8 + rng.Intn(3)}
+	case "merfolk":
+		return entity.Attributes{STR: 11 + rng.Intn(3), DEX: 13 + rng.Intn(3), CON: 11 + rng.Intn(3), INT: 10 + rng.Intn(3), WIS: 12 + rng.Intn(3), CHA: 11 + rng.Intn(3)}
+	case "harpy":
+		return entity.Attributes{STR: 8 + rng.Intn(2), DEX: 16 + rng.Intn(3), CON: 8 + rng.Intn(2), INT: 9 + rng.Intn(3), WIS: 11 + rng.Intn(3), CHA: 12 + rng.Intn(3)}
+	// Monstrous
+	case "bugbear":
+		return entity.Attributes{STR: 14 + rng.Intn(3), DEX: 12 + rng.Intn(3), CON: 11 + rng.Intn(3), INT: 7 + rng.Intn(3), WIS: 8 + rng.Intn(3), CHA: 7 + rng.Intn(3)}
+	case "ogre":
+		return entity.Attributes{STR: 18 + rng.Intn(3), DEX: 7 + rng.Intn(2), CON: 16 + rng.Intn(3), INT: 5 + rng.Intn(2), WIS: 6 + rng.Intn(2), CHA: 5 + rng.Intn(2)}
+	case "troll":
+		return entity.Attributes{STR: 16 + rng.Intn(3), DEX: 8 + rng.Intn(2), CON: 14 + rng.Intn(3), INT: 5 + rng.Intn(2), WIS: 6 + rng.Intn(2), CHA: 5 + rng.Intn(2)}
+	case "giant":
+		return entity.Attributes{STR: 18 + rng.Intn(4), DEX: 8 + rng.Intn(3), CON: 16 + rng.Intn(4), INT: 7 + rng.Intn(3), WIS: 9 + rng.Intn(3), CHA: 7 + rng.Intn(3)}
+	case "mimic":
+		return entity.Attributes{STR: 10 + rng.Intn(3), DEX: 8 + rng.Intn(2), CON: 12 + rng.Intn(3), INT: 6 + rng.Intn(2), WIS: 7 + rng.Intn(2), CHA: 4 + rng.Intn(2)}
+	case "golem":
+		return entity.Attributes{STR: 14 + rng.Intn(3), DEX: 6 + rng.Intn(2), CON: 16 + rng.Intn(4), INT: 4 + rng.Intn(2), WIS: 6 + rng.Intn(2), CHA: 3 + rng.Intn(2)}
+	// Divine
+	case "deity":
+		return entity.Attributes{STR: 16 + rng.Intn(4), DEX: 14 + rng.Intn(4), CON: 14 + rng.Intn(4), INT: 18 + rng.Intn(4), WIS: 18 + rng.Intn(4), CHA: 18 + rng.Intn(4)}
+	// Fallback
 	default:
 		return entity.RandomAttributes(func(n int) int { return rng.Intn(n) })
 	}
@@ -446,6 +745,48 @@ func generateName(species string, rng *rand.Rand) string {
 	halfGnollNames := []string{"Ripper", "Bonepick", "Snapper", "Gorr", "Ashclaw", "Maw", "Vex", "Grak", "Ripsnout", "Mama", "Vexa", "Grix", "Bonea", "Snapa", "Graw", "Krela"}
 	halfKoboldNames := []string{"Skrit", "Yip", "Klik", "Drak", "Snik", "Rix", "Zik", "Vrik", "Skrix", "Yipa", "Klika", "Draka", "Snika", "Rika", "Zika", "Vrika"}
 	halfFeyNames := []string{"Thorn", "Bram", "Alder", "Rowan", "Briar", "Fenn", "Oaken", "Willow", "Thyra", "Briar", "Alda", "Rowan", "Nyx", "Luma", "Sylph", "Faye"}
+	// Undead
+	skeletonNames := []string{"Bone", "Rattle", "Skel", "Mort", "Ash", "Grave", "Rust", "Hollow"}
+	zombieNames := []string{"Rot", "Decay", "Corpse", "Shambler", "Ghoul", "Wretch", "Fester", "Blight"}
+	ghostNames := []string{"Wisp", "Shade", "Specter", "Ethereal", "Phantom", "Wraith", "Banshee", "Apparition"}
+	wraithNames := []string{"Dread", "Murk", "Gloom", "Shadow", "Void", "Eclipse", "Night", "Dusk"}
+	lichNames := []string{"Necros", "Mortis", "Kael", "Xaren", "Velthar", "Zargoth", "Malachar", "Thrain"}
+	vampireNames := []string{"Vlad", "Dracula", "Noctis", "Sanguis", "Morven", "Lysandra", "Kaelith", "Valerius"}
+	// Fey & magical
+	fairyNames := []string{"Tinker", "Glimmer", "Dewdrop", "Flicker", "Petal", "Moth", "Starlight", "Zephyr"}
+	dryadNames := []string{"Aurora", "Sylva", "Thorn", "Briar", "Moss", "Fern", "Willow", "Ivy"}
+	satyrNames := []string{"Pan", "Silenus", "Dion", "Lycus", "Phere", "Crotus", "Marsyas", "Oreas"}
+	pixieNames := []string{"Tinker", "Flick", "Glimmer", "Dew", "Petal", "Moth", "Wisp", "Dust"}
+	treantNames := []string{"Oldgrowth", "Deeproot", "Barkheart", "Thornbeard", "Greenmantle", "Rootwalker", "Timber", "Oakheart"}
+	// Dragons & reptiles
+	dragonNames := []string{"Smaug", "Vermithrax", "Draco", "Pyroth", "Frostclaw", "Stormwing", "Ember", "Shadowscale"}
+	lizardfolkNames := []string{"Scales", "Thornscale", "Riptide", "Swampscale", "Coldscale", "Duskscale", "Brightscale", "Fangjaw"}
+	wyvernNames := []string{"Skydrake", "Stormwing", "Frostclaw", "Emberwing", "Shadowwing", "Thornwing", "Razorclaw", "Venomwing"}
+	basiliskNames := []string{"Stonegaze", "Petra", "Gorgon", "Serpentis", "Duskfang", "Coil", "Slither", "Basil"}
+	// Small races
+	gnomeNames := []string{"Tinker", "Gizmo", "Blix", "Zep", "Flick", "Dust", "Pip", "Nix"}
+	halflingNames := []string{"Bravo", "Daisy", "Pippin", "Rosie", "Sam", "Nim", "Lottie", "Jory"}
+	tieflingNames := []string{"Zariel", "Mephisto", "Asmodeus", "Fierna", "Glasya", "Lilith", "Baal", "Moloch"}
+	aasimarNames := []string{"Auriel", "Celestine", "Seren", "Lumina", "Divine", "Radiant", "Seraph", "Healer"}
+	goliathNames := []string{"Korg", "Brak", "Thok", "Dorn", "Haldor", "Grun", "Baldur", "Fjor"}
+	// Beastfolk & hybrids
+	minotaurNames := []string{"Asterion", "Minotaur", "Brawn", "Horn", "Gore", "Thorn", "Maze", "Labyrinth"}
+	centaurNames := []string{"Chiron", "Bolt", "Gallop", "Swift", "Prowl", "Stripe", "Hoof", "Rush"}
+	merfolkNames := []string{"Coral", "Tide", "Wave", "Splash", "Fin", "Shell", "Pearl", "Deep"}
+	harpyNames := []string{"Screech", "Wing", "Gale", "Storm", "Razor", "Plume", "Talons", "Squawk"}
+	werewolfNames := []string{"Fang", "Howl", "Rex", "Luna", "Shadow", "Feral", "Claw", "Prowl"}
+	werebearNames := []string{"Grizz", "Claw", "Fang", "Roar", "Brawn", "Thorn", "Paw", "Maw"}
+	// Monstrous
+	bugbearNames := []string{"Gruk", "Skarn", "Thok", "Brak", "Grix", "Nix", "Vorn", "Ghrak"}
+	ogreNames := []string{"Shrek", "Grond", "Thud", "Bash", "Crush", "Maul", "Grun", "Thok"}
+	trollNames := []string{"Stone", "Rot", "Thud", "Grun", "Mud", "Bog", "Tusk", "Claw"}
+	giantNames := []string{"Colossus", "Titan", "Boulder", "Thorn", "Gronn", "Dwarf", "Ogre", "Troll"}
+	mimicNames := []string{"Chest", "Trap", "Mimic", "Shapeshifter", "Decoy", "False", "Trick", "Snare"}
+	slimeNames := []string{"Ooze", "Goo", "Slime", "Muck", "Drip", "Splat", "Bloop", "Squish"}
+	golemNames := []string{"Iron", "Stone", "Clay", "Metal", "Construct", "Forge", "Anvil", "Shard"}
+	// Divine
+	deityNames := []string{"Aurora", "Solaris", "Lunara", "Terra", "Ignis", "Aqua", "Aether", "Nyx"}
+
 	names := map[string][]string{
 		"orc": orcNames, "wolf": wolfNames, "bear": bearNames,
 		"boar": boarNames, "rat": ratNames, "spider": spiderNames, "goblin": goblinNames,
@@ -453,6 +794,27 @@ func generateName(species string, rng *rand.Rand) string {
 		"half_orc": halfOrcNames, "half_elf": halfElfNames, "half_dwarf": halfDwarfNames,
 		"half_goblin": halfGoblinNames, "half_hobgoblin": halfHobgoblinNames,
 		"half_gnoll": halfGnollNames, "half_kobold": halfKoboldNames, "half_fey": halfFeyNames,
+		// Undead
+		"skeleton": skeletonNames, "zombie": zombieNames, "ghost": ghostNames,
+		"wraith": wraithNames, "lich": lichNames, "vampire": vampireNames,
+		// Fey & magical
+		"fairy": fairyNames, "dryad": dryadNames, "satyr": satyrNames,
+		"pixie": pixieNames, "treant": treantNames,
+		// Dragons & reptiles
+		"dragon": dragonNames, "lizardfolk": lizardfolkNames, "wyvern": wyvernNames,
+		"basilisk": basiliskNames,
+		// Small races
+		"gnome": gnomeNames, "halfling": halflingNames, "tiefling": tieflingNames,
+		"aasimar": aasimarNames, "goliath": goliathNames,
+		// Beastfolk & hybrids
+		"minotaur": minotaurNames, "centaur": centaurNames, "merfolk": merfolkNames,
+		"harpy": harpyNames, "werewolf": werewolfNames, "werebear": werebearNames,
+		// Monstrous
+		"bugbear": bugbearNames, "ogre": ogreNames, "troll": trollNames,
+		"giant": giantNames, "mimic": mimicNames, "slime": slimeNames,
+		"golem": golemNames,
+		// Divine
+		"deity": deityNames,
 	}
 	pool, ok := names[species]
 	if !ok || len(pool) == 0 {
@@ -471,7 +833,8 @@ func scriptPriority(name string) int {
 	case "bard", "guard", "ranger", "priest", "farmer", "fisherman", "miner",
 		"blacksmith", "innkeeper", "herbalist", "courier", "thief", "cultist",
 		"traveling_salesman", "wizard", "bar_patron", "bandit_chief",
-		"bread_weaver", "necromancer", "bandit", "politician", "diplomat":
+		"bread_weaver", "necromancer", "bandit", "politician", "diplomat",
+		"berzerker":
 		return 1
 	default:
 		return 2
@@ -554,6 +917,10 @@ func professionScript(profession string) string {
 		return "politician"
 	case "berzerker":
 		return "berzerker"
+	case "druid":
+		return "druid"
+	case "scout":
+		return "scout"
 	default:
 		return ""
 	}
@@ -563,6 +930,10 @@ func defaultSleepCycle(species string) string {
 	switch species {
 	case "spider":
 		return "nocturnal"
+	case "ghost", "wraith", "lich", "vampire", "skeleton", "zombie":
+		return "undead"
+	case "fairy", "pixie", "dryad", "satyr", "treant":
+		return "fey"
 	default:
 		return "diurnal"
 	}
