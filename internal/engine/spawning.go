@@ -35,28 +35,147 @@ type SpawnManager struct {
 	Rules []SpawnRule
 }
 
+// NewSpawnManager creates a SpawnManager with rules for every species
+// registered in the species registry. Hardcoded rules for known species
+// are preserved; any species without a specific rule gets a default entry
+// so that all species can appear during initialization.
 func NewSpawnManager() *SpawnManager {
-	return &SpawnManager{
-		Rules: []SpawnRule{
-			{ID: "orc_patrol", LocationID: "orc_camp", Species: "orc", Faction: "", Profession: "warrior", FactionID: "orc", DesiredCount: 4, Interval: 120, MinLevel: 1, MaxLevel: 3},
-			{ID: "wolf_pack", LocationID: "wolf_den", Species: "wolf", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 4, Interval: 90, MinLevel: 1, MaxLevel: 2},
-			{ID: "bandit_camp", LocationID: "bandit_camp", Species: "human", Faction: "", Profession: "bandit", FactionID: "bandit", DesiredCount: 4, Interval: 150, MinLevel: 1, MaxLevel: 2},
-			{ID: "bear_den", LocationID: "bear_den", Species: "bear", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 2, Interval: 200, MinLevel: 3, MaxLevel: 5},
-			{ID: "boar_herd", LocationID: "boar_wallow", Species: "boar", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 2, Interval: 180, MinLevel: 1, MaxLevel: 3},
-			{ID: "rat_infest", LocationID: "rat_king_lair_entrance", Species: "rat", Faction: "", Profession: "", FactionID: "vermin", DesiredCount: 3, Interval: 60, MinLevel: 1, MaxLevel: 1},
-			{ID: "rat_corridor", LocationID: "rat_king_lair_corridor", Species: "rat", Faction: "", Profession: "", FactionID: "vermin", DesiredCount: 3, Interval: 60, MinLevel: 1, MaxLevel: 2},
-			{ID: "spider_nest", LocationID: "spider_grove", Species: "spider", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 2, Interval: 120, MinLevel: 1, MaxLevel: 3},
-			{ID: "goblin_gatherers", LocationID: "goblin_hollow", Species: "goblin", Faction: "", Profession: "gatherer", FactionID: "goblin", DesiredCount: 2, Interval: 180, MinLevel: 1, MaxLevel: 1},
-			{ID: "kobold_warren", LocationID: "kobold_warren", Species: "kobold", Faction: "", Profession: "warrior", FactionID: "kobold", DesiredCount: 4, Interval: 150, MinLevel: 1, MaxLevel: 2},
-			{ID: "ash_scorpions", LocationID: "scorpion_dunes", Species: "spider", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 2, Interval: 160, MinLevel: 2, MaxLevel: 4},
-			{ID: "ash_orcs", LocationID: "ash_ruins", Species: "orc", Faction: "", Profession: "warrior", FactionID: "orc", DesiredCount: 2, Interval: 180, MinLevel: 2, MaxLevel: 4},
-			{ID: "town_bard", LocationID: "tavern", Species: "human", Faction: "", Profession: "bard", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 1, MaxLevel: 3},
-			{ID: "town_priest", LocationID: "temple", Species: "human", Faction: "", Profession: "priest", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 1, MaxLevel: 3},
-			{ID: "human_politician", LocationID: "tavern", Species: "human", Faction: "", Profession: "politician", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 3, MaxLevel: 5},
-			{ID: "orc_chief", LocationID: "orc_camp", Species: "orc", Faction: "", Profession: "politician", FactionID: "orc", DesiredCount: 1, Interval: 0, MinLevel: 4, MaxLevel: 6},
-			{ID: "dwarf_thane", LocationID: "dwarf_keep", Species: "dwarf", Faction: "", Profession: "politician", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 4, MaxLevel: 6},
-			{ID: "elf_archon", LocationID: "fey_glade", Species: "elf", Faction: "", Profession: "politician", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 5, MaxLevel: 7},
-		},
+	sm := &SpawnManager{}
+
+	// 1. Add hardcoded rules for species with location-specific spawning.
+	sm.Rules = []SpawnRule{
+		{ID: "orc_patrol", LocationID: "orc_camp", Species: "orc", Faction: "", Profession: "warrior", FactionID: "orc", DesiredCount: 4, Interval: 120, MinLevel: 1, MaxLevel: 3},
+		{ID: "wolf_pack", LocationID: "wolf_den", Species: "wolf", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 4, Interval: 90, MinLevel: 1, MaxLevel: 2},
+		{ID: "bandit_camp", LocationID: "bandit_camp", Species: "human", Faction: "", Profession: "bandit", FactionID: "bandit", DesiredCount: 4, Interval: 150, MinLevel: 1, MaxLevel: 2},
+		{ID: "bear_den", LocationID: "bear_den", Species: "bear", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 2, Interval: 200, MinLevel: 3, MaxLevel: 5},
+		{ID: "boar_herd", LocationID: "boar_wallow", Species: "boar", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 2, Interval: 180, MinLevel: 1, MaxLevel: 3},
+		{ID: "rat_infest", LocationID: "rat_king_lair_entrance", Species: "rat", Faction: "", Profession: "", FactionID: "vermin", DesiredCount: 3, Interval: 60, MinLevel: 1, MaxLevel: 1},
+		{ID: "rat_corridor", LocationID: "rat_king_lair_corridor", Species: "rat", Faction: "", Profession: "", FactionID: "vermin", DesiredCount: 3, Interval: 60, MinLevel: 1, MaxLevel: 2},
+		{ID: "spider_nest", LocationID: "spider_grove", Species: "spider", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 2, Interval: 120, MinLevel: 1, MaxLevel: 3},
+		{ID: "goblin_gatherers", LocationID: "goblin_hollow", Species: "goblin", Faction: "", Profession: "gatherer", FactionID: "goblin", DesiredCount: 2, Interval: 180, MinLevel: 1, MaxLevel: 1},
+		{ID: "kobold_warren", LocationID: "kobold_warren", Species: "kobold", Faction: "", Profession: "warrior", FactionID: "kobold", DesiredCount: 4, Interval: 150, MinLevel: 1, MaxLevel: 2},
+		{ID: "ash_scorpions", LocationID: "scorpion_dunes", Species: "spider", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 2, Interval: 160, MinLevel: 2, MaxLevel: 4},
+		{ID: "ash_orcs", LocationID: "ash_ruins", Species: "orc", Faction: "", Profession: "warrior", FactionID: "orc", DesiredCount: 2, Interval: 180, MinLevel: 2, MaxLevel: 4},
+		{ID: "town_bard", LocationID: "tavern", Species: "human", Faction: "", Profession: "bard", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 1, MaxLevel: 3},
+		{ID: "town_priest", LocationID: "temple", Species: "human", Faction: "", Profession: "priest", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 1, MaxLevel: 3},
+		{ID: "human_politician", LocationID: "tavern", Species: "human", Faction: "", Profession: "politician", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 3, MaxLevel: 5},
+		{ID: "orc_chief", LocationID: "orc_camp", Species: "orc", Faction: "", Profession: "politician", FactionID: "orc", DesiredCount: 1, Interval: 0, MinLevel: 4, MaxLevel: 6},
+		{ID: "dwarf_thane", LocationID: "dwarf_keep", Species: "dwarf", Faction: "", Profession: "politician", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 4, MaxLevel: 6},
+		{ID: "elf_archon", LocationID: "fey_glade", Species: "elf", Faction: "", Profession: "politician", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 5, MaxLevel: 7},
+	}
+
+	// 2. Track which species already have at least one rule.
+	covered := make(map[string]bool)
+	for _, r := range sm.Rules {
+		covered[r.Species] = true
+	}
+
+	// 3. Add a default spawn rule for every species not already covered.
+	//    This ensures all registered species can appear during initialization,
+	//    fixing the issue where only a subset of species were being generated.
+	for _, sp := range species.GetAll() {
+		if covered[sp.ID] {
+			continue
+		}
+		// Pick a reasonable default location and faction based on species traits.
+		locID := defaultLocationForSpecies(sp.ID)
+		factionID := defaultFactionForSpecies(sp.ID)
+		profession := defaultProfessionForSpecies(sp.ID)
+
+		rule := SpawnRule{
+			ID:           "default_" + sp.ID,
+			LocationID:   locID,
+			Species:      sp.ID,
+			Faction:      "",
+			Profession:   profession,
+			FactionID:    factionID,
+			DesiredCount: 2,
+			Interval:     0, // spawn once at init
+			MinLevel:     1,
+			MaxLevel:     sp.MaxLevel,
+		}
+		sm.Rules = append(sm.Rules, rule)
+		covered[sp.ID] = true
+	}
+
+	return sm
+}
+
+// defaultLocationForSpecies returns a sensible default location ID for a species.
+func defaultLocationForSpecies(speciesID string) string {
+	switch speciesID {
+	case "orc":
+		return "orc_camp"
+	case "wolf":
+		return "wolf_den"
+	case "bear":
+		return "bear_den"
+	case "boar":
+		return "boar_wallow"
+	case "rat":
+		return "rat_king_lair_entrance"
+	case "spider":
+		return "spider_grove"
+	case "goblin":
+		return "goblin_hollow"
+	case "kobold":
+		return "kobold_warren"
+	case "human":
+		return "tavern"
+	case "dwarf":
+		return "dwarf_keep"
+	case "elf":
+		return "fey_glade"
+	case "half_orc":
+		return "orc_camp"
+	case "half_elf":
+		return "fey_glade"
+	case "half_dwarf":
+		return "dwarf_keep"
+	case "half_goblin":
+		return "goblin_hollow"
+	case "half_hobgoblin":
+		return "orc_camp"
+	case "half_gnoll":
+		return "orc_camp"
+	case "half_kobold":
+		return "kobold_warren"
+	case "half_fey":
+		return "fey_glade"
+	default:
+		return "tavern"
+	}
+}
+
+// defaultFactionForSpecies returns a default faction ID for a species.
+func defaultFactionForSpecies(speciesID string) string {
+	switch speciesID {
+	case "orc", "half_orc", "half_hobgoblin", "half_gnoll":
+		return "orc"
+	case "wolf", "bear", "boar", "rat", "spider", "goblin", "kobold":
+		return "beast"
+	case "human", "half_elf", "half_dwarf", "half_goblin", "half_kobold", "half_fey":
+		return ""
+	default:
+		return ""
+	}
+}
+
+// defaultProfessionForSpecies returns a default profession for a species.
+func defaultProfessionForSpecies(speciesID string) string {
+	switch speciesID {
+	case "orc", "half_orc", "half_hobgoblin", "half_gnoll":
+		return "warrior"
+	case "wolf", "bear", "boar", "rat", "spider":
+		return ""
+	case "goblin":
+		return "gatherer"
+	case "kobold":
+		return "warrior"
+	case "human", "half_elf", "half_dwarf", "half_goblin", "half_kobold", "half_fey":
+		return ""
+	default:
+		return ""
 	}
 }
 
@@ -121,7 +240,7 @@ func spawnEntity(rule *SpawnRule, em *entity.EntityManager, tick, idx int, rng *
 	ent.LocationID = rule.LocationID
 	ent.Faction = rule.Faction
 	ent.Profession = rule.Profession
-	if species, exists := species.GetByID(rule.Species); exists && species.CanReproduce {
+	if sp, exists := species.GetByID(rule.Species); exists && sp.CanReproduce {
 		ent.Gender = entity.GetRndGender()
 	}
 	ent.AI = entity.EntityAI{
@@ -433,6 +552,8 @@ func professionScript(profession string) string {
 		return "necromancer"
 	case "politician":
 		return "politician"
+	case "berzerker":
+		return "berzerker"
 	default:
 		return ""
 	}
