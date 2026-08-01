@@ -59,9 +59,8 @@ local function human_politician()
 
     for _, dip in ipairs(diplomats) do
         if world.can_communicate(dip.id) then
-            local lang = world.best_shared_language(dip.id)
+            world.dialog(self.id, dip.id, "audience")
             util.log(self.name .. " holds court with diplomat " .. dip.name .. ".")
-            world.say_to(dip.id, "The council values stability. What terms do you bring?")
             util.set_mood("authoritative", 20)
             return true
         end
@@ -69,6 +68,9 @@ local function human_politician()
 
     if #rivals > 0 then
         local rival = rivals[1]
+        if world.can_communicate(rival.id) then
+            world.dialog(self.id, rival.id, "negotiation")
+        end
         util.log(self.name .. " eyes rival leader " .. rival.name .. " with calculated suspicion.")
         util.set_mood("scheming", 15)
         return true
@@ -78,7 +80,7 @@ local function human_politician()
     if #foreigners > 0 then
         local target = foreigners[1]
         if world.can_communicate(target.id) then
-            world.say_to(target.id, "Perhaps our factions can find common ground.")
+            world.dialog(self.id, target.id, "negotiation")
             util.log(self.name .. " opens trade negotiations with " .. target.name .. ".")
             util.set_mood("diplomatic", 20)
             return true
@@ -97,12 +99,14 @@ local function orc_warlord()
     for _, dip in ipairs(diplomats) do
         local roll = util.rand_int(100)
         if roll < 25 then
+            world.dialog(self.id, dip.id, "insult")
             util.log(self.name .. " snarls at " .. dip.name .. ": 'Your words are weak! GUARDS!'")
             world.set_entity_relation(dip.id, "hostile")
             util.set_mood("furious", 30)
             world.attack(self.id, dip.id)
             return true
         elseif roll < 60 then
+            world.dialog(self.id, dip.id, "tribute")
             util.log(self.name .. " demands tribute from diplomat " .. dip.name .. ".")
             local tribute = world.try_buy(dip.id, "gold_pouch")
             if tribute and tribute.done then
@@ -112,7 +116,7 @@ local function orc_warlord()
             return true
         else
             if world.can_communicate(dip.id) then
-                world.say_to(dip.id, "Speak, soft-skin. Make it worth my time.")
+                world.dialog(self.id, dip.id, "audience")
                 util.log(self.name .. " reluctantly grants audience to " .. dip.name .. ".")
                 util.set_mood("dismissive", 15)
             end
@@ -152,7 +156,7 @@ local function dwarf_thane()
 
     for _, dip in ipairs(diplomats) do
         if world.can_communicate(dip.id) then
-            world.say_to(dip.id, "State your business. Clan business is sacred.")
+            world.dialog(self.id, dip.id, "audience")
             util.log(self.name .. " grants a formal audience to diplomat " .. dip.name .. ".")
             util.set_mood("measured", 15)
             return true
@@ -166,7 +170,7 @@ local function dwarf_thane()
     local foreigners = find_foreigners()
     for _, f in ipairs(foreigners) do
         if world.can_communicate(f.id) then
-            world.say_to(f.id, "Got coin? Then we talk. No coin, no deal.")
+            world.dialog(self.id, f.id, "negotiation")
             util.log(self.name .. " opens trade talks with " .. f.name .. ".")
             util.set_mood("transactional", 15)
             return true
@@ -184,11 +188,14 @@ local function elf_archon()
 
     for _, dip in ipairs(diplomats) do
         if dip.species == "orc" or dip.species == "goblin" then
+            if world.can_communicate(dip.id) then
+                world.dialog(self.id, dip.id, "insult")
+            end
             util.log(self.name .. " regards " .. dip.name .. " with barely concealed disdain. 'Your kind scars the land.'")
             util.set_mood("aloof", 20)
             return true
         elseif world.can_communicate(dip.id) then
-            world.say_to(dip.id, "Speak, mortal. Time is but a river—what matters is the current.")
+            world.dialog(self.id, dip.id, "audience")
             util.log(self.name .. " engages diplomat " .. dip.name .. " in measured discourse.")
             util.set_mood("serene", 15)
             return true
@@ -197,6 +204,9 @@ local function elf_archon()
 
     local rivals = find_rivals()
     if #rivals > 0 then
+        if world.can_communicate(rivals[1].id) then
+            world.dialog(self.id, rivals[1].id, "negotiation")
+        end
         util.log(self.name .. " observes rival " .. rivals[1].name .. " with ancient patience.")
         util.set_mood("contemplative", 15)
         return true

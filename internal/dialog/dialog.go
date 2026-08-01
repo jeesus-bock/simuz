@@ -14,11 +14,18 @@ import (
 type DialogueType string
 
 const (
-	DialogueGreeting DialogueType = "greeting"
-	DialogueTrade    DialogueType = "trade"
-	DialogueGossip   DialogueType = "gossip"
-	DialogueHostile  DialogueType = "hostile"
-	DialogueFarewell DialogueType = "farewell"
+	DialogueGreeting    DialogueType = "greeting"
+	DialogueTrade       DialogueType = "trade"
+	DialogueGossip      DialogueType = "gossip"
+	DialogueHostile     DialogueType = "hostile"
+	DialogueFarewell    DialogueType = "farewell"
+	DialogueNegotiation DialogueType = "negotiation"
+	DialogueDemand      DialogueType = "demand"
+	DialogueTreaty      DialogueType = "treaty"
+	DialogueDeclaration DialogueType = "declaration"
+	DialogueInsult      DialogueType = "insult"
+	DialogueTribute     DialogueType = "tribute"
+	DialogueAudience    DialogueType = "audience"
 )
 
 // Dialogue handles a linguistic interaction session between two entities.
@@ -124,11 +131,102 @@ func (d *Dialogue) getRawTemplate() string {
 			"Your presence here is an insult. State your business before I lose patience.",
 			"I do not trust your kind. Keep your hands where my guards can see them.",
 		}
+	case DialogueNegotiation:
+		options = d.getPoliticalTemplates()
+	case DialogueDemand:
+		options = []string{
+			"You will submit to our terms, or face the consequences.",
+			"This is not a request. Comply immediately.",
+			"We have the strength to take what we want. Cooperate and keep your holdings.",
+		}
+	case DialogueTreaty:
+		options = []string{
+			"Let us formalize this agreement. Our peoples have much to gain from peace.",
+			"A treaty between our factions would stabilize the region. Shall we draft terms?",
+			"I propose a non-aggression pact. Your borders will be respected in exchange for trade access.",
+		}
+	case DialogueDeclaration:
+		options = []string{
+			"Hear this: our faction declares its sovereign right to these lands.",
+			"Let it be known that we stand united. Any aggression against one is aggression against all.",
+			"We claim this territory by right of strength and legacy.",
+		}
+	case DialogueInsult:
+		options = []string{
+			"Your lineage is as weak as your sword arm.",
+			"I have seen goblins with more honor than your entire faction.",
+			"You are unfit to lead a pack of rats, let alone a people.",
+		}
+	case DialogueTribute:
+		options = []string{
+			"Your faction will deliver tribute to our coffers. This is non-negotiable.",
+			"We demand a tithe of your goods. Consider it protection insurance.",
+			"Hand over your valuables and we may allow you to continue operating.",
+		}
+	case DialogueAudience:
+		options = []string{
+			"Speak. I will hear what you have to say.",
+			"You have my attention. Make your case.",
+			"I grant you this audience. Choose your words carefully.",
+		}
 	default:
 		options = []string{"Hello there."}
 	}
 
 	return options[d.RNG.Intn(len(options))]
+}
+
+// getPoliticalTemplates returns faction-aware negotiation templates.
+// Speaker and listener species/faction/profession influence the wording.
+func (d *Dialogue) getPoliticalTemplates() []string {
+	speakerSpecies := d.Speaker.Species
+	listenerSpecies := d.Listener.Species
+
+	// Species-specific negotiation flavor
+	if speakerSpecies == "orc" {
+		return []string{
+			"Your warriors are strong. An alliance would make us both stronger.",
+			"Submit to our clan and share in our conquests. Resist and be crushed.",
+			"We do not negotiate with the weak. Show us your strength first.",
+		}
+	}
+	if speakerSpecies == "dwarf" {
+		return []string{
+			"Let us discuss terms. Every clause must be ironclad, mind you.",
+			"We propose a trade agreement. Fair exchange, no tricks.",
+			"Clan honor demands we settle this properly. Sit down and talk.",
+		}
+	}
+	if speakerSpecies == "elf" {
+		return []string{
+			"The winds of change blow. Perhaps our paths were meant to converge.",
+			"We see far into the future. An alliance now would bear fruit for centuries.",
+			"Your people have much to learn, but we are willing to teach—for a price.",
+		}
+	}
+	if speakerSpecies == "human" {
+		return []string{
+			"I believe we can find common ground. Let us discuss terms.",
+			"Our factions have complementary interests. A partnership would be profitable.",
+			"The council has authorized me to negotiate. What do you offer in return?",
+		}
+	}
+
+	// Listener species flavor
+	if listenerSpecies == "orc" {
+		return []string{
+			"We respect your warrior tradition. Let us forge a pact of mutual strength.",
+			"Your raids have cost us dearly. Perhaps we can redirect that energy elsewhere.",
+			"An orcish alliance is worth ten human treaties. Name your price.",
+		}
+	}
+
+	// Default negotiation
+	return []string{
+		"I propose we negotiate. Both sides have much to gain.",
+		"Let us discuss terms that benefit our peoples equally.",
+		"This conflict serves no one. Shall we find a resolution?",
+	}
 }
 
 // applyDialectModifications introduces phonetic quirks depending on the chosen dialect tag
@@ -144,6 +242,14 @@ func (d *Dialogue) applyDialectModifications(text string) string {
 		return fmt.Sprintf("*softly rustling* %s", strings.ToLower(text))
 	case "forge":
 		return text + " Clang! The anvil sings."
+	case "court":
+		return text + " *adjusts formal attire*"
+	case "tribal":
+		return text + " *bangs chest*"
+	case "ancient":
+		return text + " *speaks with measured, timeless cadence*"
+	case "diplomatic":
+		return fmt.Sprintf("*speaking formally* %s *pauses for effect*", text)
 	default:
 		return text
 	}

@@ -1846,31 +1846,12 @@ type relationshipView struct {
 }
 
 // SpeciesGestationTicks returns the gestation period in ticks for a given species.
-func SpeciesGestationTicks(species string) int {
-	switch species {
-	case "human":
-		return 200
-	case "orc":
-		return 150
-	case "elf":
-		return 250
-	case "dwarf":
-		return 180
-	case "goblin":
-		return 120
-	case "fey":
-		return 160
-	case "rat_king":
-		return 100
-	case "kobold":
-		return 90
-	case "vampire":
-		return 0
-	case "hag":
-		return 140
-	default:
-		return 200
+// Reads from the species registry. Falls back to 200 if not found.
+func SpeciesGestationTicks(sp string) int {
+	if s, ok := species.GetByID(sp); ok && s.GestationTicks > 0 {
+		return s.GestationTicks
 	}
+	return 200
 }
 
 func (h *Handler) PregnanciesPage(c *gin.Context) {
