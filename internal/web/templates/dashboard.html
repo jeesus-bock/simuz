@@ -62,7 +62,7 @@
 {{end}}
 
 {{define "speed_control"}}
-<div class="card" style="margin-bottom:12px;" id="speed-control">
+<div class="card" style="margin-bottom:12px;">
     <div class="stat"><span>Speed</span><span>{{.speed}} game-min/tick ({{.ticks_per_day}} ticks/day)</span></div>
     <form hx-post="/speed" hx-target="#speed-control" hx-swap="innerHTML" style="display:flex;gap:8px;align-items:center;margin-top:6px;">
         <label style="color:#888;font-size:0.85rem;">Speed:</label>
