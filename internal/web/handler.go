@@ -45,19 +45,19 @@ func (h *Handler) Dashboard(c *gin.Context) {
 	defer h.Sim.RUnlock()
 
 	if err := h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
-		"title":           "Simuz",
-		"page":            "dashboard",
-		"tick":            h.Sim.Tick,
-		"time":            h.Sim.Time.String(),
-		"day":             h.Sim.Time.Day,
-		"year":            h.Sim.Time.Year(),
-		"phase":           h.Sim.Time.Phase().String(),
-		"season":          h.Sim.Time.Season().String(),
-		"speed":           h.Sim.Time.Speed,
-		"ticks_per_day":   h.Sim.Time.TicksPerGameDayFor(),
-		"entities":        len(h.Sim.Entities.All()),
-		"locations":       len(h.Sim.World.AllLocations()),
-		"active_quests":   h.activeQuestViews(),
+		"title":         "Simuz",
+		"page":          "dashboard",
+		"tick":          h.Sim.Tick,
+		"time":          h.Sim.Time.String(),
+		"day":           h.Sim.Time.Day,
+		"year":          h.Sim.Time.Year(),
+		"phase":         h.Sim.Time.Phase().String(),
+		"season":        h.Sim.Time.Season().String(),
+		"speed":         h.Sim.Time.Speed,
+		"ticks_per_day": h.Sim.Time.TicksPerGameDayFor(),
+		"entities":      len(h.Sim.Entities.All()),
+		"locations":     len(h.Sim.World.AllLocations()),
+		"active_quests": h.activeQuestViews(),
 	}); err != nil {
 		_ = c.Error(err)
 	}
@@ -2200,22 +2200,22 @@ type factionMemberView struct {
 }
 
 type factionView struct {
-	ID              string
-	Name            string
-	CurrentState    string
+	ID               string
+	Name             string
+	CurrentState     string
 	PrimaryObjective string
-	WealthTier      int
-	VaultGold       int
-	HQLocationID    string
-	LeaderEntityID  string
-	LeaderName      string
-	PreviousState   string
-	MemberCount     int
-	MaxCapacity     int
-	Members         []factionMemberView
-	Relations       []factionRelationView
-	ControlledZones []controlledZoneView
-	Stockpile       map[string]int
+	WealthTier       int
+	VaultGold        int
+	HQLocationID     string
+	LeaderEntityID   string
+	LeaderName       string
+	PreviousState    string
+	MemberCount      int
+	MaxCapacity      int
+	Members          []factionMemberView
+	Relations        []factionRelationView
+	ControlledZones  []controlledZoneView
+	Stockpile        map[string]int
 }
 
 var factionDisplayNames = map[string]string{
