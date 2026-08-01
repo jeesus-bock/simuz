@@ -26,6 +26,7 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"plains", "forest"},
+		PoliticalIdeology:   "capitalist",
 	},
 	"orc": {
 		ID:                  "orc",
@@ -46,6 +47,7 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 14, DEX: 10, CON: 13, INT: 6, WIS: 6, CHA: 5},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"waste", "swamp", "highlands"},
+		PoliticalIdeology:   "communist",
 	},
 
 	// =========================================================================
@@ -154,6 +156,7 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 7, DEX: 15, CON: 9, INT: 8, WIS: 8, CHA: 5},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"highlands", "waste"},
+		PoliticalIdeology:   "anarchist",
 	},
 	"minotaur": {
 		ID:                  "minotaur",
@@ -308,6 +311,7 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 14, DEX: 11, CON: 13, INT: 7, WIS: 10, CHA: 8},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"plains", "waste"},
+		PoliticalIdeology:   "anarchist",
 	},
 	"griffin": {
 		ID:                  "griffin",
@@ -708,6 +712,7 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 14, DEX: 10, CON: 14, INT: 7, WIS: 8, CHA: 7},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"plains", "highlands", "waste"},
+		PoliticalIdeology:   "communist",
 	},
 	"half_elf": {
 		ID:                  "half_elf",
@@ -808,6 +813,7 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 12, DEX: 11, CON: 11, INT: 4, WIS: 7, CHA: 5},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"plains", "waste"},
+		PoliticalIdeology:   "anarchist",
 	},
 	"half_kobold": {
 		ID:                  "half_kobold",
@@ -828,6 +834,7 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 7, DEX: 14, CON: 8, INT: 6, WIS: 7, CHA: 6},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"underground", "cave", "waste"},
+		PoliticalIdeology:   "anarchist",
 	},
 	"half_fey": {
 		ID:                  "half_fey",
@@ -884,4 +891,3 @@ func CanCrossbreed(speciesA, speciesB string) bool {
 	}
 	return GetHalfSpecies(speciesA, speciesB) != ""
 }
-

@@ -40,6 +40,10 @@ type Species struct {
 	// reproduction and pregnancy maintenance systems. Civilized species include
 	// kobolds, hobbits, gnolls, and other non-caveman beings with organized cultures.
 	Civilized bool `json:"civilized"`
+
+	// PoliticalIdeology describes the species' default political alignment.
+	// Examples: "capitalist", "communist", "anarchist", "feudal", "theocratic"
+	PoliticalIdeology string `json:"political_ideology,omitempty"`
 }
 
 // GetRandomName handles procedural linguistic choices using a fallback protection check.
