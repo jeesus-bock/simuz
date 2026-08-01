@@ -108,6 +108,9 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 			equipItem(ent, lookup("common_clothes"))
 			equipItem(ent, lookup("tankard"))
 			addItem(ent, lookup("beer"))
+			addItem(ent, lookup("ale"))
+			addItem(ent, lookup("wine"))
+			addItem(ent, lookup("mead"))
 			giveCurrency(ent, 15+g.RNG.Intn(30), 5+g.RNG.Intn(10), 0)
 
 		case "blacksmith":
@@ -134,6 +137,10 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 		case "bard":
 			equipItem(ent, lookup("common_clothes"))
 			addItem(ent, lookup("beer"))
+			addItem(ent, lookup("wine"))
+			if g.RNG.Intn(100) < 40 {
+				addItem(ent, lookup("pipeweed"))
+			}
 			giveCurrency(ent, 5+g.RNG.Intn(10), 2+g.RNG.Intn(5), 0)
 
 		case "diplomat":
@@ -144,51 +151,59 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 
 		default:
 			equipItem(ent, lookup("common_clothes"))
+			addItem(ent, lookup("pocket_knife"))
+			addItem(ent, lookup("ale"))
+			addItem(ent, lookup("bread"))
 			giveCurrency(ent, 1+g.RNG.Intn(5), 0, 0)
 		}
-		// Contextual combat loadouts refactored into a clean switch statement
-		switch workerSpecies {
-		case "dwarf":
-			ent.AI.Brave = true
-			equipItem(ent, lookup("heavy_iron_plate"))
-			equipItem(ent, lookup("iron_helmet"))
-			equipItem(ent, lookup("iron_shield"))
-			equipItem(ent, lookup("double_bit_axe"))
-			addItem(ent, lookup("whetstone"))
-			addItem(ent, lookup("dwarven_ale"))
-			addItem(ent, lookup("iron_ore"))
+		// Contextual combat loadouts only for combat professions
+		isCombatProf := b.profession == "guard" || b.profession == "skull_cleaver" ||
+			b.profession == "raider_vanguard" || b.profession == "blood_trapper" ||
+			b.profession == "pit_brawler" || b.profession == "bone_scraper"
+		if isCombatProf {
+			switch workerSpecies {
+			case "dwarf":
+				ent.AI.Brave = true
+				equipItem(ent, lookup("heavy_iron_plate"))
+				equipItem(ent, lookup("iron_helmet"))
+				equipItem(ent, lookup("iron_shield"))
+				equipItem(ent, lookup("double_bit_axe"))
+				addItem(ent, lookup("whetstone"))
+				addItem(ent, lookup("dwarven_ale"))
+				addItem(ent, lookup("iron_ore"))
 
-		case "orc":
-			ent.AI.Brave = true
-			equipItem(ent, lookup("spiked_leather_harness"))
-			equipItem(ent, lookup("orc_cleaver"))
-			equipItem(ent, lookup("barbed_javelin"))
-			addItem(ent, lookup("smoked_meat"))
-			addItem(ent, lookup("crude_bandage"))
+			case "orc":
+				ent.AI.Brave = true
+				equipItem(ent, lookup("spiked_leather_harness"))
+				equipItem(ent, lookup("orc_cleaver"))
+				equipItem(ent, lookup("barbed_javelin"))
+				addItem(ent, lookup("smoked_meat"))
+				addItem(ent, lookup("crude_bandage"))
 
-		case "elf":
-			equipItem(ent, lookup("elven_chainmail"))
-			equipItem(ent, lookup("recurve_longbow"))
-			equipItem(ent, lookup("silver_shortsword"))
-			addItem(ent, lookup("quiver_of_arrows"))
-			addItem(ent, lookup("lembas_bread"))
-			addItem(ent, lookup("glow_stone"))
+			case "elf":
+				equipItem(ent, lookup("elven_chainmail"))
+				equipItem(ent, lookup("recurve_longbow"))
+				equipItem(ent, lookup("silver_shortsword"))
+				addItem(ent, lookup("quiver_of_arrows"))
+				addItem(ent, lookup("lembas_bread"))
+				addItem(ent, lookup("glow_stone"))
 
-		case "hobbit":
-			equipItem(ent, lookup("padded_tunic"))
-			equipItem(ent, lookup("hunting_slingshot"))
-			equipItem(ent, lookup("sturdy_dagger"))
-			addItem(ent, lookup("pouch_of_pebbles"))
-			addItem(ent, lookup("pipeweed"))
-			addItem(ent, lookup("pocket_watch"))
+			case "hobbit":
+				equipItem(ent, lookup("padded_tunic"))
+				equipItem(ent, lookup("hunting_slingshot"))
+				addItem(ent, lookup("sturdy_dagger"))
+				addItem(ent, lookup("pouch_of_pebbles"))
+				addItem(ent, lookup("pipeweed"))
+				addItem(ent, lookup("pocket_watch"))
 
-		default: // Default fallback handles regular humans
-			equipItem(ent, lookup("chainmail"))
-			equipItem(ent, lookup("iron_helmet"))
-			equipItem(ent, lookup("iron_sword"))
-			equipItem(ent, lookup("wooden_shield"))
-			addItem(ent, lookup("iron_rations"))
-			addItem(ent, lookup("torch"))
+			default: // human combat
+				equipItem(ent, lookup("chainmail"))
+				equipItem(ent, lookup("iron_helmet"))
+				equipItem(ent, lookup("iron_sword"))
+				equipItem(ent, lookup("wooden_shield"))
+				addItem(ent, lookup("iron_rations"))
+				addItem(ent, lookup("torch"))
+			}
 		}
 		entities = append(entities, ent)
 	}
@@ -295,6 +310,11 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 			giveCurrency(ent, 8+g.RNG.Intn(15), 2+g.RNG.Intn(5), 0)
 		default:
 			equipItem(ent, lookup("common_clothes"))
+			addItem(ent, lookup("pocket_knife"))
+			addItem(ent, lookup("ale"))
+			if g.RNG.Intn(100) < 60 {
+				addItem(ent, lookup("bread"))
+			}
 			giveCurrency(ent, 1+g.RNG.Intn(5), 0, 0)
 		}
 		entities = append(entities, ent)
