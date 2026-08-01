@@ -62,7 +62,9 @@ local function process_divine_neglect()
     end
 
     -- Propagate cause to nearby worshippers who lack one
-    if self.cause and self.cause ~= "" and world.tick % 100 == 0 then
+    local cause = self.cause
+    if (not cause or cause == "") then cause = util.mem_get("domain") end
+    if cause and cause ~= "" and world.tick % 100 == 0 then
         local nearby = world.nearby_entities()
         if nearby then
             for _, eid in ipairs(nearby) do
@@ -70,7 +72,7 @@ local function process_divine_neglect()
                 if info and info.alive and info.cause == "" then
                     for _, d in ipairs(info.worship or {}) do
                         if d == self.id then
-                            world.set_cause(eid, self.cause)
+                            world.set_cause(eid, cause)
                             break
                         end
                     end
