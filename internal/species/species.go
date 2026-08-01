@@ -35,6 +35,11 @@ type Species struct {
 	// --- Optimized Grand Design Fields ---
 	FluidBiology    bool     `json:"fluid_biology"`              // True for Fey/Planar entities to alternate reproductive states over time
 	PreferredBiomes []string `json:"preferred_biomes,omitempty"` // For spatial placement filters
+
+	// Civilized indicates the species has an established society with structured
+	// reproduction and pregnancy maintenance systems. Civilized species include
+	// kobolds, hobbits, gnolls, and other non-caveman beings with organized cultures.
+	Civilized bool `json:"civilized"`
 }
 
 // GetRandomName handles procedural linguistic choices using a fallback protection check.
