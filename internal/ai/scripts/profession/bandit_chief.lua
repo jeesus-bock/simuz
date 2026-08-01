@@ -1,5 +1,7 @@
 -- bandit_chief.lua
 -- Advanced tactical script for orchestrating roadside robberies and gang command.
+-- Orc bandits may target diplomats, but diplomatic immunity blocks attacks
+-- unless a nearby politician has revoked the diplomat's immunity.
 
 local function coordinate_raid()
     local nearby = world.nearby_entities()
@@ -14,26 +16,42 @@ local function coordinate_raid()
         return
     end
 
+    local diplomat_target = nil
+
     for _, eid in ipairs(nearby) do
         if eid ~= self.id then
             local info = world.entity_info(eid)
-            -- Rob vulnerable classes like merchants, couriers, or basic travelers
-            if info and info.alive and (info.profession == "merchant" or info.profession == "courier" or info.profession == "traveler") then
-                util.log(self.name .. " signals the ambush! 'Cut their coin purses open!'")
-                util.set_mood("furious", 30)
+            if info and info.alive then
+                -- Rob vulnerable classes like merchants, couriers, or basic travelers
+                if info.profession == "merchant" or info.profession == "courier" or info.profession == "traveler" then
+                    util.log(self.name .. " signals the ambush! 'Cut their coin purses open!'")
+                    util.set_mood("furious", 30)
 
-                -- Area effect assault to overwhelm the targets
-                world.damage_location(self.id, 12)
-                world.attack(self.id, eid)
+                    -- Area effect assault to overwhelm the targets
+                    world.damage_location(self.id, 12)
+                    world.attack(self.id, eid)
 
-                -- Attempt extortion shakedown mechanics
-                local plunder = world.try_buy(eid, "gold_pouch")
-                if plunder and plunder.done then
-                    util.log(self.name .. " extracted the caravan spoils from " .. info.name)
+                    -- Attempt extortion shakedown mechanics
+                    local plunder = world.try_buy(eid, "gold_pouch")
+                    if plunder and plunder.done then
+                        util.log(self.name .. " extracted the caravan spoils from " .. info.name)
+                    end
+                    return
                 end
-                return
+
+                -- Track diplomat targets for potential attack
+                if info.profession == "diplomat" then
+                    diplomat_target = info
+                end
             end
         end
+    end
+
+    -- Attempt to attack a diplomat if found (may be blocked by diplomatic immunity)
+    if diplomat_target and util.rand_int(100) < 30 then
+        util.log(self.name .. " lunges at diplomat " .. diplomat_target.name .. "!")
+        util.set_mood("aggressive", 20)
+        world.attack(self.id, diplomat_target.id)
     end
 end
 

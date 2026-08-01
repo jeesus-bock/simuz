@@ -461,6 +461,9 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
+			if other.Profession == "diplomat" && ent.Relation.GetEntityRelation(other.ID) >= 0 {
+				continue
+			}
 			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
 				target = other
 				break
@@ -494,6 +497,9 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 		var target *entity.Entity
 		for _, other := range nearby {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
+				continue
+			}
+			if other.Profession == "diplomat" && ent.Relation.GetEntityRelation(other.ID) >= 0 {
 				continue
 			}
 			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
@@ -1049,6 +1055,11 @@ func defendPassiveSelf(ent *entity.Entity, sim *Simulation) bool {
 	for _, other := range nearby {
 		if other == nil || other.ID == ent.ID || !other.Alive || other.Immortal {
 			continue
+		}
+		if other.Profession == "diplomat" {
+			if ent.Relation.GetEntityRelation(other.ID) >= 0 {
+				continue
+			}
 		}
 		if ent.GetFactionRelation(other.Faction).String() == "hostile" {
 			hostiles = append(hostiles, other)
