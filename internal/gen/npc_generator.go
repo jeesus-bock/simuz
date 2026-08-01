@@ -309,10 +309,21 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 			addItem(ent, lookup("iron_ore"))
 			giveCurrency(ent, 8+g.RNG.Intn(15), 2+g.RNG.Intn(5), 0)
 		default:
-			equipItem(ent, lookup("common_clothes"))
-			addItem(ent, lookup("pocket_knife"))
-			addItem(ent, lookup("ale"))
-			if g.RNG.Intn(100) < 60 {
+			if ent.Attributes.STR >= 14 {
+				equipItem(ent, lookup("hard_leather_armor"))
+				addItem(ent, lookup("hunting_knife"))
+				addItem(ent, lookup("ale"))
+				addItem(ent, lookup("bread"))
+				addItem(ent, lookup("smoked_meat"))
+			} else if ent.Attributes.STR >= 11 {
+				equipItem(ent, lookup("work_tunic"))
+				addItem(ent, lookup("hunting_knife"))
+				addItem(ent, lookup("ale"))
+				addItem(ent, lookup("bread"))
+			} else {
+				equipItem(ent, lookup("common_clothes"))
+				addItem(ent, lookup("pocket_knife"))
+				addItem(ent, lookup("ale"))
 				addItem(ent, lookup("bread"))
 			}
 			giveCurrency(ent, 1+g.RNG.Intn(5), 0, 0)

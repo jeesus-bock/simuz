@@ -48,6 +48,13 @@ var ItemDefs = []*items.ItemDef{
 	defineItem("iron_shield", "Iron Shield", items.TypeArmor, 7, 50, "offhand"),
 	defineItem("leather_gloves", "Leather Gloves", items.TypeArmor, 0.3, 5, "hands"),
 
+	defineItem("studded_leather", "Studded Leather Armor", items.TypeArmor, 9, 75, "body"),
+	defineItem("hard_leather_armor", "Hardened Leather Armor", items.TypeArmor, 10, 100, "body"),
+	defineItem("plate_mail", "Plate Mail", items.TypeArmor, 30, 500, "body"),
+	defineItem("plate_helmet", "Plate Helmet", items.TypeArmor, 3, 80, "head"),
+	defineItem("plate_boots", "Plate Boots", items.TypeArmor, 4, 60, "feet"),
+	defineItem("plate_gauntlets", "Plate Gauntlets", items.TypeArmor, 1.5, 50, "hands"),
+
 	defineItem("iron_sword", "Iron Sword", items.TypeWeapon, 3, 100, "weapon"),
 	defineItem("iron_spear", "Iron Spear", items.TypeWeapon, 3.5, 80, "weapon"),
 	defineItem("iron_axe", "Iron Axe", items.TypeWeapon, 4, 90, "weapon"),
@@ -62,6 +69,18 @@ var ItemDefs = []*items.ItemDef{
 	defineItem("holy_symbol", "Holy Symbol", items.TypeMisc, 0.2, 30, "neck"),
 	defineItem("tankard", "Tankard", items.TypeMisc, 0.3, 1, ""),
 	defineItem("smith_hammer", "Smith's Hammer", items.TypeWeapon, 2, 15, "weapon"),
+
+	defineItem("carving_knife", "Carving Knife", items.TypeWeapon, 0.3, 3, "weapon"),
+	defineItem("hunting_knife", "Hunting Knife", items.TypeWeapon, 0.5, 12, "weapon"),
+	defineItem("hand_axe", "Hand Axe", items.TypeWeapon, 2, 30, "weapon"),
+	defineItem("mace", "Mace", items.TypeWeapon, 4, 45, "weapon"),
+	defineItem("war_hammer", "War Hammer", items.TypeWeapon, 5, 55, "weapon"),
+	defineItem("battle_axe", "Battle Axe", items.TypeWeapon, 5, 80, "weapon"),
+	defineItem("longsword", "Longsword", items.TypeWeapon, 4, 120, "weapon"),
+	defineItem("two_handed_sword", "Two-Handed Sword", items.TypeWeapon, 8, 200, "weapon"),
+	defineItem("great_axe", "Great Axe", items.TypeWeapon, 7, 180, "weapon"),
+	defineItem("war_pick", "War Pick", items.TypeWeapon, 3, 40, "weapon"),
+	defineItem("morning_star", "Morning Star", items.TypeWeapon, 5, 65, "weapon"),
 
 	defineItem("lightning_bolt", "Lightning Bolt", items.TypeWeapon, 0.5, 15000, "weapon"),
 	defineItem("bident", "Bident", items.TypeWeapon, 4, 12000, "weapon"),
