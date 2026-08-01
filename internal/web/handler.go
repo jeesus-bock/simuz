@@ -1834,11 +1834,20 @@ func (h *Handler) SSEEvents(c *gin.Context) {
 		}
 	})
 
+	// Deduplicate by tick so that multiple events in the same tick
+	// only produce a single SSE update. This prevents HTMX from
+	// re-swapping fragments too frequently, which was causing form
+	// controls (like the speed select) to lose their state mid-interaction.
+	lastTick := uint64(0)
 	c.Stream(func(w io.Writer) bool {
 		tick, ok := <-ch
 		if !ok {
 			return false
 		}
+		if tick == lastTick {
+			return true
+		}
+		lastTick = tick
 		c.SSEvent("tick", fmt.Sprintf(`{"tick":%d}`, tick))
 		return true
 	})
