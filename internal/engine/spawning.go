@@ -287,7 +287,7 @@ func scriptPriority(name string) int {
 	case "bard", "guard", "ranger", "priest", "farmer", "fisherman", "miner",
 		"blacksmith", "innkeeper", "herbalist", "courier", "thief", "cultist",
 		"traveling_salesman", "wizard", "bar_patron", "bandit_chief",
-		"bread_weaver", "necromancer", "bandit":
+		"bread_weaver", "necromancer", "bandit", "politician", "diplomat":
 		return 1
 	default:
 		return 2
@@ -366,6 +366,8 @@ func professionScript(profession string) string {
 		return "wizard"
 	case "necromancer":
 		return "necromancer"
+	case "politician":
+		return "politician"
 	default:
 		return ""
 	}
