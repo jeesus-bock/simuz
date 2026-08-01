@@ -1,4 +1,3 @@
-// Package engine contains the simulation engine, tick processing, and related systems.
 package engine
 
 import (
@@ -14,6 +13,11 @@ import (
 	"simuz/internal/species"
 	"simuz/internal/world"
 )
+
+// DefaultMaxLevel is the sane cap applied when a species has no
+// hardcoded level rule. MaxAge is a lifespan in years, not a level,
+// so using it directly would produce absurd spawn levels (e.g. elf 700).
+const DefaultMaxLevel = 10
 
 type SpawnRule struct {
 	ID              string
@@ -141,11 +145,9 @@ func NewSpawnManager() *SpawnManager {
 		factionID := defaultFactionForSpecies(sp.ID)
 		profession := defaultProfessionForSpecies(sp.ID)
 
-		// Use MaxAge as a proxy for max level when MaxLevel is not available on the Species struct.
-		maxLvl := sp.MaxAge
-		if maxLvl <= 0 {
-			maxLvl = 10
-		}
+		// Use a sane default max level instead of MaxAge (which is a lifespan in years, not a level).
+		// Without this cap, species like elf (MaxAge=700) would spawn entities at level 700.
+		maxLvl := DefaultMaxLevel
 
 		rule := SpawnRule{
 			ID:           "default_" + sp.ID,
@@ -391,6 +393,14 @@ func spawnEntity(rule *SpawnRule, em *entity.EntityManager, tick, idx int, rng *
 	if rule.MaxLevel > rule.MinLevel {
 		level += rng.Intn(rule.MaxLevel - rule.MinLevel + 1)
 	}
+
+	// Cap the level to a sane default if the species rule doesn't provide one.
+	// MaxAge is a lifespan in years, not a level — using it directly would
+	// create wildly overpowered entities at initialization.
+	if level > DefaultMaxLevel {
+		level = DefaultMaxLevel
+	}
+
 	attrs := baseSpeciesAttrs(rule.Species, rng)
 	name := generateName(rule.Species, rng)
 	id := fmt.Sprintf("%s_spawn_%s_%s_%d_%d", rule.Species, name, rule.LocationID, tick, idx)
