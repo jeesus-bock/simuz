@@ -506,6 +506,9 @@ func bindEntity(L *lua.LState, e *entity.Entity, tick uint64) {
 		if level > 10 {
 			level = 10
 		}
+		if e.LanguageSkills == nil {
+			e.LanguageSkills = make(map[string]int)
+		}
 		e.LanguageSkills[langID] = level
 		L.Push(lua.LTrue)
 		return 1
@@ -1336,6 +1339,9 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.EntityManager, tm *worl
 		if e == nil {
 			L.Push(lua.LFalse)
 			return 1
+		}
+		if e.LanguageSkills == nil {
+			e.LanguageSkills = make(map[string]int)
 		}
 		e.LanguageSkills[langID] = level
 		log.Printf("[lua] %s set language %s of %s to %d", ent.Name, langID, e.Name, level)
