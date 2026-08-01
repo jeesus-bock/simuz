@@ -1,6 +1,6 @@
 {{define "content"}}
 <div hx-ext="sse" sse-connect="/api/v1/ui/events">
-    <div id="combat-detail-content" hx-get="/api/v1/ui/fragments/combat/{{.loc_id}}" hx-trigger="sse:tick" hx-target="#combat-detail-content" hx-swap="innerHTML">
+    <div id="combat-detail-content" hx-get="/api/v1/ui/fragments/combat/{{.loc_id}}" hx-trigger="sse:tick" hx-target="#combat-detail-content" hx-swap="morph">
         {{template "combat_detail_status" .}}
     </div>
 </div>

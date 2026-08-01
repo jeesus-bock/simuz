@@ -244,7 +244,7 @@ func (s *Simulation) TickOnce() {
 		nearby := s.Entities.ByLocation(ent.LocationID)
 		hasHostile := false
 		for _, other := range nearby {
-			if other.ID != ent.ID && other.Alive && ent.GetFactionRelation(other.Faction).String() == "hostile" {
+			if other.ID != ent.ID && other.Alive && isHostileTo(ent, other) {
 				hasHostile = true
 				break
 			}
@@ -299,6 +299,8 @@ func (s *Simulation) TickOnce() {
 	if s.Events != nil {
 		s.Events.ProcessTick(s.Tick, s.World, s.RNG, s.Entities.All())
 	}
+
+	TickFactions(s)
 
 	s.Emit(events.SimEvent{
 		Type: events.EventTick,

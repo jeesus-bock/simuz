@@ -1,6 +1,6 @@
 {{define "locations"}}
 <div hx-ext="sse" sse-connect="/api/v1/ui/events">
-    <div id="locations-content" hx-get="/api/v1/ui/fragments/locations" hx-trigger="sse:tick" hx-target="#locations-content" hx-swap="innerHTML">
+    <div id="locations-content" hx-get="/api/v1/ui/fragments/locations" hx-trigger="sse:tick" hx-target="#locations-content" hx-swap="morph">
         {{template "locations_tree" .}}
     </div>
 </div>

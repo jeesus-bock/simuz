@@ -8,6 +8,7 @@ import (
 	"simuz/internal/combat"
 	"simuz/internal/entity"
 	"simuz/internal/events"
+	"simuz/internal/faction"
 	"simuz/internal/quest"
 	"simuz/internal/relation"
 	"simuz/internal/species"
@@ -17,6 +18,24 @@ import (
 )
 
 const saveInterval = 300
+
+// isHostileTo checks hostility between two entities using both the entity's
+// own Relation AND the faction registry. This ensures that faction diplomacy
+// changes made by Lua scripts (via world.set_relation) actually affect combat.
+func isHostileTo(attacker, defender *entity.Entity) bool {
+	if attacker.Faction == defender.Faction {
+		return false
+	}
+	if attacker.Relation.GetFactionRelation(defender.Faction).String() == "hostile" {
+		return true
+	}
+	if fac, ok := faction.GetFactionByID(attacker.Faction); ok {
+		if fac.Relation.GetFactionRelation(defender.Faction).String() == "hostile" {
+			return true
+		}
+	}
+	return false
+}
 
 type Storage interface {
 	Save(sim *Simulation) error
@@ -425,7 +444,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
+			if isHostileTo(ent, other) {
 				target = other
 				break
 			}
@@ -464,7 +483,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.Profession == "diplomat" && ent.Relation.GetEntityRelation(other.ID) >= 0 {
 				continue
 			}
-			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
+			if isHostileTo(ent, other) {
 				target = other
 				break
 			}
@@ -502,7 +521,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.Profession == "diplomat" && ent.Relation.GetEntityRelation(other.ID) >= 0 {
 				continue
 			}
-			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
+			if isHostileTo(ent, other) {
 				target = other
 				break
 			}
@@ -529,7 +548,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			for _, loc := range nearbyLocs {
 				locEntities := sim.Entities.ByLocation(loc.ID)
 				for _, e := range locEntities {
-					if e.Alive && !e.Immortal && ent.GetFactionRelation(e.Faction).String() == "hostile" {
+					if e.Alive && !e.Immortal && isHostileTo(ent, e) {
 						moveEntityTo(sim, ent, loc.ID)
 						return
 					}
@@ -548,7 +567,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
+			if isHostileTo(ent, other) {
 				if home != "" && ent.LocationID != home {
 					moveEntityTo(sim, ent, home)
 				} else {
@@ -581,7 +600,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if other.HP < other.MaxHP && ent.GetFactionRelation(other.Faction).String() != "hostile" {
+			if other.HP < other.MaxHP && !isHostileTo(ent, other) {
 				healAmt := 2 + ent.Level
 				other.Heal(healAmt)
 				log.Printf("[ai] %s healed %s for %d HP", ent.Name, other.Name, healAmt)
@@ -603,7 +622,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
+			if isHostileTo(ent, other) {
 				hasHostile = true
 				break
 			}
@@ -647,7 +666,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
+			if isHostileTo(ent, other) {
 				target = other
 				break
 			}
@@ -708,7 +727,7 @@ func nearbyCombatSites(sim *Simulation, ent *entity.Entity) []nearbyCombatSite {
 				continue
 			}
 			factions[other.Faction] = struct{}{}
-			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
+			if isHostileTo(ent, other) {
 				site.Hostiles++
 			} else {
 				site.Allies++
@@ -1061,7 +1080,7 @@ func defendPassiveSelf(ent *entity.Entity, sim *Simulation) bool {
 				continue
 			}
 		}
-		if ent.GetFactionRelation(other.Faction).String() == "hostile" {
+		if isHostileTo(ent, other) {
 			hostiles = append(hostiles, other)
 		}
 	}
@@ -1359,6 +1378,172 @@ func questKilled(sim *Simulation, target *entity.Entity) {
 						}
 					}
 				}
+			}
+		}
+	}
+}
+
+
+// bestFactionFor returns the faction ID whose SpeciesRelation + ProfessionRelation
+// gives the entity the highest positive combined score, or "" if none are positive.
+func bestFactionFor(ent *entity.Entity) string {
+	bestID := ""
+	bestScore := 0
+	for id, fac := range faction.FactionRegistry {
+		score := 0
+		if sr, ok := fac.SpeciesRelation[ent.Species]; ok {
+			score += sr.Int()
+		}
+		if pr, ok := fac.ProfessionRelation[ent.Profession]; ok {
+			score += pr.Int()
+		}
+		if score > bestScore {
+			bestScore = score
+			bestID = id
+		}
+	}
+	return bestID
+}
+
+// TickFactions recomputes dynamic faction state from entity data.
+// Called once per tick to keep the UI faction view current.
+// Entities are assigned to the named faction whose SpeciesRelation +
+// ProfessionRelation gives the best positive match.
+// Iterates entities once (O(F·E) instead of O(F²·E)).
+func TickFactions(sim *Simulation) {
+	// Reset all factions and track previous leaders for succession detection
+	prevLeaders := make(map[string]string) // facID -> leaderEntityID
+	for _, fac := range faction.FactionRegistry {
+		prevLeaders[fac.ID] = fac.LeaderEntityID
+		fac.MemberIDs = make(map[string]bool)
+		fac.VaultGold = 0
+		fac.WealthTier = 0
+		fac.ControlledZones = make(map[string]float64)
+		fac.LeaderEntityID = ""
+	}
+
+	// Track per-location entity totals for controlled zone computation
+	locTotals := make(map[string]int)
+	// Track per-faction per-location member counts
+	facLocCounts := make(map[string]map[string]int) // facID -> locID -> count
+
+	// Single pass over entities
+	for _, ent := range sim.Entities.All() {
+		if !ent.Alive {
+			continue
+		}
+		if ent.Faction == "civilian" && ent.Profession == "" {
+			continue
+		}
+
+		facID := bestFactionFor(ent)
+		if facID == "" {
+			continue
+		}
+		fac, ok := faction.FactionRegistry[facID]
+		if !ok {
+			continue
+		}
+
+		fac.MemberIDs[ent.ID] = true
+		locTotals[ent.LocationID]++
+
+		if facLocCounts[facID] == nil {
+			facLocCounts[facID] = make(map[string]int)
+		}
+		facLocCounts[facID][ent.LocationID]++
+
+		// Accumulate vault gold from entity currency
+		for _, inst := range ent.Inventory {
+			if inst.Def != nil && inst.Def.Type == 6 { // TypeCurrency = 6
+				fac.VaultGold += inst.Def.Value * inst.Count
+			}
+		}
+
+		// Track leader: prefer politicians, fallback to any member
+		if ent.Profession == "politician" || fac.LeaderEntityID == "" {
+			fac.LeaderEntityID = ent.ID
+		}
+	}
+
+	// Post-pass: compute controlled zones, wealth tier, and state per faction
+	for facID, fac := range faction.FactionRegistry {
+		for locID, count := range facLocCounts[facID] {
+			total := locTotals[locID]
+			if total > 0 {
+				pct := float64(count) / float64(total) * 100
+				if pct > 30 {
+					fac.ControlledZones[locID] = pct
+				}
+			}
+		}
+
+		switch {
+		case fac.VaultGold >= 10000:
+			fac.WealthTier = 5
+		case fac.VaultGold >= 5000:
+			fac.WealthTier = 4
+		case fac.VaultGold >= 2000:
+			fac.WealthTier = 3
+		case fac.VaultGold >= 500:
+			fac.WealthTier = 2
+		case fac.VaultGold > 0:
+			fac.WealthTier = 1
+		}
+
+		if len(fac.MemberIDs) == 0 {
+			fac.CurrentState = "dormant"
+		} else if fac.WealthTier == 0 {
+			fac.CurrentState = "struggling"
+		} else {
+			fac.CurrentState = "active"
+		}
+
+		// Detect faction state transitions
+		if fac.PreviousState != "" && fac.PreviousState != fac.CurrentState {
+			log.Printf("[faction] %s state: %s -> %s", facID, fac.PreviousState, fac.CurrentState)
+			if sim.Events != nil {
+				sim.Events.AddEvent(sim.Tick, "faction", "State Change",
+					fmt.Sprintf("%s: %s → %s", facID, fac.PreviousState, fac.CurrentState), "")
+			}
+			sim.Emit(events.SimEvent{
+				Type:   events.EventFactionStateChange,
+				Tick:   sim.Tick,
+				Source: facID,
+				Data: map[string]any{
+					"faction": facID,
+					"from":    fac.PreviousState,
+					"to":      fac.CurrentState,
+				},
+			})
+		}
+		fac.PreviousState = fac.CurrentState
+
+		// Detect leader death and succession
+		prevLeader := prevLeaders[facID]
+		if prevLeader != "" && prevLeader != fac.LeaderEntityID {
+			if prevEnt := sim.Entities.Get(prevLeader); prevEnt != nil && !prevEnt.Alive {
+				log.Printf("[faction] %s leader %s has died", facID, prevLeader)
+				successorName := "nobody"
+				if fac.LeaderEntityID != "" {
+					if successor := sim.Entities.Get(fac.LeaderEntityID); successor != nil {
+						successorName = successor.Name
+					}
+				}
+				if sim.Events != nil {
+					sim.Events.AddEvent(sim.Tick, "faction", "Leader Death",
+						fmt.Sprintf("%s leader %s has died. Successor: %s", facID, prevEnt.Name, successorName), "")
+				}
+				sim.Emit(events.SimEvent{
+					Type:   events.EventFactionLeaderDeath,
+					Tick:   sim.Tick,
+					Source: prevLeader,
+					Data: map[string]any{
+						"faction":   facID,
+						"leader":    prevLeader,
+						"successor": fac.LeaderEntityID,
+					},
+				})
 			}
 		}
 	}

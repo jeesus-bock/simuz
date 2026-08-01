@@ -1,6 +1,6 @@
 {{define "dashboard"}}
 <div hx-ext="sse" sse-connect="/api/v1/ui/events">
-    <div id="dashboard-content" hx-get="/api/v1/ui/fragments/dashboard" hx-trigger="sse:tick" hx-target="#dashboard-content" hx-swap="innerHTML">
+    <div id="dashboard-content" hx-get="/api/v1/ui/fragments/dashboard" hx-trigger="sse:tick" hx-target="#dashboard-content" hx-swap="morph">
         {{template "dashboard_stats" .}}
     </div>
 </div>
@@ -14,8 +14,8 @@
     <div class="stat"><span>Year</span><span>{{.year}}</span></div>
     <div class="stat"><span>Phase</span><span>{{.phase}}</span></div>
     <div class="stat"><span>Season</span><span>{{.season}}</span></div>
-    <div class="stat"><span>Entities</span><span>{{.entities}}</span></div>
-    <div class="stat"><span>Locations</span><span>{{.locations}}</span></div>
+    <div class="stat"><span>Entities</span><span><a href="/entities" style="color:var(--accent);text-decoration:none;">{{.entities}}</a></span></div>
+    <div class="stat"><span>Locations</span><span><a href="/locations" style="color:var(--accent);text-decoration:none;">{{.locations}}</a></span></div>
     <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);">
         <div class="stat"><span>Speed</span><span>{{.speed}} game-min/tick ({{.ticks_per_day}} ticks/day)</span></div>
         <form method="POST" action="/speed" style="display:flex;gap:8px;align-items:center;margin-top:6px;">

@@ -1,6 +1,6 @@
 {{define "location_detail"}}
 <div hx-ext="sse" sse-connect="/api/v1/ui/events">
-    <div id="location-detail-content" hx-get="/api/v1/ui/fragments/location/{{.loc.ID}}" hx-trigger="sse:tick" hx-target="#location-detail-content" hx-swap="innerHTML">
+    <div id="location-detail-content" hx-get="/api/v1/ui/fragments/location/{{.loc.ID}}" hx-trigger="sse:tick" hx-target="#location-detail-content" hx-swap="morph">
         {{template "location_detail_status" .}}
     </div>
 </div>
@@ -94,9 +94,9 @@
         <tr><th>Name</th><th>Species</th><th>Faction</th><th>Lvl</th><th>HP</th></tr>
         {{range .entity_rows}}
         <tr>
-            <td><a href="/entity/{{.ID}}">{{.Name}}</a>{{if not .Alive}} <span style="color:#f88;">(dead)</span>{{end}}</td>
+            <td><a href="/entity/{{.ID}}" style="color:var(--accent);text-decoration:none;">{{.Name}}</a>{{if not .Alive}} <span style="color:#f88;">(dead)</span>{{end}}</td>
             <td>{{.Species}}</td>
-            <td>{{.Faction}}</td>
+            <td><a href="/factions" style="color:var(--accent);text-decoration:none;">{{.Faction}}</a></td>
             <td>{{.Level}}</td>
             <td>{{.HP}}/{{.MaxHP}}</td>
         </tr>

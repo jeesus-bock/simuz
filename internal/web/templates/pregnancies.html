@@ -1,6 +1,6 @@
 {{define "pregnancies"}}
 <div hx-ext="sse" sse-connect="/api/v1/ui/events">
-    <div id="pregnancies-content" hx-get="/api/v1/ui/fragments/pregnancies" hx-trigger="sse:tick" hx-target="#pregnancies-content" hx-swap="innerHTML">
+    <div id="pregnancies-content" hx-get="/api/v1/ui/fragments/pregnancies" hx-trigger="sse:tick" hx-target="#pregnancies-content" hx-swap="morph">
         {{template "pregnancies_list" .}}
     </div>
 </div>

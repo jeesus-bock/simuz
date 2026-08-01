@@ -72,21 +72,50 @@ func (h *Handler) SetSpeedPost(c *gin.Context) {
 	c.Redirect(http.StatusSeeOther, "/")
 }
 
+type speciesCount struct {
+	Name  string
+	Count int
+}
+
+func computeSpeciesCounts(entities []*entity.Entity) ([]speciesCount, []string) {
+	counts := make(map[string]int)
+	for _, e := range entities {
+		if e.Species != "" {
+			counts[e.Species]++
+		}
+	}
+	var result []speciesCount
+	for name, count := range counts {
+		result = append(result, speciesCount{Name: name, Count: count})
+	}
+	sort.SliceStable(result, func(i, j int) bool {
+		return result[i].Count > result[j].Count
+	})
+	var names []string
+	for _, sc := range result {
+		names = append(names, sc.Name)
+	}
+	return result, names
+}
+
 func (h *Handler) EntitiesPage(c *gin.Context) {
 	h.Sim.RLock()
 	defer h.Sim.RUnlock()
 	all := h.Sim.Entities.All()
 	sortEntitiesForDisplay(all)
+	speciesCounts, speciesList := computeSpeciesCounts(all)
 	if err := h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
-		"title":         "Entities",
-		"page":          "entities",
-		"tick":          h.Sim.Tick,
-		"time":          h.Sim.Time.String(),
-		"phase":         h.Sim.Time.Phase().String(),
-		"season":        h.Sim.Time.Season().String(),
-		"entities":      len(all),
-		"entities_list": all,
-		"locations":     len(h.Sim.World.AllLocations()),
+		"title":          "Entities",
+		"page":           "entities",
+		"tick":           h.Sim.Tick,
+		"time":           h.Sim.Time.String(),
+		"phase":          h.Sim.Time.Phase().String(),
+		"season":         h.Sim.Time.Season().String(),
+		"entities":       len(all),
+		"entities_list":  all,
+		"locations":      len(h.Sim.World.AllLocations()),
+		"species_counts": speciesCounts,
+		"species_list":   speciesList,
 	}); err != nil {
 		_ = c.Error(err)
 	}
@@ -871,12 +900,15 @@ func (h *Handler) EntitiesFragment(c *gin.Context) {
 	defer h.Sim.RUnlock()
 	all := h.Sim.Entities.All()
 	sortEntitiesForDisplay(all)
+	speciesCounts, speciesList := computeSpeciesCounts(all)
 	if err := h.Tmpls.ExecuteTemplate(c.Writer, "entities_table", gin.H{
-		"tick":          h.Sim.Tick,
-		"time":          h.Sim.Time.String(),
-		"entities":      len(all),
-		"entities_list": all,
-		"locations":     len(h.Sim.World.AllLocations()),
+		"tick":           h.Sim.Tick,
+		"time":           h.Sim.Time.String(),
+		"entities":       len(all),
+		"entities_list":  all,
+		"locations":      len(h.Sim.World.AllLocations()),
+		"species_counts": speciesCounts,
+		"species_list":   speciesList,
 	}); err != nil {
 		_ = c.Error(err)
 	}
@@ -2134,6 +2166,11 @@ type controlledZoneView struct {
 	Influence  float64
 }
 
+type factionMemberView struct {
+	ID   string
+	Name string
+}
+
 type factionView struct {
 	ID              string
 	Name            string
@@ -2143,20 +2180,41 @@ type factionView struct {
 	VaultGold       int
 	HQLocationID    string
 	LeaderEntityID  string
+	LeaderName      string
+	PreviousState   string
 	MemberCount     int
 	MaxCapacity     int
+	Members         []factionMemberView
 	Relations       []factionRelationView
 	ControlledZones []controlledZoneView
 	Stockpile       map[string]int
 }
 
+var factionDisplayNames = map[string]string{
+	"smog_iron_cartel":      "Smog-Iron Cartel",
+	"withered_root":         "Court of the Withered Root",
+	"coffin_nail":           "Coffin-Nail Brotherhood",
+	"astrological_assembly": "Astrological Assembly",
+	"bread_weavers":         "Bread-Weavers",
+	"salt_vow_corsairs":     "Salt-Vow Corsairs",
+	"bleeding_quill":        "Bleeding Quill",
+	"rust_walkers":          "Rust-Walkers",
+	"needle_eye_ring":       "Needle-Eye Ring",
+	"mire_blood_pack":       "Mire-Blood Pack",
+}
+
 func buildFactionViews(sim *engine.Simulation) []factionView {
 	var out []factionView
 	for _, fac := range faction.FactionRegistry {
+		displayName := fac.ID
+		if n, ok := factionDisplayNames[fac.ID]; ok {
+			displayName = n
+		}
 		fv := factionView{
 			ID:               fac.ID,
-			Name:             fac.ID,
+			Name:             displayName,
 			CurrentState:     fac.CurrentState,
+			PreviousState:    fac.PreviousState,
 			PrimaryObjective: fac.PrimaryObjective,
 			WealthTier:       fac.WealthTier,
 			VaultGold:        fac.VaultGold,
@@ -2165,8 +2223,24 @@ func buildFactionViews(sim *engine.Simulation) []factionView {
 			MaxCapacity:      fac.MaxCapacity,
 			Stockpile:        fac.Stockpile,
 		}
+		// Resolve leader name
+		if fac.LeaderEntityID != "" {
+			if leader := sim.Entities.Get(fac.LeaderEntityID); leader != nil {
+				fv.LeaderName = leader.Name
+			}
+		}
 		if fac.MemberIDs != nil {
 			fv.MemberCount = len(fac.MemberIDs)
+			for memberID := range fac.MemberIDs {
+				name := memberID
+				if ent := sim.Entities.Get(memberID); ent != nil {
+					name = ent.Name
+				}
+				fv.Members = append(fv.Members, factionMemberView{ID: memberID, Name: name})
+			}
+			sort.SliceStable(fv.Members, func(i, j int) bool {
+				return fv.Members[i].Name < fv.Members[j].Name
+			})
 		}
 		if fac.ControlledZones != nil {
 			for locID, influence := range fac.ControlledZones {

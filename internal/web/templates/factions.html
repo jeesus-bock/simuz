@@ -1,6 +1,6 @@
 {{define "factions"}}
 <div hx-ext="sse" sse-connect="/api/v1/ui/events">
-    <div id="factions-content" hx-get="/api/v1/ui/fragments/factions" hx-trigger="sse:tick" hx-target="#factions-content" hx-swap="innerHTML">
+    <div id="factions-content" hx-get="/api/v1/ui/fragments/factions" hx-trigger="sse:tick" hx-target="#factions-content" hx-swap="morph">
         {{template "factions_list" .}}
     </div>
 </div>
@@ -19,7 +19,7 @@
         <span style="color:var(--text-dim);font-size:0.8rem;">{{.ID}}</span>
     </div>
     {{if .CurrentState}}
-    <div class="stat"><span>State</span><span style="color:{{if eq .CurrentState "war_mobilization"}}#e94560{{else if eq .CurrentState "starving"}}#ffa726{{else if eq .CurrentState "striking"}}#ffd700{{else}}#4caf50{{end}};">{{.CurrentState}}</span></div>
+    <div class="stat"><span>State</span><span style="color:{{if eq .CurrentState "war_mobilization"}}#e94560{{else if eq .CurrentState "starving"}}#ffa726{{else if eq .CurrentState "striking"}}#ffd700{{else if eq .CurrentState "dormant"}}#555{{else if eq .CurrentState "struggling"}}#ffa726{{else if eq .CurrentState "active"}}#4caf50{{else}}#4caf50{{end}};">{{.CurrentState}}{{if and .PreviousState (ne .PreviousState .CurrentState)}} <span style="color:var(--text-dim);font-size:0.75rem;">(was {{.PreviousState}})</span>{{end}}</span></div>
     {{end}}
     {{if .PrimaryObjective}}
     <div class="stat"><span>Objective</span><span>{{.PrimaryObjective}}</span></div>
@@ -30,9 +30,16 @@
     <div class="stat"><span>HQ</span><span><a href="/location/{{.HQLocationID}}" style="color:var(--accent)">{{.HQLocationID}}</a></span></div>
     {{end}}
     {{if .LeaderEntityID}}
-    <div class="stat"><span>Leader</span><span><a href="/entity/{{.LeaderEntityID}}" style="color:var(--accent)">{{.LeaderEntityID}}</a></span></div>
+    <div class="stat"><span>Leader</span><span><a href="/entity/{{.LeaderEntityID}}" style="color:var(--accent)">{{if .LeaderName}}{{.LeaderName}}{{else}}{{.LeaderEntityID}}{{end}}</a></span></div>
     {{end}}
     <div class="stat"><span>Members</span><span>{{.MemberCount}}{{if .MaxCapacity}} / {{.MaxCapacity}}{{end}}</span></div>
+    {{if .Members}}
+    <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;">
+        {{range .Members}}
+        <a href="/entity/{{.ID}}" style="padding:2px 6px;background:#0f1a2e;border-radius:3px;font-size:0.75rem;color:var(--accent);text-decoration:none;">{{.Name}}</a>
+        {{end}}
+    </div>
+    {{end}}
 
     {{if .Relations}}
     <div style="margin-top:10px;">
