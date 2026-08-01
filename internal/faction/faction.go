@@ -31,6 +31,7 @@ type Faction struct {
 	// --- 4. Dynamic Strategic Agendas ---
 	// Drives what the Lua AI scripts do behind the scenes
 	CurrentState     string `json:"currentState"`     // "peaceful", "striking", "war_mobilization", "starving"
+	PreviousState    string `json:"previousState"`    // for state transition detection
 	PrimaryObjective string `json:"primaryObjective"` // e.g., "extort_wealth", "harvest_spores"
 	WealthTier       int    `json:"wealthTier"`       // 1 = Slum beggars, 5 = High Scribe Nobility
 

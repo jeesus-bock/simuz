@@ -24,6 +24,7 @@
             <option value="ambient">Ambient</option>
             <option value="mood">Mood</option>
             <option value="world">World</option>
+            <option value="faction">Faction</option>
         </select>
     </div>
     <div style="max-height:600px;overflow-y:auto;font-family:monospace;font-size:0.82rem;line-height:1.5;">
@@ -36,6 +37,7 @@
                 {{else if eq .Type "ambient"}}background:#1a3a2e;color:#a5d6a7;
                 {{else if eq .Type "mood"}}background:#2a1a3e;color:#d1c4e9;
                 {{else if eq .Type "world"}}background:#1a3a5c;color:#c8e6ff;
+                {{else if eq .Type "faction"}}background:#2a1a3e;color:#e1bee7;
                 {{else}}background:#222;color:#888;{{end}}">{{.Type}}</span>
             <span style="min-width:90px;color:#ffd700;font-weight:bold;">{{.Title}}</span>
             <span style="color:var(--text-dim);flex:1;">{{.Message}}</span>

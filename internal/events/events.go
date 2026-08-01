@@ -32,6 +32,8 @@ const (
 	EventAmbient
 	EventMood
 	EventDivine
+	EventFactionStateChange
+	EventFactionLeaderDeath
 )
 
 type SimEvent struct {

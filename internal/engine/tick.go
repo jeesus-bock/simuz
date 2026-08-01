@@ -1413,8 +1413,10 @@ func bestFactionFor(ent *entity.Entity) string {
 // ProfessionRelation gives the best positive match.
 // Iterates entities once (O(F·E) instead of O(F²·E)).
 func TickFactions(sim *Simulation) {
-	// Reset all factions
+	// Reset all factions and track previous leaders for succession detection
+	prevLeaders := make(map[string]string) // facID -> leaderEntityID
 	for _, fac := range faction.FactionRegistry {
+		prevLeaders[fac.ID] = fac.LeaderEntityID
 		fac.MemberIDs = make(map[string]bool)
 		fac.VaultGold = 0
 		fac.WealthTier = 0
@@ -1497,6 +1499,54 @@ func TickFactions(sim *Simulation) {
 			fac.CurrentState = "struggling"
 		} else {
 			fac.CurrentState = "active"
+		}
+
+		// Detect faction state transitions
+		if fac.PreviousState != "" && fac.PreviousState != fac.CurrentState {
+			log.Printf("[faction] %s state: %s -> %s", facID, fac.PreviousState, fac.CurrentState)
+			if sim.Events != nil {
+				sim.Events.AddEvent(sim.Tick, "faction", "State Change",
+					fmt.Sprintf("%s: %s → %s", facID, fac.PreviousState, fac.CurrentState), "")
+			}
+			sim.Emit(events.SimEvent{
+				Type:   events.EventFactionStateChange,
+				Tick:   sim.Tick,
+				Source: facID,
+				Data: map[string]any{
+					"faction": facID,
+					"from":    fac.PreviousState,
+					"to":      fac.CurrentState,
+				},
+			})
+		}
+		fac.PreviousState = fac.CurrentState
+
+		// Detect leader death and succession
+		prevLeader := prevLeaders[facID]
+		if prevLeader != "" && prevLeader != fac.LeaderEntityID {
+			if prevEnt := sim.Entities.Get(prevLeader); prevEnt != nil && !prevEnt.Alive {
+				log.Printf("[faction] %s leader %s has died", facID, prevLeader)
+				successorName := "nobody"
+				if fac.LeaderEntityID != "" {
+					if successor := sim.Entities.Get(fac.LeaderEntityID); successor != nil {
+						successorName = successor.Name
+					}
+				}
+				if sim.Events != nil {
+					sim.Events.AddEvent(sim.Tick, "faction", "Leader Death",
+						fmt.Sprintf("%s leader %s has died. Successor: %s", facID, prevEnt.Name, successorName), "")
+				}
+				sim.Emit(events.SimEvent{
+					Type:   events.EventFactionLeaderDeath,
+					Tick:   sim.Tick,
+					Source: prevLeader,
+					Data: map[string]any{
+						"faction":   facID,
+						"leader":    prevLeader,
+						"successor": fac.LeaderEntityID,
+					},
+				})
+			}
 		}
 	}
 }

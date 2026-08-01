@@ -2181,6 +2181,7 @@ type factionView struct {
 	HQLocationID    string
 	LeaderEntityID  string
 	LeaderName      string
+	PreviousState   string
 	MemberCount     int
 	MaxCapacity     int
 	Members         []factionMemberView
@@ -2213,6 +2214,7 @@ func buildFactionViews(sim *engine.Simulation) []factionView {
 			ID:               fac.ID,
 			Name:             displayName,
 			CurrentState:     fac.CurrentState,
+			PreviousState:    fac.PreviousState,
 			PrimaryObjective: fac.PrimaryObjective,
 			WealthTier:       fac.WealthTier,
 			VaultGold:        fac.VaultGold,
