@@ -14,7 +14,7 @@ local function pillage_en_route()
                 util.set_mood("furious", 25)
 
                 world.attack(self.id, eid)
-                local loot = world.try_buy(eid, "iron_rations")
+                local loot = world.try_buy(eid, "grain")
                 if loot and loot.done then
                     util.log(self.name .. " stole supplies from " .. info.name)
                 end

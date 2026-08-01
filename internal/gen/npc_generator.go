@@ -249,8 +249,54 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 		ent.Profession = prof
 		AssignWorship(ent, g.RNG)
 		AssignLanguages(ent, g.RNG)
-		equipItem(ent, lookup("common_clothes"))
-		giveCurrency(ent, 1+g.RNG.Intn(5), 0, 0)
+
+		switch prof {
+		case "flesh_carver":
+			equipItem(ent, lookup("work_tunic"))
+			addItem(ent, lookup("dagger"))
+			addItem(ent, lookup("herb_pouch"))
+			giveCurrency(ent, 2+g.RNG.Intn(5), 0, 0)
+		case "blood_trapper":
+			equipItem(ent, lookup("leather_armor"))
+			equipItem(ent, lookup("iron_spear"))
+			addItem(ent, lookup("herb"))
+			giveCurrency(ent, 3+g.RNG.Intn(8), 0, 0)
+		case "raider_vanguard":
+			ent.AI.Brave = true
+			equipItem(ent, lookup("leather_armor"))
+			equipItem(ent, lookup("orc_cleaver"))
+			addItem(ent, lookup("grain"))
+			giveCurrency(ent, 5+g.RNG.Intn(10), 0, 0)
+		case "pit_brawler":
+			ent.AI.Brave = true
+			equipItem(ent, lookup("work_tunic"))
+			addItem(ent, lookup("herb_pouch"))
+			giveCurrency(ent, 1+g.RNG.Intn(3), 0, 0)
+		case "bone_scraper":
+			equipItem(ent, lookup("leather_armor"))
+			equipItem(ent, lookup("dagger"))
+			addItem(ent, lookup("sickle"))
+			giveCurrency(ent, 2+g.RNG.Intn(4), 0, 0)
+		case "clan_drummer":
+			equipItem(ent, lookup("common_clothes"))
+			addItem(ent, lookup("herb"))
+			giveCurrency(ent, 2+g.RNG.Intn(5), 0, 0)
+		case "skull_cleaver":
+			ent.AI.Brave = true
+			equipItem(ent, lookup("leather_armor"))
+			equipItem(ent, lookup("orc_cleaver"))
+			equipItem(ent, lookup("iron_shield"))
+			addItem(ent, lookup("herb_pouch"))
+			giveCurrency(ent, 3+g.RNG.Intn(7), 0, 0)
+		case "tribute_collector":
+			equipItem(ent, lookup("common_clothes"))
+			equipItem(ent, lookup("cudgel"))
+			addItem(ent, lookup("iron_ore"))
+			giveCurrency(ent, 8+g.RNG.Intn(15), 2+g.RNG.Intn(5), 0)
+		default:
+			equipItem(ent, lookup("common_clothes"))
+			giveCurrency(ent, 1+g.RNG.Intn(5), 0, 0)
+		}
 		entities = append(entities, ent)
 	}
 

@@ -17,7 +17,7 @@ local function hunt_beasts()
                 world.attack(self.id, eid)
                 world.attack(self.id, eid)
 
-                local harvest = world.try_buy(eid, "beast_hide")
+                local harvest = world.try_buy(eid, "leather")
                 if harvest and harvest.done then
                     util.log(self.name .. " strips the raw pelt directly from the target.")
                 end

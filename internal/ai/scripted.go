@@ -1245,6 +1245,23 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.EntityManager, tm *worl
 		return 1
 	}))
 
+	worldTbl.RawSetString("set_mood_target", L.NewFunction(func(L *lua.LState) int {
+		id := L.ToString(1)
+		mood := L.ToString(2)
+		duration := L.OptInt(3, 30)
+		if duration < 1 {
+			duration = 30
+		}
+		target := em.Get(id)
+		if target == nil {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		target.AddMoodModifier(ent.Name, mood, uint64(duration))
+		L.Push(lua.LTrue)
+		return 1
+	}))
+
 	// Language world functions
 	worldTbl.RawSetString("say_to", L.NewFunction(func(L *lua.LState) int {
 		speakerID := L.ToString(1)
