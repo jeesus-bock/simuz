@@ -163,6 +163,9 @@ func AssignLanguages(e *entity.Entity, rng interface{ Intn(int) int }) {
 		"human": true, "hobbit": true, "elf": true, "dwarf": true,
 		"orc": true, "goblin": true, "ogre": true, "hobgoblin": true,
 		"gnoll": true, "lizardfolk": true, "kobold": true,
+		"half_orc": true, "half_elf": true, "half_dwarf": true,
+		"half_goblin": true, "half_hobgoblin": true, "half_gnoll": true,
+		"half_kobold": true, "half_fey": true,
 	}
 	if civilized[sp] {
 		if _, has := e.LanguageSkills["common"]; !has {
