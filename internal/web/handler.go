@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"time"
 
 	"simuz/internal/combat"
 	"simuz/internal/engine"
@@ -1834,11 +1835,12 @@ func (h *Handler) SSEEvents(c *gin.Context) {
 		}
 	})
 
-	// Deduplicate by tick so that multiple events in the same tick
-	// only produce a single SSE update. This prevents HTMX from
-	// re-swapping fragments too frequently, which was causing form
-	// controls (like the speed select) to lose their state mid-interaction.
+	// Deduplicate by tick and throttle to at most one SSE event per 100ms.
+	// This prevents HTMX from re-swapping fragments too frequently,
+	// which was causing form controls (like the speed select) to lose
+	// their state mid-interaction.
 	lastTick := uint64(0)
+	lastSend := time.Now().Add(-200 * time.Millisecond)
 	c.Stream(func(w io.Writer) bool {
 		tick, ok := <-ch
 		if !ok {
@@ -1847,7 +1849,11 @@ func (h *Handler) SSEEvents(c *gin.Context) {
 		if tick == lastTick {
 			return true
 		}
+		if time.Since(lastSend) < 100*time.Millisecond {
+			return true
+		}
 		lastTick = tick
+		lastSend = time.Now()
 		c.SSEvent("tick", fmt.Sprintf(`{"tick":%d}`, tick))
 		return true
 	})
