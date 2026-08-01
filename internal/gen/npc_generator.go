@@ -44,7 +44,7 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 		}
 	}
 
-	// Always guarantee guard posts and a bard
+	// Always guarantee guard posts, a bard, and a diplomat
 	for i := 0; i < 2+g.RNG.Intn(3); i++ {
 		targetBuildings = append(targetBuildings, architecturalTask{
 			id: townID, profession: "guard", targetRoom: townID,
@@ -52,6 +52,9 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 	}
 	targetBuildings = append(targetBuildings, architecturalTask{
 		id: townID, profession: "bard", targetRoom: townID,
+	})
+	targetBuildings = append(targetBuildings, architecturalTask{
+		id: townID, profession: "diplomat", targetRoom: townID,
 	})
 
 	for _, b := range targetBuildings {
@@ -133,6 +136,12 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 			addItem(ent, lookup("beer"))
 			giveCurrency(ent, 5+g.RNG.Intn(10), 2+g.RNG.Intn(5), 0)
 
+		case "diplomat":
+			equipItem(ent, lookup("fine_clothes"))
+			addItem(ent, lookup("dagger"))
+			addItem(ent, lookup("herb_pouch"))
+			giveCurrency(ent, 10+g.RNG.Intn(20), 5+g.RNG.Intn(10), 1+g.RNG.Intn(3))
+
 		default:
 			equipItem(ent, lookup("common_clothes"))
 			giveCurrency(ent, 1+g.RNG.Intn(5), 0, 0)
@@ -187,10 +196,25 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 	// Ambient population builder loops
 	numCommoners := 10 + g.RNG.Intn(15)
 	for i := 0; i < numCommoners; i++ {
-		professions := []string{"farmer", "fisherman", "herbalist", "courier", "bar_patron", "thief", "ranger", "traveler"}
-		prof := professions[g.RNG.Intn(len(professions))]
 
 		workerSpecies := dominantCulture
+		var professions []string
+		if workerSpecies == "orc" {
+			professions = []string{
+				"flesh_carver",      // Brutal alternative to herbalist/doctor (harvests specimens)
+				"blood_trapper",     // Aggressive hunter tracking lethal territorial beasts
+				"raider_vanguard",   // Direct spearhead courier that loots settlements on route
+				"pit_brawler",       // Heavy replacement for bar_patron (constantly testing strength)
+				"bone_scraper",      // Scavenger variant of thief (strips armor and weapons from corpses)
+				"clan_drummer",      // Intimidating replacement for traveler/bard (sounds war cues)
+				"skull_cleaver",     // Elite combat guard enforcing tribal laws
+				"tribute_collector", // Aggressive merchant shaking down locals for resource taxes
+			}
+		} else {
+			// Fallback array for civilized human/hobbit profiles
+			professions = []string{"farmer", "fisherman", "herbalist", "courier", "bar_patron", "thief", "ranger", "traveler"}
+		}
+		prof := professions[g.RNG.Intn(len(professions))]
 		if g.RNG.Intn(100) < 15 {
 			allPossibleSpecies := []string{"human", "orc", "elf", "dwarf", "hobbit"}
 			workerSpecies = allPossibleSpecies[g.RNG.Intn(len(allPossibleSpecies))]
