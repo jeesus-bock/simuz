@@ -19,7 +19,7 @@
         <span style="color:var(--text-dim);font-size:0.8rem;">{{.ID}}</span>
     </div>
     {{if .CurrentState}}
-    <div class="stat"><span>State</span><span style="color:{{if eq .CurrentState "war_mobilization"}}#e94560{{else if eq .CurrentState "starving"}}#ffa726{{else if eq .CurrentState "striking"}}#ffd700{{else}}#4caf50{{end}};">{{.CurrentState}}{{if and .PreviousState (ne .PreviousState .CurrentState)}} <span style="color:var(--text-dim);font-size:0.75rem;">(was {{.PreviousState}})</span>{{end}}</span></div>
+    <div class="stat"><span>State</span><span style="color:{{if eq .CurrentState "war_mobilization"}}#e94560{{else if eq .CurrentState "starving"}}#ffa726{{else if eq .CurrentState "striking"}}#ffd700{{else if eq .CurrentState "dormant"}}#555{{else if eq .CurrentState "struggling"}}#ffa726{{else if eq .CurrentState "active"}}#4caf50{{else}}#4caf50{{end}};">{{.CurrentState}}{{if and .PreviousState (ne .PreviousState .CurrentState)}} <span style="color:var(--text-dim);font-size:0.75rem;">(was {{.PreviousState}})</span>{{end}}</span></div>
     {{end}}
     {{if .PrimaryObjective}}
     <div class="stat"><span>Objective</span><span>{{.PrimaryObjective}}</span></div>
