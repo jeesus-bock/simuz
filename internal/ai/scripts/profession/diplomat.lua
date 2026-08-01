@@ -74,7 +74,7 @@ local function practice_statecraft()
 end
 
 local function negotiate(strongest, weakest)
-    if strongest and strongest.id ~= self.id then
+    if strongest and type(strongest) == "table" and strongest.id ~= self.id then
         -- Flattery: Defer to the strongest entity present
         if world.can_communicate(strongest.id) then
             world.say_to(strongest.id, "Your strength precedes you. Perhaps we might find mutual benefit.")
@@ -84,7 +84,7 @@ local function negotiate(strongest, weakest)
         return true
     end
 
-    if weakest and weakest.id ~= self.id and weakest.faction ~= self.faction then
+    if weakest and type(weakest) == "table" and weakest.id ~= self.id and weakest.faction ~= self.faction then
         -- Destabilization: Seed distrust in the weakest non-aligned entity
         if world.can_communicate(weakest.id) then
             world.say_to(weakest.id, "I hear troubling whispers about your rivals...")
@@ -110,7 +110,7 @@ function do_tick()
         -- Priority 2: General statecraft with non-politician entities
         if not acted then
             local strongest, weakest = practice_statecraft()
-            if strongest and type(strongest) == "table" then
+            if strongest ~= nil and type(strongest) == "table" then
                 acted = negotiate(strongest, weakest)
             end
         end
