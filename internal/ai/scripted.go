@@ -267,6 +267,13 @@ func bindEntity(L *lua.LState, e *entity.Entity, tick uint64) {
 	}
 	entTbl.RawSetString("skills", skillsTbl)
 
+	// Language skills
+	langTbl := L.NewTable()
+	for langID, level := range e.LanguageSkills {
+		langTbl.RawSetString(langID, lua.LNumber(level))
+	}
+	entTbl.RawSetString("languages", langTbl)
+
 	// Relationships
 	entTbl.RawSetString("get_relationship", L.NewFunction(func(L *lua.LState) int {
 		otherID := L.ToString(1)
@@ -469,6 +476,37 @@ func bindEntity(L *lua.LState, e *entity.Entity, tick uint64) {
 	entTbl.RawSetString("set_profession", L.NewFunction(func(L *lua.LState) int {
 		newProfession := L.ToString(1)
 		e.Profession = newProfession
+		L.Push(lua.LTrue)
+		return 1
+	}))
+
+	// Language methods
+	entTbl.RawSetString("get_languages", L.NewFunction(func(L *lua.LState) int {
+		langTbl := L.NewTable()
+		for langID, level := range e.LanguageSkills {
+			langTbl.RawSetString(langID, lua.LNumber(level))
+		}
+		L.Push(langTbl)
+		return 1
+	}))
+
+	entTbl.RawSetString("speak_language", L.NewFunction(func(L *lua.LState) int {
+		langID := L.ToString(1)
+		minLevel := L.OptInt(2, 1)
+		L.Push(lua.LBool(e.CanSpeak(langID, minLevel)))
+		return 1
+	}))
+
+	entTbl.RawSetString("learn_language", L.NewFunction(func(L *lua.LState) int {
+		langID := L.ToString(1)
+		level := L.ToInt(2)
+		if level < 0 {
+			level = 0
+		}
+		if level > 10 {
+			level = 10
+		}
+		e.LanguageSkills[langID] = level
 		L.Push(lua.LTrue)
 		return 1
 	}))
@@ -1128,6 +1166,11 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.EntityManager, tm *worl
 			worshipTbl.Append(lua.LString(d))
 		}
 		tbl.RawSetString("worship", worshipTbl)
+		langTbl := L.NewTable()
+		for langID, level := range e.LanguageSkills {
+			langTbl.RawSetString(langID, lua.LNumber(level))
+		}
+		tbl.RawSetString("languages", langTbl)
 		L.Push(tbl)
 		return 1
 	}))
@@ -1195,6 +1238,107 @@ func bindWorld(L *lua.LState, w *world.World, em *entity.EntityManager, tm *worl
 		}
 		e.Profession = newProfession
 		log.Printf("[lua] %s set profession of %s to %s", ent.Name, id, newProfession)
+		L.Push(lua.LTrue)
+		return 1
+	}))
+
+	// Language world functions
+	worldTbl.RawSetString("say_to", L.NewFunction(func(L *lua.LState) int {
+		speakerID := L.ToString(1)
+		listenerID := L.ToString(2)
+		text := L.ToString(3)
+		langID := L.OptString(4, "common")
+
+		speaker := em.Get(speakerID)
+		listener := em.Get(listenerID)
+		if speaker == nil || listener == nil {
+			L.Push(lua.LString("target_not_found"))
+			return 1
+		}
+
+		canSpeak := speaker.CanSpeak(langID, 1)
+		canUnderstand := listener.CanSpeak(langID, 1)
+
+		if !canSpeak {
+			L.Push(lua.LString("speaker_cannot_speak"))
+			return 1
+		}
+		if !canUnderstand {
+			L.Push(lua.LString("listener_cannot_understand"))
+			return 1
+		}
+
+		log.Printf("[speech] %s says to %s in %s: %q", speaker.Name, listener.Name, langID, text)
+		L.Push(lua.LString("ok"))
+		return 1
+	}))
+
+	worldTbl.RawSetString("listen_to", L.NewFunction(func(L *lua.LState) int {
+		listenerID := L.ToString(1)
+		speakerID := L.ToString(2)
+
+		listener := em.Get(listenerID)
+		speaker := em.Get(speakerID)
+		if listener == nil || speaker == nil {
+			L.Push(lua.LNil)
+			return 1
+		}
+
+		shared := listener.BestSharedLanguage(speaker)
+		if shared == "" {
+			L.Push(lua.LString(""))
+			return 1
+		}
+		L.Push(lua.LString(shared))
+		return 1
+	}))
+
+	worldTbl.RawSetString("can_communicate", L.NewFunction(func(L *lua.LState) int {
+		idA := L.ToString(1)
+		idB := L.ToString(2)
+		minLevel := L.OptInt(3, 1)
+
+		a := em.Get(idA)
+		b := em.Get(idB)
+		if a == nil || b == nil {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		L.Push(lua.LBool(a.CanCommunicateWith(b, minLevel)))
+		return 1
+	}))
+
+	worldTbl.RawSetString("best_shared_language", L.NewFunction(func(L *lua.LState) int {
+		idA := L.ToString(1)
+		idB := L.ToString(2)
+
+		a := em.Get(idA)
+		b := em.Get(idB)
+		if a == nil || b == nil {
+			L.Push(lua.LString(""))
+			return 1
+		}
+		L.Push(lua.LString(a.BestSharedLanguage(b)))
+		return 1
+	}))
+
+	worldTbl.RawSetString("set_language", L.NewFunction(func(L *lua.LState) int {
+		id := L.ToString(1)
+		langID := L.ToString(2)
+		level := L.ToInt(3)
+		if level < 0 {
+			level = 0
+		}
+		if level > 10 {
+			level = 10
+		}
+		e := em.Get(id)
+		if e == nil {
+			L.Push(lua.LFalse)
+			return 1
+		}
+		e.LanguageSkills[langID] = level
+		log.Printf("[lua] %s set language %s of %s to %d", ent.Name, langID, e.Name, level)
 		L.Push(lua.LTrue)
 		return 1
 	}))

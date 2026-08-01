@@ -97,6 +97,7 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 		ent.Profession = b.profession
 
 		AssignWorship(ent, g.RNG)
+		AssignLanguages(ent, g.RNG)
 
 		// Inventory Assignment Engine
 		switch b.profession {
@@ -223,6 +224,7 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 		ent.Faction = "civilian"
 		ent.Profession = prof
 		AssignWorship(ent, g.RNG)
+		AssignLanguages(ent, g.RNG)
 		equipItem(ent, lookup("common_clothes"))
 		giveCurrency(ent, 1+g.RNG.Intn(5), 0, 0)
 		entities = append(entities, ent)
