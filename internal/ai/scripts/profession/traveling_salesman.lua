@@ -95,7 +95,7 @@ local function do_trade()
     if not targets or #targets == 0 then
         return
     end
-    traded_this_tick = {}
+    local traded_this_tick = {}
     for _, target_id in ipairs(targets) do
         if target_id ~= self.name then
             try_trade(target_id)
