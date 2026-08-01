@@ -291,6 +291,7 @@ var Registry = map[string]Species{
 		BaseAttrs:           Attributes{STR: 14, DEX: 11, CON: 14, INT: 8, WIS: 12, CHA: 7},
 		FluidBiology:        false,
 		PreferredBiomes:     []string{"swamp", "forest"},
+		PoliticalIdeology:   "anarchist",
 	},
 	"gnoll": {
 		ID:                  "gnoll",
