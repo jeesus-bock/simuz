@@ -26,13 +26,11 @@ func isHostileTo(attacker, defender *entity.Entity) bool {
 	if attacker.Faction == defender.Faction {
 		return false
 	}
-	// Entity-level relation (from entity's own FactionRelation map)
-	if attacker.Relation.GetFactionRelation(defender.Faction) < 0 {
+	if attacker.Relation.GetFactionRelation(defender.Faction).String() == "hostile" {
 		return true
 	}
-	// Faction registry relation (set by Lua scripts or faction definitions)
 	if fac, ok := faction.GetFactionByID(attacker.Faction); ok {
-		if fac.Relation.GetFactionRelation(defender.Faction) < 0 {
+		if fac.Relation.GetFactionRelation(defender.Faction).String() == "hostile" {
 			return true
 		}
 	}
