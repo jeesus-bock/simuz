@@ -98,6 +98,7 @@ local function orc_warlord()
         local roll = util.rand_int(100)
         if roll < 25 then
             util.log(self.name .. " snarls at " .. dip.name .. ": 'Your words are weak! GUARDS!'")
+            world.set_entity_relation(dip.id, "hostile")
             util.set_mood("furious", 30)
             world.attack(self.id, dip.id)
             return true
