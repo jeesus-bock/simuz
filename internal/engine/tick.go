@@ -19,6 +19,26 @@ import (
 
 const saveInterval = 300
 
+// isHostileTo checks hostility between two entities using both the entity's
+// own Relation AND the faction registry. This ensures that faction diplomacy
+// changes made by Lua scripts (via world.set_relation) actually affect combat.
+func isHostileTo(attacker, defender *entity.Entity) bool {
+	if attacker.Faction == defender.Faction {
+		return false
+	}
+	// Entity-level relation (from entity's own FactionRelation map)
+	if attacker.Relation.GetFactionRelation(defender.Faction) < 0 {
+		return true
+	}
+	// Faction registry relation (set by Lua scripts or faction definitions)
+	if fac, ok := faction.GetFactionByID(attacker.Faction); ok {
+		if fac.Relation.GetFactionRelation(defender.Faction) < 0 {
+			return true
+		}
+	}
+	return false
+}
+
 type Storage interface {
 	Save(sim *Simulation) error
 	Load() (*Simulation, error)
@@ -426,7 +446,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
+			if isHostileTo(ent, other) {
 				target = other
 				break
 			}
@@ -465,7 +485,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.Profession == "diplomat" && ent.Relation.GetEntityRelation(other.ID) >= 0 {
 				continue
 			}
-			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
+			if isHostileTo(ent, other) {
 				target = other
 				break
 			}
@@ -503,7 +523,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.Profession == "diplomat" && ent.Relation.GetEntityRelation(other.ID) >= 0 {
 				continue
 			}
-			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
+			if isHostileTo(ent, other) {
 				target = other
 				break
 			}
@@ -530,7 +550,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			for _, loc := range nearbyLocs {
 				locEntities := sim.Entities.ByLocation(loc.ID)
 				for _, e := range locEntities {
-					if e.Alive && !e.Immortal && ent.GetFactionRelation(e.Faction).String() == "hostile" {
+					if e.Alive && !e.Immortal && isHostileTo(ent, e) {
 						moveEntityTo(sim, ent, loc.ID)
 						return
 					}
@@ -549,7 +569,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
+			if isHostileTo(ent, other) {
 				if home != "" && ent.LocationID != home {
 					moveEntityTo(sim, ent, home)
 				} else {
@@ -582,7 +602,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if other.HP < other.MaxHP && ent.GetFactionRelation(other.Faction).String() != "hostile" {
+			if other.HP < other.MaxHP && !isHostileTo(ent, other) {
 				healAmt := 2 + ent.Level
 				other.Heal(healAmt)
 				log.Printf("[ai] %s healed %s for %d HP", ent.Name, other.Name, healAmt)
@@ -604,7 +624,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
+			if isHostileTo(ent, other) {
 				hasHostile = true
 				break
 			}
@@ -648,7 +668,7 @@ func processEntityAI(ent *entity.Entity, sim *Simulation) {
 			if other.ID == ent.ID || !other.Alive || other.Immortal {
 				continue
 			}
-			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
+			if isHostileTo(ent, other) {
 				target = other
 				break
 			}
@@ -709,7 +729,7 @@ func nearbyCombatSites(sim *Simulation, ent *entity.Entity) []nearbyCombatSite {
 				continue
 			}
 			factions[other.Faction] = struct{}{}
-			if ent.GetFactionRelation(other.Faction).String() == "hostile" {
+			if isHostileTo(ent, other) {
 				site.Hostiles++
 			} else {
 				site.Allies++
@@ -1062,7 +1082,7 @@ func defendPassiveSelf(ent *entity.Entity, sim *Simulation) bool {
 				continue
 			}
 		}
-		if ent.GetFactionRelation(other.Faction).String() == "hostile" {
+		if isHostileTo(ent, other) {
 			hostiles = append(hostiles, other)
 		}
 	}
