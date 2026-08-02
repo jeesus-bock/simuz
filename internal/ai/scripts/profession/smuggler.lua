@@ -17,8 +17,8 @@ local function find_buyer()
     for _, eid in ipairs(nearby) do
         if eid == self.id then goto continue end
         local info = world.entity_info(eid)
-        if info and info.alive and info.faction ~= "guard" and info.faction ~= "deity" then
-            if info.faction == "civilian" or info.faction == "merchant" or info.faction == "bandit" then
+        if info and info.alive and info.profession ~= "guard" and info.profession ~= "deity" then
+            if info.profession == "civilian" or info.profession == "merchant" or info.profession == "bandit" then
                 return eid, info
             end
         end
@@ -32,14 +32,14 @@ local function find_guard()
     if not nearby then return nil end
     for _, eid in ipairs(nearby) do
         local info = world.entity_info(eid)
-        if info and info.alive and info.faction == "guard" then
+        if info and info.alive and info.profession == "guard" then
             return eid, info
         end
     end
     return nil
 end
 
-local function has_contrastband()
+local function has_contraband()
     for _, item_id in ipairs(self.inventory) do
         for _, contraband_id in ipairs(CONTRABAND) do
             if item_id == contraband_id then return true, item_id end
@@ -49,7 +49,7 @@ local function has_contrastband()
 end
 
 local function sell_contraband()
-    local has_cb, item_id = has_contrastband()
+    local has_cb, item_id = has_contraband()
     if not has_cb then return false end
 
     -- Use SELL_CHANCE to determine if the smuggler successfully sells
