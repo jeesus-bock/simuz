@@ -95,8 +95,9 @@ local function do_steal_loot(target_id)
     return false
 end
 
-local function do_tick()
+function do_tick()
     local phase = world.phase
+    local events = {}
 
     if should_flee() then
         local exits = world.exits_from(self.loc_id)
@@ -105,7 +106,7 @@ local function do_tick()
             world.move_to(dest)
             util.log(self.name .. " fled from danger")
         end
-        return
+        return events
     end
 
     local target_id, target_info = find_hostile()
@@ -123,7 +124,7 @@ local function do_tick()
                 do_steal_loot(target_id)
             end
         end
-        return
+        return events
     end
 
     if world.tick % 20 == 0 then
@@ -135,6 +136,7 @@ local function do_tick()
             end
         end
     end
+    return events
 end
 
-do_tick()
+return do_tick()
