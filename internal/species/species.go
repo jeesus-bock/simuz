@@ -40,6 +40,11 @@ type Species struct {
 	// reproduction and pregnancy maintenance systems. Civilized species include
 	// kobolds, hobbits, gnolls, and other non-caveman beings with organized cultures.
 	Civilized bool `json:"civilized"`
+
+	// --- Sociopolitical & Combat Fields ---
+	PoliticalIdeology string `json:"political_ideology,omitempty"` // e.g. "capitalist", "communist", "anarchist"
+	DiplomaticRank    string `json:"diplomatic_rank,omitempty"`    // e.g. "diplomat", "ambassador"
+	DefensiveBonus    int    `json:"defensive_bonus,omitempty"`    // Flat bonus to entity defense
 }
 
 // GetRandomName handles procedural linguistic choices using a fallback protection check.
