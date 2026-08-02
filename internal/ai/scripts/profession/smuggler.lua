@@ -52,6 +52,11 @@ local function sell_contraband()
     local has_cb, item_id = has_contrastband()
     if not has_cb then return false end
 
+    -- Use SELL_CHANCE to determine if the smuggler successfully sells
+    if math.random(100) > SELL_CHANCE then
+        return false
+    end
+
     local buyer_id, buyer_info = find_buyer()
     if not buyer_id then return false end
 
