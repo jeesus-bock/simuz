@@ -73,6 +73,7 @@ func SetupRoutes(router *gin.Engine, sim *engine.Simulation) {
 	router.GET("/pregnancies", h.PregnanciesPage)
 	router.GET("/deities", h.DeitiesPage)
 	router.GET("/factions", h.FactionsPage)
+	router.GET("/species", h.SpeciesPage)
 	router.GET("/api/v1/ui/events", h.SSEEvents)
 	router.GET("/api/v1/ui/fragments/dashboard", h.DashboardFragment)
 	router.GET("/api/v1/ui/fragments/entities", h.EntitiesFragment)
@@ -88,6 +89,7 @@ func SetupRoutes(router *gin.Engine, sim *engine.Simulation) {
 	router.GET("/api/v1/ui/fragments/events", h.EventsFragment)
 	router.GET("/api/v1/ui/fragments/deities", h.DeitiesFragment)
 	router.GET("/api/v1/ui/fragments/factions", h.FactionsFragment)
+	router.GET("/api/v1/ui/fragments/species", h.SpeciesFragment)
 
 	staticSub, _ := fs.Sub(staticFS, "templates/static")
 	router.StaticFS("/static", http.FS(staticSub))

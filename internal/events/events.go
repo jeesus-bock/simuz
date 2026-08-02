@@ -26,6 +26,8 @@ const (
 	EventTimePassed
 	EventEntityBorn
 	EventTypeQuestComplete
+	EventTypeQuestAccept
+	EventTypeQuestProgress
 	EventXPGained
 	EventTypeStarvation
 	EventWorld

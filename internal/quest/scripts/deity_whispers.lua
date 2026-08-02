@@ -29,3 +29,7 @@ quest.define({
   },
   rewards = { experience = 500, gold = 100 },
 })
+
+return {
+  util.event("quest_accepted", { quest_id = "deity_whispers", source = "zeus" }),
+}

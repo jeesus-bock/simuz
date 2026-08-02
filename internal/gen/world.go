@@ -326,6 +326,10 @@ func (g *Generator) generateHostiles() []*entity.Entity {
 		{"orc_grom", "Grom", orcCampID},
 		{"orc_grak", "Grak", orcCampID},
 		{"orc_uruk", "Uruk", ashRuinsID},
+		{"orc_drum", "Drum", orcCampID},
+		{"orc_ash", "Ash", orcCampID},
+		{"orc_krag", "Krag", orcCampID},
+		{"orc_vorn", "Vorn", ashRuinsID},
 	}
 	elfDefs := []struct {
 		id, name, locID string
@@ -333,6 +337,9 @@ func (g *Generator) generateHostiles() []*entity.Entity {
 		{"elf_aerin", "Aerin", feyGladeID},
 		{"elf_thalion", "Thalion", feyGladeID},
 		{"elf_lyra", "Lyra", feyGladeID},
+		{"elf_cael", "Cael", feyGladeID},
+		{"elf_wyn", "Wyn", feyGladeID},
+		{"elf_ira", "Ira", feyGladeID},
 	}
 	thiefDefs := []struct {
 		id, name, locID string
@@ -340,6 +347,9 @@ func (g *Generator) generateHostiles() []*entity.Entity {
 		{"thief_rat", "Rattle", townInns["frosthold"]},
 		{"thief_creep", "Creep", townInns["stillwater"]},
 		{"thief_sneak", "Sneak", townInns["golden_gate"]},
+		{"thief_nix", "Nix", townInns["frosthold"]},
+		{"thief_veil", "Veil", townInns["stillwater"]},
+		{"thief_dusk", "Dusk", townInns["golden_gate"]},
 	}
 	banditDefs := []struct {
 		id, name, locID string
@@ -348,6 +358,34 @@ func (g *Generator) generateHostiles() []*entity.Entity {
 		{"bandit_blade", "Blade", banditCampID},
 		{"bandit_jack", "Jack", banditCampID},
 		{"bandit_rog", "Rog", banditCampID},
+		{"bandit_saw", "Saw", banditCampID},
+		{"bandit_cleaver", "Cleaver", banditCampID},
+	}
+	rogueDefs := []struct {
+		id, name, locID string
+	}{
+		{"rogue_shade", "Shade", banditCampID},
+		{"rogue_venom", "Venom", banditCampID},
+		{"rogue_void", "Void", banditCampID},
+	}
+	brigandDefs := []struct {
+		id, name, locID string
+	}{
+		{"brigand_hawk", "Hawk", banditCampID},
+		{"brigand_fang", "Fang", banditCampID},
+		{"brigand_rock", "Rock", banditCampID},
+	}
+	pirateDefs := []struct {
+		id, name, locID string
+	}{
+		{"pirate_salt", "Salt", banditCampID},
+		{"pirate_bill", "Bill", banditCampID},
+	}
+	smugglerDefs := []struct {
+		id, name, locID string
+	}{
+		{"smuggler_coil", "Coil", banditCampID},
+		{"smuggler_ghost", "Ghost", banditCampID},
 	}
 
 	log.Printf("[gen] orcs: %d in %s (1 in %s), bandits: %d in %s", len(orcDefs), orcCampID, ashRuinsID, len(banditDefs), banditCampID)
@@ -472,6 +510,81 @@ func (g *Generator) generateHostiles() []*entity.Entity {
 		AssignLanguages(ent, g.RNG)
 		all = append(all, ent)
 		log.Printf("[gen] bandit spawned: %s at %s (level %d)", b.name, b.locID, ent.Level)
+	}
+
+	log.Printf("[gen] rogues: %d", len(rogueDefs))
+	for _, r := range rogueDefs {
+		ent := entity.NewEntity(r.id, r.name, "human", entity.RandomAttributes(g.RNG.Intn), 3+g.RNG.Intn(3), relation.BanditRelation)
+		ent.LocationID = r.locID
+		ent.Faction = ""
+		ent.Profession = "rogue"
+		ent.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"rogue"}, FactionID: "rogue", SleepCycle: "nocturnal", HomeLocation: r.locID}
+		equipItem(ent, lookup("common_clothes"))
+		equipItem(ent, lookup("leather_boots"))
+		equipItem(ent, lookup("leather_gloves"))
+		equipItem(ent, lookup("dagger"))
+		if g.RNG.Intn(100) < 40 {
+			equipItem(ent, lookup("short_sword"))
+		}
+		giveCurrency(ent, 5+g.RNG.Intn(20), g.RNG.Intn(5), 0)
+		AssignWorship(ent, g.RNG)
+		AssignLanguages(ent, g.RNG)
+		all = append(all, ent)
+		log.Printf("[gen] rogue spawned: %s at %s (level %d)", r.name, r.locID, ent.Level)
+	}
+
+	log.Printf("[gen] brigands: %d", len(brigandDefs))
+	for _, b := range brigandDefs {
+		ent := entity.NewEntity(b.id, b.name, "human", entity.RandomAttributes(g.RNG.Intn), 3+g.RNG.Intn(3), relation.BanditRelation)
+		ent.LocationID = b.locID
+		ent.Faction = ""
+		ent.Profession = "brigand"
+		ent.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"brigand"}, FactionID: "brigand", SleepCycle: "diurnal", HomeLocation: b.locID}
+		equipItem(ent, lookup("leather_armor"))
+		equipItem(ent, lookup("leather_boots"))
+		equipItem(ent, lookup("iron_helmet"))
+		equipItem(ent, lookup("iron_sword"))
+		equipItem(ent, lookup("iron_shield"))
+		giveCurrency(ent, 5+g.RNG.Intn(15), g.RNG.Intn(5), 0)
+		AssignWorship(ent, g.RNG)
+		AssignLanguages(ent, g.RNG)
+		all = append(all, ent)
+		log.Printf("[gen] brigand spawned: %s at %s (level %d)", b.name, b.locID, ent.Level)
+	}
+
+	log.Printf("[gen] pirates: %d", len(pirateDefs))
+	for _, p := range pirateDefs {
+		ent := entity.NewEntity(p.id, p.name, "human", entity.RandomAttributes(g.RNG.Intn), 3+g.RNG.Intn(3), relation.BanditRelation)
+		ent.LocationID = p.locID
+		ent.Faction = ""
+		ent.Profession = "pirate"
+		ent.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"pirate"}, FactionID: "pirate", SleepCycle: "diurnal", HomeLocation: p.locID}
+		equipItem(ent, lookup("common_clothes"))
+		equipItem(ent, lookup("leather_boots"))
+		equipItem(ent, lookup("iron_sword"))
+		equipItem(ent, lookup("iron_shield"))
+		giveCurrency(ent, 10+g.RNG.Intn(30), g.RNG.Intn(10), g.RNG.Intn(5))
+		AssignWorship(ent, g.RNG)
+		AssignLanguages(ent, g.RNG)
+		all = append(all, ent)
+		log.Printf("[gen] pirate spawned: %s at %s (level %d)", p.name, p.locID, ent.Level)
+	}
+
+	log.Printf("[gen] smugglers: %d", len(smugglerDefs))
+	for _, s := range smugglerDefs {
+		ent := entity.NewEntity(s.id, s.name, "human", entity.RandomAttributes(g.RNG.Intn), 2+g.RNG.Intn(3), relation.BanditRelation)
+		ent.LocationID = s.locID
+		ent.Faction = ""
+		ent.Profession = "smuggler"
+		ent.AI = entity.EntityAI{Type: "scripted", ScriptIDs: []string{"smuggler"}, FactionID: "smuggler", SleepCycle: "diurnal", HomeLocation: s.locID}
+		equipItem(ent, lookup("common_clothes"))
+		equipItem(ent, lookup("leather_boots"))
+		equipItem(ent, lookup("dagger"))
+		giveCurrency(ent, 10+g.RNG.Intn(25), g.RNG.Intn(5), g.RNG.Intn(3))
+		AssignWorship(ent, g.RNG)
+		AssignLanguages(ent, g.RNG)
+		all = append(all, ent)
+		log.Printf("[gen] smuggler spawned: %s at %s (level %d)", s.name, s.locID, ent.Level)
 	}
 
 	// === BEASTIAL HUMANOIDS ===
@@ -1642,7 +1755,7 @@ func (g *Generator) generateOgres() []*entity.Entity {
 	log.Printf("[gen] generateOgres: spawning ogres in highlands and wastelands")
 	var all []*entity.Entity
 	ogreAttrs := entity.Attributes{STR: 17, DEX: 9, CON: 15, INT: 7, WIS: 8, CHA: 7}
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 1; i++ {
 		reg := "region_highlands_0"
 		ogre := entity.NewEntity("ogre_gorrox_"+fmt.Sprint(i), "Gorrox", "ogre", ogreAttrs, 5, relation.BeastRelation)
 		ogre.LocationID = reg

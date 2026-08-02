@@ -3,7 +3,6 @@ package engine
 import (
 	"fmt"
 	"log"
-	"maps"
 	"math/rand"
 	"slices"
 

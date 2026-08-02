@@ -2326,3 +2326,176 @@ func (h *Handler) FactionsFragment(c *gin.Context) {
 		_ = c.Error(err)
 	}
 }
+
+type speciesDetail struct {
+	Name              string
+	Count             int
+	Total             int
+	Alive             int
+	Knocked           int
+	Dead              int
+	HomeLocation      string
+	Region            string
+	CanReproduce      bool
+	CanLevelUp        bool
+	IsCaveman         bool
+	IsImmortal        bool
+	PreferredBiomes   []string
+	PoliticalIdeology string
+	DiplomaticRank    string
+}
+
+type npcSpeciesCount struct {
+	Name         string
+	Count        int
+	SpeciesTotal int
+	TopLocations []string
+}
+
+func buildSpeciesViews(sim *engine.Simulation) ([]speciesDetail, int, []npcSpeciesCount) {
+	all := sim.Entities.All()
+	total := len(all)
+
+	speciesCounts := make(map[string]int)
+	speciesAlive := make(map[string]int)
+	speciesKnocked := make(map[string]int)
+	speciesDead := make(map[string]int)
+	speciesLocations := make(map[string]map[string]int)
+
+	for _, e := range all {
+		if e.Species == "" {
+			continue
+		}
+		speciesCounts[e.Species]++
+		if !e.Alive {
+			speciesDead[e.Species]++
+		} else if e.KnockedOutTick > 0 {
+			speciesKnocked[e.Species]++
+		} else {
+			speciesAlive[e.Species]++
+		}
+		if e.AI.HomeLocation != "" {
+			if speciesLocations[e.Species] == nil {
+				speciesLocations[e.Species] = make(map[string]int)
+			}
+			speciesLocations[e.Species][e.AI.HomeLocation]++
+		}
+		if e.LocationID != "" {
+			if speciesLocations[e.Species] == nil {
+				speciesLocations[e.Species] = make(map[string]int)
+			}
+			speciesLocations[e.Species][e.LocationID]++
+		}
+	}
+
+	var details []speciesDetail
+	for name, count := range speciesCounts {
+		sp, ok := species.GetByID(name)
+		if !ok {
+			sp = species.Species{ID: name, Name: name}
+		}
+
+		homeLocation := ""
+		maxLocCount := 0
+		for loc, lc := range speciesLocations[name] {
+			if lc > maxLocCount {
+				maxLocCount = lc
+				homeLocation = loc
+			}
+		}
+
+		region := ""
+		if homeLocation != "" {
+			if r := sim.World.RegionOf(homeLocation); r != nil {
+				region = r.Name
+			}
+		}
+
+		details = append(details, speciesDetail{
+			Name:              name,
+			Count:             count,
+			Total:             total,
+			Alive:             speciesAlive[name],
+			Knocked:           speciesKnocked[name],
+			Dead:              speciesDead[name],
+			HomeLocation:      homeLocation,
+			Region:            region,
+			CanReproduce:      sp.CanReproduce,
+			CanLevelUp:        sp.CanLevelUp,
+			IsCaveman:         sp.IsCaveman,
+			IsImmortal:        sp.IsImmortal,
+			PreferredBiomes:   sp.PreferredBiomes,
+			PoliticalIdeology: sp.PoliticalIdeology,
+			DiplomaticRank:    sp.DiplomaticRank,
+		})
+	}
+
+	sort.SliceStable(details, func(i, j int) bool {
+		return details[i].Count > details[j].Count
+	})
+
+	var npcCounts []npcSpeciesCount
+	for name, count := range speciesCounts {
+		locs := speciesLocations[name]
+		var topLocs []string
+		type locCount struct {
+			loc   string
+			count int
+		}
+		var lcList []locCount
+		for loc, lc := range locs {
+			lcList = append(lcList, locCount{loc, lc})
+		}
+		sort.SliceStable(lcList, func(i, j int) bool {
+			return lcList[i].count > lcList[j].count
+		})
+		for i := 0; i < len(lcList) && i < 3; i++ {
+			topLocs = append(topLocs, lcList[i].loc)
+		}
+		npcCounts = append(npcCounts, npcSpeciesCount{
+			Name:         name,
+			Count:        count,
+			SpeciesTotal: total,
+			TopLocations: topLocs,
+		})
+	}
+
+	sort.SliceStable(npcCounts, func(i, j int) bool {
+		return npcCounts[i].Count > npcCounts[j].Count
+	})
+
+	return details, total, npcCounts
+}
+
+func (h *Handler) SpeciesPage(c *gin.Context) {
+	h.Sim.RLock()
+	defer h.Sim.RUnlock()
+	speciesCounts, entityCount, npcCounts := buildSpeciesViews(h.Sim)
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "base.html", gin.H{
+		"title":        "Species",
+		"page":         "species",
+		"tick":         h.Sim.Tick,
+		"time":         h.Sim.Time.String(),
+		"phase":        h.Sim.Time.Phase().String(),
+		"season":       h.Sim.Time.Season().String(),
+		"entity_count": entityCount,
+		"species_counts": speciesCounts,
+		"npc_counts":   npcCounts,
+	}); err != nil {
+		_ = c.Error(err)
+	}
+}
+
+func (h *Handler) SpeciesFragment(c *gin.Context) {
+	h.Sim.RLock()
+	defer h.Sim.RUnlock()
+	speciesCounts, entityCount, npcCounts := buildSpeciesViews(h.Sim)
+	if err := h.Tmpls.ExecuteTemplate(c.Writer, "species_table", gin.H{
+		"tick":         h.Sim.Tick,
+		"entity_count": entityCount,
+		"species_counts": speciesCounts,
+		"npc_counts":   npcCounts,
+	}); err != nil {
+		_ = c.Error(err)
+	}
+}

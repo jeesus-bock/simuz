@@ -134,25 +134,27 @@ func RunScript(name string, ent *entity.Entity, w *world.World, em *entity.Entit
 // decodeSimEvents converts a Lua table of event tables into []*events.SimEvent.
 // Each entry in the Lua table should have keys: type (int), tick (uint64), source (string), data (table).
 var eventTypeNames = map[string]events.EventType{
-	"entity_killed":     events.EventEntityKilled,
-	"entity_talked":     events.EventEntityTalked,
-	"location_entered":  events.EventLocationEntered,
-	"item_collected":    events.EventItemCollected,
-	"item_delivered":    events.EventItemDelivered,
-	"item_used":         events.EventItemUsed,
-	"craft_completed":   events.EventCraftCompleted,
-	"travel_completed":  events.EventTravelCompleted,
-	"tick":              events.EventTick,
-	"time_passed":       events.EventTimePassed,
-	"entity_born":       events.EventEntityBorn,
-	"quest_complete":    events.EventTypeQuestComplete,
-	"xp_gained":         events.EventXPGained,
-	"starvation":        events.EventTypeStarvation,
-	"world":             events.EventWorld,
-	"ambient":           events.EventAmbient,
-	"mood":              events.EventMood,
-	"divine":            events.EventDivine,
-	"combat":            events.EventEntityKilled, // combat events map to killed for backwards compat
+	"entity_killed":      events.EventEntityKilled,
+	"entity_talked":      events.EventEntityTalked,
+	"location_entered":   events.EventLocationEntered,
+	"item_collected":     events.EventItemCollected,
+	"item_delivered":     events.EventItemDelivered,
+	"item_used":          events.EventItemUsed,
+	"craft_completed":    events.EventCraftCompleted,
+	"travel_completed":   events.EventTravelCompleted,
+	"tick":               events.EventTick,
+	"time_passed":        events.EventTimePassed,
+	"entity_born":        events.EventEntityBorn,
+	"quest_complete":     events.EventTypeQuestComplete,
+	"quest_accept":       events.EventTypeQuestAccept,
+	"quest_progress":     events.EventTypeQuestProgress,
+	"xp_gained":          events.EventXPGained,
+	"starvation":         events.EventTypeStarvation,
+	"world":              events.EventWorld,
+	"ambient":            events.EventAmbient,
+	"mood":               events.EventMood,
+	"divine":             events.EventDivine,
+	"combat":             events.EventEntityKilled, // combat events map to killed for backwards compat
 }
 
 func decodeSimEvents(tbl *lua.LTable, defaultTick uint64) []*events.SimEvent {

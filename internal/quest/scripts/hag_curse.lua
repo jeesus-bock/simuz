@@ -38,3 +38,7 @@ quest.define({
   },
   rewards = { experience = 125, gold = 35 },
 })
+
+return {
+  util.event("quest_accepted", { quest_id = "hag_curse", source = "golden_gate_farmer" }),
+}

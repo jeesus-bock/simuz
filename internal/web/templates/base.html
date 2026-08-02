@@ -84,8 +84,9 @@ nav { width: 200px; background: var(--surface); padding: 1rem; display: flex; fl
         <a href="/ai" {{if eq .page "ai"}}style="color:var(--accent)"{{end}}>AI</a>
         <a href="/events" {{if eq .page "events"}}style="color:var(--accent)"{{end}}>Events</a>
         <a href="/deities" {{if eq .page "deities"}}style="color:var(--accent)"{{end}}>Deities</a>
-        <a href="/factions" {{if eq .page "factions"}}style="color:var(--accent)"{{end}}>Factions</a>
-        <a href="/pregnancies" {{if eq .page "pregnancies"}}style="color:var(--accent)"{{end}}>Births &amp; Relationships</a>
+<a href="/factions" {{if eq .page "factions"}}style="color:var(--accent)"{{end}}>Factions</a>
+         <a href="/species" {{if eq .page "species"}}style="color:var(--accent)"{{end}}>Species</a>
+         <a href="/pregnancies" {{if eq .page "pregnancies"}}style="color:var(--accent)"{{end}}>Births &amp; Relationships</a>
 
     </nav>
     <main>
@@ -111,9 +112,11 @@ nav { width: 200px; background: var(--surface); padding: 1rem; display: flex; fl
             {{block "events" .}}{{end}}
         {{else if eq .page "deities"}}
             {{block "deities" .}}{{end}}
-        {{else if eq .page "factions"}}
-            {{block "factions" .}}{{end}}
-        {{else if eq .page "pregnancies"}}
+{{else if eq .page "factions"}}
+             {{block "factions" .}}{{end}}
+         {{else if eq .page "species"}}
+             {{block "species" .}}{{end}}
+         {{else if eq .page "pregnancies"}}
             {{block "pregnancies" .}}{{end}}
         {{else if eq .page "entity_detail"}}
             {{block "entity_detail" .}}{{end}}

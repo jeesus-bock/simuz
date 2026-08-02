@@ -66,9 +66,14 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 	}
 
 	// Always guarantee guard posts, a bard, and a diplomat
-	for i := 0; i < 2+g.RNG.Intn(3); i++ {
+	for i := 0; i < 3+g.RNG.Intn(4); i++ {
 		targetBuildings = append(targetBuildings, architecturalTask{
 			id: townID, profession: "guard", targetRoom: townID,
+		})
+	}
+	for i := 0; i < 2+g.RNG.Intn(3); i++ {
+		targetBuildings = append(targetBuildings, architecturalTask{
+			id: townID, profession: "merchant", targetRoom: townID,
 		})
 	}
 	targetBuildings = append(targetBuildings, architecturalTask{
@@ -77,6 +82,38 @@ func (g *Generator) generateNPCs(townID string, dominantCulture string) []*entit
 	targetBuildings = append(targetBuildings, architecturalTask{
 		id: townID, profession: "diplomat", targetRoom: townID,
 	})
+
+	// Outlaws are part of every civilization
+	for i := 0; i < 1+g.RNG.Intn(2); i++ {
+		targetBuildings = append(targetBuildings, architecturalTask{
+			id: townID, profession: "thief", targetRoom: townID,
+		})
+	}
+	for i := 0; i < 1+g.RNG.Intn(2); i++ {
+		targetBuildings = append(targetBuildings, architecturalTask{
+			id: townID, profession: "bandit", targetRoom: townID,
+		})
+	}
+	if g.RNG.Intn(100) < 30 {
+		targetBuildings = append(targetBuildings, architecturalTask{
+			id: townID, profession: "rogue", targetRoom: townID,
+		})
+	}
+	if g.RNG.Intn(100) < 25 {
+		targetBuildings = append(targetBuildings, architecturalTask{
+			id: townID, profession: "smuggler", targetRoom: townID,
+		})
+	}
+	if g.RNG.Intn(100) < 20 {
+		targetBuildings = append(targetBuildings, architecturalTask{
+			id: townID, profession: "beggar", targetRoom: townID,
+		})
+	}
+	if g.RNG.Intn(100) < 15 {
+		targetBuildings = append(targetBuildings, architecturalTask{
+			id: townID, profession: "hermit", targetRoom: townID,
+		})
+	}
 
 	for _, b := range targetBuildings {
 		workerSpecies := dominantCulture

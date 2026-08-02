@@ -73,10 +73,31 @@ func (g *Generator) generateSettlements() []*entity.Entity {
 		biomeKey := biomeFromRegionID(reg.ID)
 
 		var eligibleCultures []string
-		for speciesID, profile := range species.Registry {
-			for _, preferred := range profile.PreferredBiomes {
+		for _, ds := range []string{"human", "orc", "elf", "dwarf"} {
+			sp, ok := species.Registry[ds]
+			if !ok {
+				continue
+			}
+			for _, preferred := range sp.PreferredBiomes {
 				if preferred == biomeKey {
-					eligibleCultures = append(eligibleCultures, speciesID)
+					weight := 5
+					if ds == "elf" || ds == "dwarf" {
+						weight = 2
+					}
+					for i := 0; i < weight; i++ {
+						eligibleCultures = append(eligibleCultures, ds)
+					}
+					break
+				}
+			}
+		}
+
+		if len(eligibleCultures) == 0 {
+			for speciesID, profile := range species.Registry {
+				for _, preferred := range profile.PreferredBiomes {
+					if preferred == biomeKey {
+						eligibleCultures = append(eligibleCultures, speciesID)
+					}
 				}
 			}
 		}

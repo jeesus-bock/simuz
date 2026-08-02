@@ -5,7 +5,10 @@ import (
 	"embed"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
+
+	"simuz/internal/events"
 
 	lua "github.com/yuin/gopher-lua"
 )
@@ -13,15 +16,17 @@ import (
 //go:embed scripts/*.lua
 var questScriptFS embed.FS
 
-// LoadScripts loads every .lua file under scripts/ and returns registered quest defs.
-// Each script must call quest.define({ ... }) once (or more).
-func LoadScripts() ([]*QuestDef, error) {
+// LoadScripts loads every .lua file under scripts/ and returns registered quest defs
+// and any simulation events the scripts produced. Each script must call quest.define({ ... })
+// once (or more). Scripts may optionally return a table of events as their last expression.
+func LoadScripts() ([]*QuestDef, []*events.SimEvent, error) {
 	entries, err := questScriptFS.ReadDir("scripts")
 	if err != nil {
-		return nil, fmt.Errorf("read quest scripts: %w", err)
+		return nil, nil, fmt.Errorf("read quest scripts: %w", err)
 	}
 
 	var defs []*QuestDef
+	var allEvents []*events.SimEvent
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
@@ -32,30 +37,33 @@ func LoadScripts() ([]*QuestDef, error) {
 		}
 		data, err := questScriptFS.ReadFile("scripts/" + name)
 		if err != nil {
-			return nil, fmt.Errorf("read quest script %s: %w", name, err)
+			return nil, nil, fmt.Errorf("read quest script %s: %w", name, err)
 		}
-		loaded, err := execQuestScript(name, string(data))
+		loaded, evts, err := execQuestScript(name, string(data))
 		if err != nil {
-			return nil, fmt.Errorf("quest script %s: %w", name, err)
+			return nil, nil, fmt.Errorf("quest script %s: %w", name, err)
 		}
 		defs = append(defs, loaded...)
+		allEvents = append(allEvents, evts...)
 		for _, d := range loaded {
 			log.Printf("Loaded quest script: %s (%s)", name, d.ID)
 		}
 	}
-	return defs, nil
+	return defs, allEvents, nil
 }
 
 // MustLoadScripts is LoadScripts that panics on error (for startup).
 func MustLoadScripts() []*QuestDef {
-	defs, err := LoadScripts()
+	defs, _, err := LoadScripts()
 	if err != nil {
 		panic(err)
 	}
 	return defs
 }
 
-func execQuestScript(name, source string) ([]*QuestDef, error) {
+// execQuestScript runs a single quest Lua script and returns the quest definitions
+// and any simulation events the script produced.
+func execQuestScript(name, source string) ([]*QuestDef, []*events.SimEvent, error) {
 	L := lua.NewState()
 	defer L.Close()
 
@@ -74,13 +82,117 @@ func execQuestScript(name, source string) ([]*QuestDef, error) {
 	}))
 	L.SetGlobal("quest", questTbl)
 
-	if err := L.DoString(source); err != nil {
-		return nil, err
+	utilTbl := L.NewTable()
+	utilTbl.RawSetString("event", L.NewFunction(func(L *lua.LState) int {
+		eventType := L.ToString(1)
+		tbl := L.NewTable()
+		tbl.RawSetString("type", lua.LString(eventType))
+		if L.GetTop() >= 2 {
+			if data, ok := L.Get(2).(*lua.LTable); ok {
+				tbl.RawSetString("data", data)
+			}
+		}
+		L.Push(tbl)
+		return 1
+	}))
+	L.SetGlobal("util", utilTbl)
+
+	proto, err := L.LoadString(source)
+	if err != nil {
+		return nil, nil, err
 	}
+	err = L.CallByParam(lua.P{
+		Fn:      proto,
+		NRet:    1,
+		Protect: true,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var simEvents []*events.SimEvent
+	val := L.Get(-1)
+	if tbl, ok := val.(*lua.LTable); ok {
+		simEvents = decodeQuestEvents(tbl)
+	}
+
 	if len(defined) == 0 {
-		return nil, fmt.Errorf("no quest.define() call in %s", name)
+		return nil, nil, fmt.Errorf("no quest.define() call in %s", name)
 	}
-	return defined, nil
+	return defined, simEvents, nil
+}
+
+var questEventTypeNames = map[string]events.EventType{
+	"quest_accepted":  events.EventTypeQuestAccept,
+	"quest_completed": events.EventTypeQuestComplete,
+	"quest_progress":  events.EventTypeQuestProgress,
+	"spawn_creature":  events.EventEntityBorn,
+	"world":           events.EventWorld,
+	"ambient":         events.EventAmbient,
+	"mood":            events.EventMood,
+	"divine":          events.EventDivine,
+	"combat":          events.EventEntityKilled,
+	"item_collected":  events.EventItemCollected,
+	"item_delivered":  events.EventItemDelivered,
+	"location_entered": events.EventLocationEntered,
+	"entity_talked":   events.EventEntityTalked,
+	"travel_completed": events.EventTravelCompleted,
+	"xp_gained":       events.EventXPGained,
+}
+
+func decodeQuestEvents(tbl *lua.LTable) []*events.SimEvent {
+	var luaEvents []*events.SimEvent
+	tbl.ForEach(func(k, v lua.LValue) {
+		eventTbl, ok := v.(*lua.LTable)
+		if !ok {
+			return
+		}
+		ev := &events.SimEvent{
+			Tick: 0,
+		}
+
+		if typeVal := eventTbl.RawGetString("type"); typeVal != lua.LNil {
+			typeStr := typeVal.String()
+			if named, ok := questEventTypeNames[typeStr]; ok {
+				ev.Type = named
+			} else if typeInt, err := strconv.Atoi(typeStr); err == nil {
+				ev.Type = events.EventType(typeInt)
+			}
+		}
+
+		if srcVal := eventTbl.RawGetString("source"); srcVal != lua.LNil {
+			ev.Source = srcVal.String()
+		}
+
+		if dataVal := eventTbl.RawGet(lua.LString("data")); dataVal != lua.LNil {
+			result := make(map[string]any)
+			table, ok := dataVal.(*lua.LTable)
+			if ok {
+				table.ForEach(func(key lua.LValue, val lua.LValue) {
+					if strKey, ok := key.(lua.LString); ok {
+						result[string(strKey)] = goValue(val)
+					}
+				})
+			}
+			ev.Data = result
+		}
+
+		luaEvents = append(luaEvents, ev)
+	})
+	return luaEvents
+}
+
+func goValue(value lua.LValue) any {
+	switch v := value.(type) {
+	case lua.LString:
+		return string(v)
+	case lua.LNumber:
+		return float64(v)
+	case lua.LBool:
+		return bool(v)
+	default:
+		return nil
+	}
 }
 
 func tableToQuestDef(tbl *lua.LTable) (*QuestDef, error) {

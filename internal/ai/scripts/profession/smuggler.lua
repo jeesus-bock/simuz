@@ -1,0 +1,120 @@
+-- Smuggler AI
+-- An illegal trader who moves contraband between settlements,
+ avoiding authorities and selling to the highest bidder.
+
+local SELL_CHANCE = 55
+local BOUNTY_HUNTER_CHANCE = 20
+local FLEE_HP_THRESHOLD = 0.35
+
+local CONTRABAND = {
+    "charged_quartz", "herb_pouch", "dagger", "short_sword",
+    "beer", "wine", "mead", "ale", "bandage", "iron_ore",
+}
+
+local function find_buyer()
+    local nearby = world.nearby_entities()
+    if not nearby then return nil end
+    for _, eid in ipairs(nearby) do
+        if eid == self.id then goto continue end
+        local info = world.entity_info(eid)
+        if info and info.alive and info.faction ~= "guard" and info.faction ~= "deity" then
+            if info.faction == "civilian" or info.faction == "merchant" or info.faction == "bandit" then
+                return eid, info
+            end
+        end
+        ::continue::
+    end
+    return nil
+end
+
+local function find_guard()
+    local nearby = world.nearby_entities()
+    if not nearby then return nil end
+    for _, eid in ipairs(nearby) do
+        local info = world.entity_info(eid)
+        if info and info.alive and info.faction == "guard" then
+            return eid, info
+        end
+    end
+    return nil
+end
+
+local function has_contrastband()
+    for _, item_id in ipairs(self.inventory) do
+        for _, contraband_id in ipairs(CONTRABAND) do
+            if item_id == contraband_id then return true, item_id end
+        end
+    end
+    return false, nil
+end
+
+local function sell_contraband()
+    local has_cb, item_id = has_contrastband()
+    if not has_cb then return false end
+
+    local buyer_id, buyer_info = find_buyer()
+    if not buyer_id then return false end
+
+    local result = world.try_sell(buyer_id, item_id)
+    if result and result.done then
+        util.set_mood("sneaky")
+        util.log(self.name .. " smuggled " .. item_id .. " to " .. buyer_info.name)
+        return true
+    end
+    return false
+end
+
+local function should_flee()
+    local hp_ratio = self.hp / self.max_hp
+    if hp_ratio < FLEE_HP_THRESHOLD then return true end
+    if find_guard() then return true end
+    return false
+end
+
+local function flee()
+    local exits = world.exits_from(self.loc_id)
+    if exits and #exits > 0 then
+        local dest = exits[util.rand_int(#exits) + 1]
+        if dest ~= self.loc_id then
+            world.move_to(dest)
+            util.log(self.name .. " slipped away from authorities")
+        end
+    end
+end
+
+function do_tick()
+    local tick = world.tick
+
+    if world.defend_self and world.defend_self() then
+        return {util.event("profession_action", {profession = "smuggler"})}
+    end
+    if world.avoid_combat and world.avoid_combat() then
+        return {util.event("profession_action", {profession = "smuggler"})}
+    end
+
+    if should_flee() then
+        flee()
+        util.set_mood("stressed")
+        return {util.event("profession_action", {profession = "smuggler"})}
+    end
+
+    if tick % 5 == 0 then
+        sell_contraband()
+    end
+
+    if tick % 20 == 0 then
+        if util.rand_int(100) < BOUNTY_HUNTER_CHANCE then
+            local exits = world.exits_from(self.loc_id)
+            if exits and #exits > 0 then
+                local dest = exits[util.rand_int(#exits) + 1]
+                if dest ~= self.loc_id then
+                    world.move_to(dest)
+                end
+            end
+        end
+    end
+
+    return {}
+end
+
+return do_tick()

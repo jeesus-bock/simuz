@@ -5,7 +5,7 @@ import (
 )
 
 func TestLoadScripts(t *testing.T) {
-	defs, err := LoadScripts()
+	defs, _, err := LoadScripts()
 	if err != nil {
 		t.Fatalf("LoadScripts: %v", err)
 	}
