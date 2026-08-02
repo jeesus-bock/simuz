@@ -25,7 +25,7 @@ local function find_hostile()
     for _, eid in ipairs(nearby) do
         if eid == self.id then goto continue end
         local info = world.entity_info(eid)
-        if info and info.alive and info.faction == "bandit" or info.faction == "thief" or info.faction == "rogue" then
+        if info and info.alive and (info.profession == "bandit" or info.profession == "thief" or info.profession == "rogue") then
             return eid, info
         end
         ::continue::
