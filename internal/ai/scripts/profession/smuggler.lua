@@ -89,18 +89,22 @@ end
 
 function do_tick()
     local tick = world.tick
+    local events = {}
 
     if world.defend_self and world.defend_self() then
-        return { util.event("profession_action", { profession = "smuggler" }) }
+        table.insert(events, util.event("profession_action", { profession = "smuggler" }))
+        return events
     end
     if world.avoid_combat and world.avoid_combat() then
-        return { util.event("profession_action", { profession = "smuggler" }) }
+        table.insert(events, util.event("profession_action", { profession = "smuggler" }))
+        return events
     end
 
     if should_flee() then
         flee()
         util.set_mood("stressed")
-        return { util.event("profession_action", { profession = "smuggler" }) }
+        table.insert(events, util.event("profession_action", { profession = "smuggler" }))
+        return events
     end
 
     if tick % 5 == 0 then
@@ -119,7 +123,7 @@ function do_tick()
         end
     end
 
-    return {}
+    return events
 end
 
 return do_tick()
