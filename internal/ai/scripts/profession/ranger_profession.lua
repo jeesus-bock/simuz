@@ -56,7 +56,7 @@ local function do_tick()
                 -- We love this entity, try to flee instead
                 util.log(self.name .. " loves " .. world.entity_name(target) .. " — fleeing")
                 world.avoid_combat()
-                return
+                return {}
             elseif relType == "rival" then
                 util.log(self.name .. " is attacking rival " .. world.entity_name(target))
             end
@@ -69,7 +69,7 @@ local function do_tick()
             self.add_relationship(target, "rival", world.tick)
             util.log(self.name .. " marked " .. world.entity_name(target) .. " as rival")
         end
-        return
+        return {}
     end
 
     -- Priority 2: Hunt prey
@@ -99,7 +99,7 @@ local function do_tick()
             -- Remove the rival relationship since the target is dead
             self.remove_relationship(target)
         end
-        return
+        return {}
     end
 
     -- Priority 3: Gather resources if nothing else to do
@@ -113,6 +113,7 @@ local function do_tick()
 
     -- Avoid unnecessary combat
     world.avoid_combat()
+    return {}
 end
 
-do_tick()
+return do_tick()

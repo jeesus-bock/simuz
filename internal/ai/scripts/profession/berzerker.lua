@@ -166,7 +166,7 @@ end
 
 local function coordinate_attack(eid)
     local entity = world.entity_info(eid)
-    if entity == nil then return end
+    if entity == nil then return {} end
 
     -- Check if rage has expired
     if is_raging(eid) and not is_cooldown(eid) then
@@ -207,6 +207,10 @@ local function coordinate_attack(eid)
             end
         end
     end
+
+    -- Avoid unnecessary combat
+    world.avoid_combat()
+    return {}
 end
 
 return coordinate_attack
