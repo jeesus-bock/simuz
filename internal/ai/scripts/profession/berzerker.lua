@@ -213,4 +213,4 @@ local function coordinate_attack(eid)
     return {}
 end
 
-return coordinate_attack
+return coordinate_attack(self.id)
