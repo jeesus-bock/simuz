@@ -3,6 +3,7 @@ package species
 
 import (
 	"math/rand"
+	"simuz/internal/entity"
 )
 
 // Species defines the base data for a creature species in the simulation.
@@ -11,7 +12,7 @@ import (
 // Time units in this struct:
 //   - MaxAge, AdultAge: game-days (converted to ticks at comparison time using game speed)
 //   - GestationTicks: simulation ticks (1 tick = 1 real second at 1 Hz)
-//   - StarvationThreshold: simulation ticks
+//   - StarvationThreshold: simulation ticks before starvation damage; 0 = immune
 //
 // At the default speed of 24, one game-day = 1440/24 = 60 ticks.
 type Species struct {
@@ -62,6 +63,22 @@ func (s *Species) GetRandomName(gender string, rng *rand.Rand) string {
 		return combinedPool[rng.Intn(len(combinedPool))]
 	}
 	return "Nameless " + s.Name
+}
+
+// averageAttrs returns the element-wise average of two attribute sets,
+// used when computing child attributes from parent species.
+func averageAttrs(a, b entity.Attributes, rng func(int) int) entity.Attributes {
+	avg := func(x, y int) int {
+		return (x + y) / 2
+	}
+	return entity.Attributes{
+		STR: avg(a.STR, b.STR),
+		DEX: avg(a.DEX, b.DEX),
+		CON: avg(a.CON, b.CON),
+		INT: avg(a.INT, b.INT),
+		WIS: avg(a.WIS, b.WIS),
+		CHA: avg(a.CHA, b.CHA),
+	}
 }
 
 // GetByID returns the Species definition for a given ID.
