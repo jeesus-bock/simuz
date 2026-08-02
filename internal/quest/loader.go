@@ -55,6 +55,7 @@ func MustLoadScripts() []*QuestDef {
 	return defs
 }
 
+// execQuestScript runs a single quest Lua script and returns the quest definitions.
 func execQuestScript(name, source string) ([]*QuestDef, error) {
 	L := lua.NewState()
 	defer L.Close()
@@ -74,9 +75,19 @@ func execQuestScript(name, source string) ([]*QuestDef, error) {
 	}))
 	L.SetGlobal("quest", questTbl)
 
-	if err := L.DoString(source); err != nil {
+	proto, err := L.LoadString(source)
+	if err != nil {
 		return nil, err
 	}
+	err = L.CallByParam(lua.P{
+		Fn:      proto,
+		NRet:    0,
+		Protect: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	if len(defined) == 0 {
 		return nil, fmt.Errorf("no quest.define() call in %s", name)
 	}
@@ -84,28 +95,19 @@ func execQuestScript(name, source string) ([]*QuestDef, error) {
 }
 
 func tableToQuestDef(tbl *lua.LTable) (*QuestDef, error) {
-	id := luaString(tbl, "id")
-	if id == "" {
-		return nil, fmt.Errorf("missing id")
-	}
-	title := luaString(tbl, "title")
-	if title == "" {
-		return nil, fmt.Errorf("missing title")
-	}
+	def := &QuestDef{}
 
-	def := &QuestDef{
-		ID:          id,
-		Title:       title,
-		Type:        QuestType(luaStringDefault(tbl, "type", "side")),
-		Level:       luaInt(tbl, "level"),
-		Description: luaString(tbl, "description"),
-	}
+	def.ID = luaString(tbl, "id")
+	def.Title = luaString(tbl, "title")
+	def.Type = QuestType(luaString(tbl, "type"))
+	def.Level = luaInt(tbl, "level")
+	def.Description = luaString(tbl, "description")
 
 	if src := luaTable(tbl, "source"); src != nil {
 		def.Source = &QuestSource{
 			Type:       luaString(src, "type"),
-			NPCID:      luaStringFirst(src, "npc_id", "npc"),
-			LocationID: luaStringFirst(src, "location_id", "location"),
+			NPCID:      luaString(src, "npc_id"),
+			LocationID: luaString(src, "location_id"),
 		}
 		if dlg := luaTable(src, "dialog"); dlg != nil {
 			def.Source.Dialog = &QuestDialog{
@@ -116,112 +118,130 @@ func tableToQuestDef(tbl *lua.LTable) (*QuestDef, error) {
 		}
 	}
 
-	if prereq := luaTable(tbl, "prerequisites"); prereq != nil {
+	if prereqs := luaTable(tbl, "prerequisites"); prereqs != nil {
 		def.Prereqs = &Prerequisites{
-			QuestsCompleted: luaStringSlice(prereq, "quests_completed"),
-			QuestsActive:    luaStringSlice(prereq, "quests_active"),
-			LevelMin:        luaInt(prereq, "level_min"),
-			LevelMax:        luaInt(prereq, "level_max"),
+			QuestsCompleted: luaStringSlice(prereqs, "quests_completed"),
+			QuestsActive:    luaStringSlice(prereqs, "quests_active"),
+			LevelMin:        luaInt(prereqs, "level_min"),
+			LevelMax:        luaInt(prereqs, "level_max"),
+			FactionRep:      luaStringIntMap(prereqs, "faction_reputation"),
 		}
-	}
-
-	stagesTbl := luaTable(tbl, "stages")
-	if stagesTbl == nil {
-		return nil, fmt.Errorf("missing stages")
-	}
-	stagesTbl.ForEach(func(_, v lua.LValue) {
-		st, ok := v.(*lua.LTable)
-		if !ok {
-			return
-		}
-		stage := StageDef{
-			ID:           luaString(st, "id"),
-			Name:         luaString(st, "name"),
-			Description:  luaString(st, "description"),
-			Requirements: luaStringSlice(st, "requirements"),
-		}
-		if objs := luaTable(st, "objectives"); objs != nil {
-			objs.ForEach(func(_, ov lua.LValue) {
-				ot, ok := ov.(*lua.LTable)
-				if !ok {
-					return
-				}
-				obj := ObjectiveDef{
-					ID:             luaString(ot, "id"),
-					Type:           luaString(ot, "type"),
-					Description:    luaString(ot, "description"),
-					Optional:       luaBool(ot, "optional"),
-					Count:          luaInt(ot, "count"),
-					EntityTemplate: luaStringFirst(ot, "entity_template", "entity"),
-					LocationID:     luaStringFirst(ot, "location_id", "location"),
-					NPCID:          luaStringFirst(ot, "npc_id", "npc"),
-					ItemTemplate:   luaStringFirst(ot, "item_template", "item"),
-				}
-				// Binary objectives (talk/visit/deliver) default to count 1 so they
-				// don't auto-complete when Count is omitted.
-				if obj.Count == 0 {
-					switch obj.Type {
-					case "talk_to_npc", "visit_location", "deliver_item":
-						obj.Count = 1
-					case "kill_entities", "collect_items":
-						obj.Count = 1
+		if flagsTbl := luaTable(prereqs, "flags"); flagsTbl != nil {
+			flagsTbl.ForEach(func(_, v lua.LValue) {
+				if flagTbl, ok := v.(*lua.LTable); ok {
+					fc := FlagCondition{
+						Flag: luaString(flagTbl, "flag"),
 					}
+					if valTbl := luaTable(flagTbl, "value"); valTbl != nil {
+						// value can be any lua type; store as string for simplicity
+						fc.Value = luaLValueToString(valTbl)
+					}
+					def.Prereqs.Flags = append(def.Prereqs.Flags, fc)
 				}
-				stage.Objectives = append(stage.Objectives, obj)
 			})
 		}
-		def.Stages = append(def.Stages, stage)
-	})
-	if len(def.Stages) == 0 {
-		return nil, fmt.Errorf("stages empty")
 	}
 
-	if rew := luaTable(tbl, "rewards"); rew != nil {
+	if stagesTbl := luaTable(tbl, "stages"); stagesTbl != nil {
+		stagesTbl.ForEach(func(_, v lua.LValue) {
+			if stageTbl, ok := v.(*lua.LTable); ok {
+				stage := StageDef{
+					ID:          luaString(stageTbl, "id"),
+					Name:        luaString(stageTbl, "name"),
+					Description: luaString(stageTbl, "description"),
+					Requirements: luaStringSlice(stageTbl, "requirements"),
+				}
+				if objsTbl := luaTable(stageTbl, "objectives"); objsTbl != nil {
+					objsTbl.ForEach(func(_, ov lua.LValue) {
+						if objTbl, ok := ov.(*lua.LTable); ok {
+							stage.Objectives = append(stage.Objectives, ObjectiveDef{
+								ID:             luaString(objTbl, "id"),
+								Type:           luaString(objTbl, "type"),
+								Description:    luaString(objTbl, "description"),
+								Optional:       luaBool(objTbl, "optional"),
+								Count:          luaInt(objTbl, "count"),
+								EntityTemplate: luaString(objTbl, "entity_template"),
+								LocationID:     luaString(objTbl, "location_id"),
+								NPCID:          luaString(objTbl, "npc_id"),
+								ItemTemplate:   luaString(objTbl, "item_template"),
+							})
+						}
+					})
+				}
+				def.Stages = append(def.Stages, stage)
+			}
+		})
+	}
+
+	if rewardsTbl := luaTable(tbl, "rewards"); rewardsTbl != nil {
 		def.Rewards = &Rewards{
-			Experience: luaInt(rew, "experience"),
-			Gold:       luaInt(rew, "gold"),
+			Experience: luaInt(rewardsTbl, "experience"),
+			Gold:       luaInt(rewardsTbl, "gold"),
 		}
-		if items := luaTable(rew, "items"); items != nil {
-			items.ForEach(func(_, v lua.LValue) {
-				it, ok := v.(*lua.LTable)
-				if !ok {
-					return
+		if itemsTbl := luaTable(rewardsTbl, "items"); itemsTbl != nil {
+			itemsTbl.ForEach(func(_, v lua.LValue) {
+				if itemTbl, ok := v.(*lua.LTable); ok {
+					def.Rewards.Items = append(def.Rewards.Items, RewardItem{
+						Template: luaString(itemTbl, "template"),
+						Count:    luaInt(itemTbl, "count"),
+					})
 				}
-				count := luaInt(it, "count")
-				if count == 0 {
-					count = 1
-				}
-				def.Rewards.Items = append(def.Rewards.Items, RewardItem{
-					Template: luaStringFirst(it, "template", "item", "id"),
-					Count:    count,
-				})
 			})
 		}
-		if unlocks := luaTable(rew, "unlocks"); unlocks != nil {
+		def.Rewards.FactionRep = luaStringIntMap(rewardsTbl, "faction_reputation")
+		if unlocksTbl := luaTable(rewardsTbl, "unlocks"); unlocksTbl != nil {
 			def.Rewards.Unlocks = &Unlocks{
-				Quests:    luaStringSlice(unlocks, "quests"),
-				Locations: luaStringSlice(unlocks, "locations"),
-				Recipes:   luaStringSlice(unlocks, "recipes"),
+				Quests:    luaStringSlice(unlocksTbl, "quests"),
+				Locations: luaStringSlice(unlocksTbl, "locations"),
+				Recipes:   luaStringSlice(unlocksTbl, "recipes"),
 			}
 		}
 	}
 
-	if fails := luaTable(tbl, "failure_conditions"); fails != nil {
-		fails.ForEach(func(_, v lua.LValue) {
-			ft, ok := v.(*lua.LTable)
-			if !ok {
-				return
+	if fcTbl := luaTable(tbl, "failure_conditions"); fcTbl != nil {
+		fcTbl.ForEach(func(_, v lua.LValue) {
+			if fcItem, ok := v.(*lua.LTable); ok {
+				def.FailConditions = append(def.FailConditions, FailCondition{
+					Type:     luaString(fcItem, "type"),
+					Hours:    luaInt(fcItem, "hours"),
+					EntityID: luaString(fcItem, "entity_id"),
+					Flag:     luaString(fcItem, "flag"),
+				})
 			}
-			def.FailConditions = append(def.FailConditions, FailCondition{
-				Type:     luaString(ft, "type"),
-				Hours:    luaInt(ft, "hours"),
-				EntityID: luaStringFirst(ft, "entity_id", "entity"),
-				Flag:     luaString(ft, "flag"),
-			})
 		})
 	}
 
 	return def, nil
+}
+
+func luaStringIntMap(tbl *lua.LTable, key string) map[string]int {
+	sub := luaTable(tbl, key)
+	if sub == nil {
+		return nil
+	}
+	m := make(map[string]int)
+	sub.ForEach(func(k, v lua.LValue) {
+		if ks, ok := k.(lua.LString); ok {
+			switch n := v.(type) {
+			case lua.LNumber:
+				m[string(ks)] = int(n)
+			}
+		}
+	})
+	return m
+}
+
+func luaLValueToString(v lua.LValue) string {
+	switch val := v.(type) {
+	case lua.LString:
+		return string(val)
+	case lua.LNumber:
+		return val.String()
+	case lua.LBool:
+		return val.String()
+	default:
+		return val.String()
+	}
 }
 
 func luaString(tbl *lua.LTable, key string) string {

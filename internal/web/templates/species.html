@@ -1,0 +1,89 @@
+{{define "species"}}
+<div hx-ext="sse" sse-connect="/api/v1/ui/events">
+    <div id="species-content" hx-get="/api/v1/ui/fragments/species" hx-trigger="sse:tick" hx-target="#species-content" hx-swap="morph">
+        {{template "species_table" .}}
+    </div>
+</div>
+{{end}}
+
+{{define "species_table"}}
+<div class="card">
+    <h2>Species View</h2>
+    <div class="stat"><span>Tick</span><span>{{.tick}}</span></div>
+    <div class="stat"><span>Total Entities</span><span>{{.entity_count}}</span></div>
+
+    {{if .species_counts}}
+    <div style="margin-top:12px;">
+        <div style="color:#888;font-size:0.8rem;margin-bottom:8px;">Species Distribution</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Species</th>
+                    <th>Count</th>
+                    <th>% of All</th>
+                    <th>Alive</th>
+                    <th>Knocked Out</th>
+                    <th>Dead</th>
+                    <th>Home Location</th>
+                    <th>Region</th>
+                    <th>Can Reproduce</th>
+                    <th>Can Level Up</th>
+                    <th>Is Caveman</th>
+                    <th>Is Immortal</th>
+                    <th>Preferred Biomes</th>
+                    <th>Political Ideology</th>
+                    <th>Diplomatic Rank</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .species_counts}}
+                <tr>
+                    <td><a href="/entity?species={{.Name}}" style="color:var(--accent);text-decoration:none;">{{.Name}}</a></td>
+                    <td>{{.Count}}</td>
+                    <td>{{percent .Count .Total}}%</td>
+                    <td>{{.Alive}}</td>
+                    <td>{{.Knocked}}</td>
+                    <td>{{.Dead}}</td>
+                    <td>{{.HomeLocation}}</td>
+                    <td>{{.Region}}</td>
+                    <td>{{if .CanReproduce}}✓{{else}}—{{end}}</td>
+                    <td>{{if .CanLevelUp}}✓{{else}}—{{end}}</td>
+                    <td>{{if .IsCaveman}}✓{{else}}—{{end}}</td>
+                    <td>{{if .IsImmortal}}✓{{else}}—{{end}}</td>
+                    <td>{{join .PreferredBiomes ", "}}</td>
+                    <td>{{.PoliticalIdeology}}</td>
+                    <td>{{.DiplomaticRank}}</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+    {{end}}
+
+    {{if .npc_counts}}
+    <div style="margin-top:16px;">
+        <div style="color:#888;font-size:0.8rem;margin-bottom:8px;">NPC Species Breakdown</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Species</th>
+                    <th>NPC Count</th>
+                    <th>% of Species</th>
+                    <th>Top Locations</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .npc_counts}}
+                <tr>
+                    <td>{{.Name}}</td>
+                    <td>{{.Count}}</td>
+                    <td>{{percent .Count .SpeciesTotal}}%</td>
+                    <td>{{join .TopLocations ", "}}</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+    {{end}}
+</div>
+{{end}}

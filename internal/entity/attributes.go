@@ -52,3 +52,19 @@ func clampAttr(v int) int {
 	}
 	return v
 }
+
+// AverageAttrs returns the element-wise average of two attribute sets,
+// used when computing child attributes from parents.
+func AverageAttrs(a, b Attributes) Attributes {
+	avg := func(x, y int) int {
+		return (x + y) / 2
+	}
+	return Attributes{
+		STR: avg(a.STR, b.STR),
+		DEX: avg(a.DEX, b.DEX),
+		CON: avg(a.CON, b.CON),
+		INT: avg(a.INT, b.INT),
+		WIS: avg(a.WIS, b.WIS),
+		CHA: avg(a.CHA, b.CHA),
+	}
+}

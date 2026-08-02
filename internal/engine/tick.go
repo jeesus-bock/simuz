@@ -173,7 +173,7 @@ func processReproduction(s *Simulation) {
 			continue
 		}
 
-		childAttrs := averageAttrs(mother.Attributes, father.Attributes, s.RNG)
+		childAttrs := entity.AverageAttrs(mother.Attributes, father.Attributes)
 		childName := generateName(mother.Species, s.RNG)
 		childID := fmt.Sprintf("%s_child_%s_%d", mother.Species, mother.ID, s.Tick)
 
@@ -321,7 +321,7 @@ func processCrossbreeding(s *Simulation) {
 		}
 
 		childSpecies := species.GetHalfSpecies(mother.Species, father.Species)
-		childAttrs := averageAttrs(mother.Attributes, father.Attributes, s.RNG)
+		childAttrs := entity.AverageAttrs(mother.Attributes, father.Attributes)
 		childName := generateName(childSpecies, s.RNG)
 		childID := fmt.Sprintf("%s_child_%s_%d", childSpecies, mother.ID, s.Tick)
 

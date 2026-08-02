@@ -11,7 +11,7 @@ import (
 // Time units in this struct:
 //   - MaxAge, AdultAge: game-days (converted to ticks at comparison time using game speed)
 //   - GestationTicks: simulation ticks (1 tick = 1 real second at 1 Hz)
-//   - StarvationThreshold: simulation ticks
+//   - StarvationThreshold: simulation ticks before starvation damage; 0 = immune
 //
 // At the default speed of 24, one game-day = 1440/24 = 60 ticks.
 type Species struct {
@@ -35,6 +35,16 @@ type Species struct {
 	// --- Optimized Grand Design Fields ---
 	FluidBiology    bool     `json:"fluid_biology"`              // True for Fey/Planar entities to alternate reproductive states over time
 	PreferredBiomes []string `json:"preferred_biomes,omitempty"` // For spatial placement filters
+
+	// Civilized indicates the species has an established society with structured
+	// reproduction and pregnancy maintenance systems. Civilized species include
+	// kobolds, hobbits, gnolls, and other non-caveman beings with organized cultures.
+	Civilized bool `json:"civilized"`
+
+	// --- Sociopolitical & Combat Fields ---
+	PoliticalIdeology string `json:"political_ideology,omitempty"` // e.g. "capitalist", "communist", "anarchist"
+	DiplomaticRank    string `json:"diplomatic_rank,omitempty"`    // e.g. "diplomat", "ambassador"
+	DefensiveBonus    int    `json:"defensive_bonus,omitempty"`    // Flat bonus to entity defense
 }
 
 // GetRandomName handles procedural linguistic choices using a fallback protection check.

@@ -29,3 +29,7 @@ quest.define({
   },
   rewards = { experience = 50, gold = 10 },
 })
+
+return {
+  util.event("quest_accepted", { quest_id = "rat_problem", source = "frosthold_greta" }),
+}

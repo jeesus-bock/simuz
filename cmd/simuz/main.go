@@ -10,6 +10,7 @@ import (
 
 	"simuz/internal/engine"
 	"simuz/internal/entity"
+	"simuz/internal/gen"
 	"simuz/internal/web"
 	"simuz/internal/world"
 
@@ -38,10 +39,14 @@ func main() {
 
 	log.Println("Bootstrapping Complete. Engine running smoothly.")
 
-	// 5. Start the tick loop in a goroutine
+	// 5. Generate test data for pregnancies and relationships
+	gen.GeneratePregnancies(em.All(), 5, sim.Tick)
+	gen.GenerateRelationships(em.All(), 3, sim.Tick)
+
+	// 6. Start the tick loop in a goroutine
 	go sim.Start()
 
-	// 6. Start the web UI
+	// 7. Start the web UI
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 	router.Use(gin.Recovery())
@@ -54,7 +59,7 @@ func main() {
 		}
 	}()
 
-	// 7. Wait for interrupt signal to gracefully shut down
+	// 8. Wait for interrupt signal to gracefully shut down
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh

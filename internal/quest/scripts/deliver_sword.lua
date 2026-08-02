@@ -35,3 +35,7 @@ quest.define({
   },
   rewards = { experience = 35, gold = 5 },
 })
+
+return {
+  util.event("quest_accepted", { quest_id = "deliver_sword", source = "frosthold_sven" }),
+}

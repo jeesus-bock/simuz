@@ -1,10 +1,8 @@
-// Package engine contains the simulation engine, tick processing, and related systems.
 package engine
 
 import (
 	"fmt"
 	"log"
-	"maps"
 	"math/rand"
 	"slices"
 
@@ -14,6 +12,11 @@ import (
 	"simuz/internal/species"
 	"simuz/internal/world"
 )
+
+// DefaultMaxLevel is the sane cap applied when a species has no
+// hardcoded level rule. MaxAge is a lifespan in years, not a level,
+// so using it directly would produce absurd spawn levels (e.g. elf 700).
+const DefaultMaxLevel = 10
 
 type SpawnRule struct {
 	ID              string
@@ -35,28 +38,304 @@ type SpawnManager struct {
 	Rules []SpawnRule
 }
 
+// NewSpawnManager creates a SpawnManager with rules for every species
+// registered in the species registry. Hardcoded rules for known species
+// are preserved; any species without a specific rule gets a default entry
+// so that all species can appear during initialization.
 func NewSpawnManager() *SpawnManager {
-	return &SpawnManager{
-		Rules: []SpawnRule{
-			{ID: "orc_patrol", LocationID: "orc_camp", Species: "orc", Faction: "", Profession: "warrior", FactionID: "orc", DesiredCount: 4, Interval: 120, MinLevel: 1, MaxLevel: 3},
-			{ID: "wolf_pack", LocationID: "wolf_den", Species: "wolf", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 4, Interval: 90, MinLevel: 1, MaxLevel: 2},
-			{ID: "bandit_camp", LocationID: "bandit_camp", Species: "human", Faction: "", Profession: "bandit", FactionID: "bandit", DesiredCount: 4, Interval: 150, MinLevel: 1, MaxLevel: 2},
-			{ID: "bear_den", LocationID: "bear_den", Species: "bear", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 2, Interval: 200, MinLevel: 3, MaxLevel: 5},
-			{ID: "boar_herd", LocationID: "boar_wallow", Species: "boar", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 2, Interval: 180, MinLevel: 1, MaxLevel: 3},
-			{ID: "rat_infest", LocationID: "rat_king_lair_entrance", Species: "rat", Faction: "", Profession: "", FactionID: "vermin", DesiredCount: 3, Interval: 60, MinLevel: 1, MaxLevel: 1},
-			{ID: "rat_corridor", LocationID: "rat_king_lair_corridor", Species: "rat", Faction: "", Profession: "", FactionID: "vermin", DesiredCount: 3, Interval: 60, MinLevel: 1, MaxLevel: 2},
-			{ID: "spider_nest", LocationID: "spider_grove", Species: "spider", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 2, Interval: 120, MinLevel: 1, MaxLevel: 3},
-			{ID: "goblin_gatherers", LocationID: "goblin_hollow", Species: "goblin", Faction: "", Profession: "gatherer", FactionID: "goblin", DesiredCount: 2, Interval: 180, MinLevel: 1, MaxLevel: 1},
-			{ID: "kobold_warren", LocationID: "kobold_warren", Species: "kobold", Faction: "", Profession: "warrior", FactionID: "kobold", DesiredCount: 4, Interval: 150, MinLevel: 1, MaxLevel: 2},
-			{ID: "ash_scorpions", LocationID: "scorpion_dunes", Species: "spider", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 2, Interval: 160, MinLevel: 2, MaxLevel: 4},
-			{ID: "ash_orcs", LocationID: "ash_ruins", Species: "orc", Faction: "", Profession: "warrior", FactionID: "orc", DesiredCount: 2, Interval: 180, MinLevel: 2, MaxLevel: 4},
-			{ID: "town_bard", LocationID: "tavern", Species: "human", Faction: "", Profession: "bard", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 1, MaxLevel: 3},
-			{ID: "town_priest", LocationID: "temple", Species: "human", Faction: "", Profession: "priest", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 1, MaxLevel: 3},
-			{ID: "human_politician", LocationID: "tavern", Species: "human", Faction: "", Profession: "politician", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 3, MaxLevel: 5},
-			{ID: "orc_chief", LocationID: "orc_camp", Species: "orc", Faction: "", Profession: "politician", FactionID: "orc", DesiredCount: 1, Interval: 0, MinLevel: 4, MaxLevel: 6},
-			{ID: "dwarf_thane", LocationID: "dwarf_keep", Species: "dwarf", Faction: "", Profession: "politician", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 4, MaxLevel: 6},
-			{ID: "elf_archon", LocationID: "fey_glade", Species: "elf", Faction: "", Profession: "politician", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 5, MaxLevel: 7},
-		},
+	sm := &SpawnManager{}
+
+	// 1. Add hardcoded rules for species with location-specific spawning.
+	sm.Rules = []SpawnRule{
+		// --- Core species ---
+		{ID: "orc_patrol", LocationID: "orc_camp", Species: "orc", Faction: "", Profession: "warrior", FactionID: "orc", DesiredCount: 4, Interval: 120, MinLevel: 1, MaxLevel: 3},
+		{ID: "wolf_pack", LocationID: "wolf_den", Species: "wolf", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 4, Interval: 90, MinLevel: 1, MaxLevel: 2},
+		{ID: "bandit_camp", LocationID: "bandit_camp", Species: "human", Faction: "", Profession: "bandit", FactionID: "bandit", DesiredCount: 4, Interval: 150, MinLevel: 1, MaxLevel: 2},
+		{ID: "bear_den", LocationID: "bear_den", Species: "bear", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 2, Interval: 200, MinLevel: 3, MaxLevel: 5},
+		{ID: "boar_herd", LocationID: "boar_wallow", Species: "boar", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 2, Interval: 180, MinLevel: 1, MaxLevel: 3},
+		{ID: "rat_infest", LocationID: "rat_king_lair_entrance", Species: "rat", Faction: "", Profession: "", FactionID: "vermin", DesiredCount: 3, Interval: 60, MinLevel: 1, MaxLevel: 1},
+		{ID: "rat_corridor", LocationID: "rat_king_lair_corridor", Species: "rat", Faction: "", Profession: "", FactionID: "vermin", DesiredCount: 3, Interval: 60, MinLevel: 1, MaxLevel: 2},
+		{ID: "spider_nest", LocationID: "spider_grove", Species: "spider", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 2, Interval: 120, MinLevel: 1, MaxLevel: 3},
+		{ID: "goblin_gatherers", LocationID: "goblin_hollow", Species: "goblin", Faction: "", Profession: "gatherer", FactionID: "goblin", DesiredCount: 2, Interval: 180, MinLevel: 1, MaxLevel: 1},
+		{ID: "kobold_warren", LocationID: "kobold_warren", Species: "kobold", Faction: "", Profession: "warrior", FactionID: "kobold", DesiredCount: 4, Interval: 150, MinLevel: 1, MaxLevel: 2},
+		{ID: "ash_scorpions", LocationID: "scorpion_dunes", Species: "spider", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 2, Interval: 160, MinLevel: 2, MaxLevel: 4},
+		{ID: "ash_orcs", LocationID: "ash_ruins", Species: "orc", Faction: "", Profession: "warrior", FactionID: "orc", DesiredCount: 2, Interval: 180, MinLevel: 2, MaxLevel: 4},
+		{ID: "town_bard", LocationID: "tavern", Species: "human", Faction: "", Profession: "bard", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 1, MaxLevel: 3},
+		{ID: "town_priest", LocationID: "temple", Species: "human", Faction: "", Profession: "priest", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 1, MaxLevel: 3},
+		{ID: "human_politician", LocationID: "tavern", Species: "human", Faction: "", Profession: "politician", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 3, MaxLevel: 5},
+		{ID: "orc_chief", LocationID: "orc_camp", Species: "orc", Faction: "", Profession: "politician", FactionID: "orc", DesiredCount: 1, Interval: 0, MinLevel: 4, MaxLevel: 6},
+		{ID: "dwarf_thane", LocationID: "dwarf_keep", Species: "dwarf", Faction: "", Profession: "politician", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 4, MaxLevel: 6},
+		{ID: "elf_archon", LocationID: "fey_glade", Species: "elf", Faction: "", Profession: "politician", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 5, MaxLevel: 7},
+
+		// --- Half-species ---
+		{ID: "half_orc_warrior", LocationID: "orc_camp", Species: "half_orc", Faction: "", Profession: "warrior", FactionID: "orc", DesiredCount: 2, Interval: 0, MinLevel: 1, MaxLevel: 4},
+		{ID: "half_elf_scholar", LocationID: "fey_glade", Species: "half_elf", Faction: "", Profession: "scholar", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 1, MaxLevel: 5},
+		{ID: "half_dwarf_miner", LocationID: "dwarf_keep", Species: "half_dwarf", Faction: "", Profession: "miner", FactionID: "", DesiredCount: 2, Interval: 0, MinLevel: 1, MaxLevel: 4},
+		{ID: "half_goblin_scavenger", LocationID: "goblin_hollow", Species: "half_goblin", Faction: "", Profession: "gatherer", FactionID: "goblin", DesiredCount: 2, Interval: 0, MinLevel: 1, MaxLevel: 2},
+		{ID: "half_hobgoblin_soldier", LocationID: "orc_camp", Species: "half_hobgoblin", Faction: "", Profession: "warrior", FactionID: "orc", DesiredCount: 2, Interval: 0, MinLevel: 2, MaxLevel: 5},
+		{ID: "half_gnoll_marauder", LocationID: "orc_camp", Species: "half_gnoll", Faction: "", Profession: "warrior", FactionID: "orc", DesiredCount: 2, Interval: 0, MinLevel: 1, MaxLevel: 3},
+		{ID: "half_kobold_scout", LocationID: "kobold_warren", Species: "half_kobold", Faction: "", Profession: "scout", FactionID: "kobold", DesiredCount: 2, Interval: 0, MinLevel: 1, MaxLevel: 2},
+		{ID: "half_fey_druid", LocationID: "fey_glade", Species: "half_fey", Faction: "", Profession: "druid", FactionID: "", DesiredCount: 1, Interval: 0, MinLevel: 2, MaxLevel: 5},
+
+		// --- Undead ---
+		{ID: "skeleton_graveyard", LocationID: "graveyard", Species: "skeleton", Faction: "", Profession: "warrior", FactionID: "undead", DesiredCount: 4, Interval: 120, MinLevel: 1, MaxLevel: 3},
+		{ID: "zombie_moat", LocationID: "castle_dungeon", Species: "zombie", Faction: "", Profession: "", FactionID: "undead", DesiredCount: 3, Interval: 90, MinLevel: 1, MaxLevel: 2},
+		{ID: "ghost_keep", LocationID: "castle_keep", Species: "ghost", Faction: "", Profession: "", FactionID: "undead", DesiredCount: 2, Interval: 150, MinLevel: 3, MaxLevel: 5},
+		{ID: "wraith_crypt", LocationID: "crypt", Species: "wraith", Faction: "", Profession: "", FactionID: "undead", DesiredCount: 2, Interval: 180, MinLevel: 4, MaxLevel: 6},
+		{ID: "lich_tower", LocationID: "dark_tower", Species: "lich", Faction: "", Profession: "necromancer", FactionID: "undead", DesiredCount: 1, Interval: 0, MinLevel: 7, MaxLevel: 9},
+		{ID: "vampire_mansion", LocationID: "mansion", Species: "vampire", Faction: "", Profession: "politician", FactionID: "undead", DesiredCount: 1, Interval: 0, MinLevel: 5, MaxLevel: 7},
+
+		// --- Fey & magical ---
+		{ID: "fairy_grove", LocationID: "fey_glade", Species: "fairy", Faction: "", Profession: "", FactionID: "fey", DesiredCount: 3, Interval: 120, MinLevel: 1, MaxLevel: 3},
+		{ID: "dryad_forest", LocationID: "ancient_forest", Species: "dryad", Faction: "", Profession: "", FactionID: "fey", DesiredCount: 2, Interval: 150, MinLevel: 2, MaxLevel: 4},
+		{ID: "satyr_cavern", LocationID: "mountain_cave", Species: "satyr", Faction: "", Profession: "", FactionID: "fey", DesiredCount: 2, Interval: 140, MinLevel: 2, MaxLevel: 4},
+		{ID: "pixie_mushroom", LocationID: "mushroom_forest", Species: "pixie", Faction: "", Profession: "", FactionID: "fey", DesiredCount: 4, Interval: 100, MinLevel: 1, MaxLevel: 2},
+		{ID: "treant_wood", LocationID: "ancient_forest", Species: "treant", Faction: "", Profession: "", FactionID: "fey", DesiredCount: 1, Interval: 0, MinLevel: 5, MaxLevel: 7},
+
+		// --- Dragons & reptiles ---
+		{ID: "dragon_lair", LocationID: "dragon_cave", Species: "dragon", Faction: "", Profession: "", FactionID: "dragon", DesiredCount: 1, Interval: 0, MinLevel: 8, MaxLevel: 10},
+		{ID: "lizardfolk_swamp", LocationID: "swamp", Species: "lizardfolk", Faction: "", Profession: "warrior", FactionID: "lizardfolk", DesiredCount: 3, Interval: 150, MinLevel: 2, MaxLevel: 4},
+		{ID: "wyvern_peak", LocationID: "mountain_peak", Species: "wyvern", Faction: "", Profession: "", FactionID: "dragon", DesiredCount: 2, Interval: 180, MinLevel: 3, MaxLevel: 5},
+		{ID: "basilisk_lair", LocationID: "cave_system", Species: "basilisk", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 1, Interval: 0, MinLevel: 4, MaxLevel: 6},
+
+		// --- Fey & small races ---
+		{ID: "gnome_hollow", LocationID: "gnome_hollow", Species: "gnome", Faction: "", Profession: "miner", FactionID: "gnome", DesiredCount: 3, Interval: 150, MinLevel: 1, MaxLevel: 3},
+		{ID: "halfling_village", LocationID: "halfling_village", Species: "halfling", Faction: "", Profession: "farmer", FactionID: "halfling", DesiredCount: 4, Interval: 0, MinLevel: 1, MaxLevel: 3},
+		{ID: "tiefling_city", LocationID: "city_slums", Species: "tiefling", Faction: "", Profession: "warrior", FactionID: "tiefling", DesiredCount: 2, Interval: 0, MinLevel: 1, MaxLevel: 4},
+		{ID: "aasimar_shrine", LocationID: "shrine", Species: "aasimar", Faction: "", Profession: "priest", FactionID: "aasimar", DesiredCount: 1, Interval: 0, MinLevel: 3, MaxLevel: 5},
+		{ID: "goliath_mountain", LocationID: "mountain_peak", Species: "goliath", Faction: "", Profession: "warrior", FactionID: "goliath", DesiredCount: 2, Interval: 0, MinLevel: 3, MaxLevel: 5},
+
+		// --- Beastfolk & hybrids ---
+		{ID: "minotaur_labyrinth", LocationID: "labyrinth", Species: "minotaur", Faction: "", Profession: "warrior", FactionID: "beastfolk", DesiredCount: 2, Interval: 0, MinLevel: 4, MaxLevel: 6},
+		{ID: "centaur_plain", LocationID: "open_plains", Species: "centaur", Faction: "", Profession: "warrior", FactionID: "beastfolk", DesiredCount: 3, Interval: 0, MinLevel: 2, MaxLevel: 4},
+		{ID: "merfolk_coast", LocationID: "coastal_cave", Species: "merfolk", Faction: "", Profession: "", FactionID: "beastfolk", DesiredCount: 3, Interval: 0, MinLevel: 1, MaxLevel: 3},
+		{ID: "harpy_cliff", LocationID: "cliff_nest", Species: "harpy", Faction: "", Profession: "", FactionID: "beastfolk", DesiredCount: 2, Interval: 120, MinLevel: 2, MaxLevel: 4},
+		{ID: "werewolf_forest", LocationID: "dark_forest", Species: "werewolf", Faction: "", Profession: "warrior", FactionID: "beastfolk", DesiredCount: 2, Interval: 0, MinLevel: 3, MaxLevel: 5},
+		{ID: "werebear_mountain", LocationID: "mountain_cave", Species: "werebear", Faction: "", Profession: "", FactionID: "beastfolk", DesiredCount: 1, Interval: 0, MinLevel: 4, MaxLevel: 6},
+
+		// --- Monstrous ---
+		{ID: "bugbear_cave", LocationID: "goblin_hollow", Species: "bugbear", Faction: "", Profession: "warrior", FactionID: "goblin", DesiredCount: 2, Interval: 0, MinLevel: 3, MaxLevel: 5},
+		{ID: "ogre_mountain", LocationID: "ogre_stronghold", Species: "ogre", Faction: "", Profession: "warrior", FactionID: "ogre", DesiredCount: 2, Interval: 0, MinLevel: 4, MaxLevel: 6},
+		{ID: "troll_bridge", LocationID: "swamp", Species: "troll", Faction: "", Profession: "", FactionID: "beast", DesiredCount: 1, Interval: 0, MinLevel: 5, MaxLevel: 7},
+		{ID: "giant_peak", LocationID: "mountain_peak", Species: "giant", Faction: "", Profession: "warrior", FactionID: "giant", DesiredCount: 1, Interval: 0, MinLevel: 6, MaxLevel: 8},
+		{ID: "mimic_chest", LocationID: "dungeon", Species: "mimic", Faction: "", Profession: "", FactionID: "monster", DesiredCount: 1, Interval: 0, MinLevel: 3, MaxLevel: 5},
+		{ID: "slime_cave", LocationID: "cave_system", Species: "slime", Faction: "", Profession: "", FactionID: "vermin", DesiredCount: 4, Interval: 60, MinLevel: 1, MaxLevel: 2},
+		{ID: "golem_ruins", LocationID: "ancient_ruins", Species: "golem", Faction: "", Profession: "", FactionID: "construct", DesiredCount: 1, Interval: 0, MinLevel: 5, MaxLevel: 7},
+
+		// --- Divine ---
+		{ID: "deity_shrine", LocationID: "temple", Species: "deity", Faction: "", Profession: "priest", FactionID: "divine", DesiredCount: 1, Interval: 0, MinLevel: 8, MaxLevel: 10},
+	}
+
+	// 2. Track which species already have at least one rule.
+	covered := make(map[string]bool)
+	for _, r := range sm.Rules {
+		covered[r.Species] = true
+	}
+
+	// 3. Add a default spawn rule for every species not already covered.
+	//    This ensures all registered species can appear during initialization,
+	//    fixing the issue where only a subset of species were being generated.
+	for _, sp := range species.Registry {
+		if covered[sp.ID] {
+			continue
+		}
+		// Pick a reasonable default location and faction based on species traits.
+		locID := defaultLocationForSpecies(sp.ID)
+		factionID := defaultFactionForSpecies(sp.ID)
+		profession := defaultProfessionForSpecies(sp.ID)
+
+		// Use a sane default max level instead of MaxAge (which is a lifespan in years, not a level).
+		// Without this cap, species like elf (MaxAge=700) would spawn entities at level 700.
+		maxLvl := DefaultMaxLevel
+
+		rule := SpawnRule{
+			ID:           "default_" + sp.ID,
+			LocationID:   locID,
+			Species:      sp.ID,
+			Faction:      "",
+			Profession:   profession,
+			FactionID:    factionID,
+			DesiredCount: 2,
+			Interval:     0, // spawn once at init
+			MinLevel:     1,
+			MaxLevel:     maxLvl,
+		}
+		sm.Rules = append(sm.Rules, rule)
+		covered[sp.ID] = true
+	}
+
+	return sm
+}
+
+// defaultLocationForSpecies returns a sensible default location ID for a species.
+func defaultLocationForSpecies(speciesID string) string {
+	switch speciesID {
+	case "orc":
+		return "orc_camp"
+	case "wolf":
+		return "wolf_den"
+	case "bear":
+		return "bear_den"
+	case "boar":
+		return "boar_wallow"
+	case "rat":
+		return "rat_king_lair_entrance"
+	case "spider":
+		return "spider_grove"
+	case "goblin":
+		return "goblin_hollow"
+	case "kobold":
+		return "kobold_warren"
+	case "human":
+		return "tavern"
+	case "dwarf":
+		return "dwarf_keep"
+	case "elf":
+		return "fey_glade"
+	case "half_orc":
+		return "orc_camp"
+	case "half_elf":
+		return "fey_glade"
+	case "half_dwarf":
+		return "dwarf_keep"
+	case "half_goblin":
+		return "goblin_hollow"
+	case "half_hobgoblin":
+		return "orc_camp"
+	case "half_gnoll":
+		return "orc_camp"
+	case "half_kobold":
+		return "kobold_warren"
+	case "half_fey":
+		return "fey_glade"
+	// Undead
+	case "skeleton":
+		return "graveyard"
+	case "zombie":
+		return "castle_dungeon"
+	case "ghost":
+		return "castle_keep"
+	case "wraith":
+		return "crypt"
+	case "lich":
+		return "dark_tower"
+	case "vampire":
+		return "mansion"
+	// Fey & magical
+	case "fairy":
+		return "fey_glade"
+	case "dryad":
+		return "ancient_forest"
+	case "satyr":
+		return "mountain_cave"
+	case "pixie":
+		return "mushroom_forest"
+	case "treant":
+		return "ancient_forest"
+	// Dragons & reptiles
+	case "dragon":
+		return "dragon_cave"
+	case "lizardfolk":
+		return "swamp"
+	case "wyvern":
+		return "mountain_peak"
+	case "basilisk":
+		return "cave_system"
+	// Small races
+	case "gnome":
+		return "gnome_hollow"
+	case "halfling":
+		return "halfling_village"
+	case "tiefling":
+		return "city_slums"
+	case "aasimar":
+		return "shrine"
+	case "goliath":
+		return "mountain_peak"
+	// Beastfolk & hybrids
+	case "minotaur":
+		return "labyrinth"
+	case "centaur":
+		return "open_plains"
+	case "merfolk":
+		return "coastal_cave"
+	case "harpy":
+		return "cliff_nest"
+	case "werewolf":
+		return "dark_forest"
+	case "werebear":
+		return "mountain_cave"
+	// Monstrous
+	case "bugbear":
+		return "goblin_hollow"
+	case "ogre":
+		return "ogre_stronghold"
+	case "troll":
+		return "swamp"
+	case "giant":
+		return "mountain_peak"
+	case "mimic":
+		return "dungeon"
+	case "slime":
+		return "cave_system"
+	case "golem":
+		return "ancient_ruins"
+	// Divine
+	case "deity":
+		return "temple"
+	// Fallback
+	default:
+		return "tavern"
+	}
+}
+
+// defaultFactionForSpecies returns a default faction ID for a species.
+func defaultFactionForSpecies(speciesID string) string {
+	switch speciesID {
+	case "orc", "half_orc", "half_hobgoblin", "half_gnoll":
+		return "orc"
+	case "wolf", "bear", "boar", "rat", "spider", "goblin", "kobold", "bugbear", "ogre", "troll", "giant", "slime", "mimic":
+		return "beast"
+	case "human", "half_elf", "half_dwarf", "half_goblin", "half_kobold", "half_fey", "gnome", "halfling", "tiefling", "aasimar", "goliath", "minotaur", "centaur", "merfolk", "harpy", "werewolf", "werebear", "lizardfolk", "basilisk", "dryad", "satyr", "pixie", "treant", "fairy":
+		return ""
+	case "skeleton", "zombie", "ghost", "wraith", "lich", "vampire":
+		return "undead"
+	case "dragon":
+		return "dragon"
+	case "golem", "construct":
+		return "construct"
+	case "deity":
+		return "divine"
+	default:
+		return ""
+	}
+}
+
+// defaultProfessionForSpecies returns a default profession for a species.
+func defaultProfessionForSpecies(speciesID string) string {
+	switch speciesID {
+	case "orc", "half_orc", "half_hobgoblin", "half_gnoll", "bugbear", "ogre", "troll", "giant", "minotaur", "centaur", "lizardfolk", "werewolf", "werebear", "goliath":
+		return "warrior"
+	case "wolf", "bear", "boar", "rat", "spider", "basilisk", "harpy", "slime", "mimic", "golem", "construct":
+		return ""
+	case "goblin":
+		return "gatherer"
+	case "kobold", "half_kobold":
+		return "warrior"
+	case "human", "half_elf", "half_dwarf", "half_goblin", "half_fey", "gnome", "halfling", "tiefling", "aasimar", "dryad", "satyr", "pixie", "treant", "fairy", "merfolk":
+		return ""
+	case "skeleton", "zombie", "ghost", "wraith":
+		return "warrior"
+	case "lich":
+		return "necromancer"
+	case "vampire":
+		return "politician"
+	case "dragon":
+		return ""
+	case "deity":
+		return "priest"
+	default:
+		return ""
 	}
 }
 
@@ -113,6 +392,14 @@ func spawnEntity(rule *SpawnRule, em *entity.EntityManager, tick, idx int, rng *
 	if rule.MaxLevel > rule.MinLevel {
 		level += rng.Intn(rule.MaxLevel - rule.MinLevel + 1)
 	}
+
+	// Cap the level to a sane default if the species rule doesn't provide one.
+	// MaxAge is a lifespan in years, not a level — using it directly would
+	// create wildly overpowered entities at initialization.
+	if level > DefaultMaxLevel {
+		level = DefaultMaxLevel
+	}
+
 	attrs := baseSpeciesAttrs(rule.Species, rng)
 	name := generateName(rule.Species, rng)
 	id := fmt.Sprintf("%s_spawn_%s_%s_%d_%d", rule.Species, name, rule.LocationID, tick, idx)
@@ -121,7 +408,7 @@ func spawnEntity(rule *SpawnRule, em *entity.EntityManager, tick, idx int, rng *
 	ent.LocationID = rule.LocationID
 	ent.Faction = rule.Faction
 	ent.Profession = rule.Profession
-	if species, exists := species.GetByID(rule.Species); exists && species.CanReproduce {
+	if sp, exists := species.GetByID(rule.Species); exists && sp.CanReproduce {
 		ent.Gender = entity.GetRndGender()
 	}
 	ent.AI = entity.EntityAI{
@@ -277,12 +564,72 @@ func equipSpawn(ent *entity.Entity, rule *SpawnRule, rng *rand.Rand) {
 		default:
 			equipSpawnItem(ent, "goblin_shiv")
 		}
-	case "wolf", "bear":
+	case "wolf", "bear", "werewolf", "werebear":
 		equipSpawnItem(ent, "claws")
 	case "boar":
 		equipSpawnItem(ent, "tusks")
-	case "spider", "rat":
+	case "spider", "rat", "slime":
 		equipSpawnItem(ent, "fangs")
+	case "dragon":
+		equipSpawnItem(ent, "dragon_breath")
+	case "ogre":
+		equipSpawnItem(ent, "great_club")
+	case "troll":
+		equipSpawnItem(ent, "club")
+	case "giant":
+		equipSpawnItem(ent, "boulder")
+	case "minotaur":
+		equipSpawnItem(ent, "axe")
+	case "golem":
+		equipSpawnItem(ent, "stone_fist")
+	case "bugbear":
+		equipSpawnItem(ent, "morningstar")
+	case "harpy":
+		equipSpawnItem(ent, "talons")
+	case "centaur":
+		equipSpawnItem(ent, "short_sword")
+	case "merfolk":
+		equipSpawnItem(ent, "trident")
+	case "skeleton":
+		equipSpawnItem(ent, "rusty_sword")
+	case "zombie":
+		equipSpawnItem(ent, "rusty_axe")
+	case "ghost":
+		equipSpawnItem(ent, "ethereal_touch")
+	case "wraith":
+		equipSpawnItem(ent, "soul_scythe")
+	case "lich":
+		equipSpawnItem(ent, "staff_of_death")
+	case "vampire":
+		equipSpawnItem(ent, "fangs")
+	case "fairy":
+		equipSpawnItem(ent, "wand")
+	case "dryad":
+		equipSpawnItem(ent, "staff_of_vines")
+	case "satyr":
+		equipSpawnItem(ent, "pan_flute")
+	case "pixie":
+		equipSpawnItem(ent, "tiny_dagger")
+	case "treant":
+		equipSpawnItem(ent, "branch")
+	case "gnome":
+		equipSpawnItem(ent, "pickaxe")
+	case "halfling":
+		equipSpawnItem(ent, "short_sword")
+	case "tiefling":
+		equipSpawnItem(ent, "horn")
+	case "aasimar":
+		equipSpawnItem(ent, "holy_symbol")
+	case "goliath":
+		equipSpawnItem(ent, "greatclub")
+	case "lizardfolk":
+		equipSpawnItem(ent, "spear")
+	case "basilisk":
+		equipSpawnItem(ent, "petrifying_gaze")
+	case "mimic":
+		equipSpawnItem(ent, "bite")
+	case "deity":
+		equipSpawnItem(ent, "divine_scepter")
 	}
 }
 
@@ -304,6 +651,90 @@ func baseSpeciesAttrs(species string, rng *rand.Rand) entity.Attributes {
 		return entity.Attributes{STR: 8 + rng.Intn(3), DEX: 12 + rng.Intn(3), CON: 10 + rng.Intn(3), INT: 8 + rng.Intn(3), WIS: 6 + rng.Intn(3), CHA: 6 + rng.Intn(3)}
 	case "kobold":
 		return entity.Attributes{STR: 8 + rng.Intn(3), DEX: 14 + rng.Intn(3), CON: 9 + rng.Intn(3), INT: 8 + rng.Intn(3), WIS: 7 + rng.Intn(3), CHA: 6 + rng.Intn(3)}
+	case "half_orc":
+		return entity.Attributes{STR: 13 + rng.Intn(4), DEX: 10 + rng.Intn(3), CON: 12 + rng.Intn(3), INT: 6 + rng.Intn(3), WIS: 6 + rng.Intn(3), CHA: 5 + rng.Intn(3)}
+	case "half_elf":
+		return entity.Attributes{STR: 10 + rng.Intn(3), DEX: 11 + rng.Intn(3), CON: 10 + rng.Intn(3), INT: 10 + rng.Intn(3), WIS: 10 + rng.Intn(3), CHA: 11 + rng.Intn(3)}
+	case "half_dwarf":
+		return entity.Attributes{STR: 12 + rng.Intn(3), DEX: 10 + rng.Intn(3), CON: 14 + rng.Intn(3), INT: 8 + rng.Intn(3), WIS: 9 + rng.Intn(3), CHA: 8 + rng.Intn(3)}
+	case "half_goblin":
+		return entity.Attributes{STR: 9 + rng.Intn(3), DEX: 13 + rng.Intn(3), CON: 10 + rng.Intn(3), INT: 9 + rng.Intn(3), WIS: 7 + rng.Intn(3), CHA: 7 + rng.Intn(3)}
+	case "half_hobgoblin":
+		return entity.Attributes{STR: 13 + rng.Intn(3), DEX: 11 + rng.Intn(3), CON: 12 + rng.Intn(3), INT: 7 + rng.Intn(3), WIS: 7 + rng.Intn(3), CHA: 6 + rng.Intn(3)}
+	case "half_gnoll":
+		return entity.Attributes{STR: 12 + rng.Intn(3), DEX: 11 + rng.Intn(3), CON: 11 + rng.Intn(3), INT: 5 + rng.Intn(3), WIS: 6 + rng.Intn(3), CHA: 5 + rng.Intn(3)}
+	case "half_kobold":
+		return entity.Attributes{STR: 9 + rng.Intn(3), DEX: 13 + rng.Intn(3), CON: 9 + rng.Intn(3), INT: 9 + rng.Intn(3), WIS: 8 + rng.Intn(3), CHA: 7 + rng.Intn(3)}
+	case "half_fey":
+		return entity.Attributes{STR: 8 + rng.Intn(3), DEX: 13 + rng.Intn(3), CON: 9 + rng.Intn(3), INT: 11 + rng.Intn(3), WIS: 12 + rng.Intn(3), CHA: 13 + rng.Intn(3)}
+	// Undead
+	case "skeleton":
+		return entity.Attributes{STR: 10 + rng.Intn(3), DEX: 10 + rng.Intn(3), CON: 8 + rng.Intn(3), INT: 3 + rng.Intn(2), WIS: 4 + rng.Intn(2), CHA: 2 + rng.Intn(2)}
+	case "zombie":
+		return entity.Attributes{STR: 12 + rng.Intn(3), DEX: 6 + rng.Intn(2), CON: 12 + rng.Intn(3), INT: 2 + rng.Intn(2), WIS: 3 + rng.Intn(2), CHA: 2 + rng.Intn(2)}
+	case "ghost":
+		return entity.Attributes{STR: 6 + rng.Intn(2), DEX: 14 + rng.Intn(3), CON: 6 + rng.Intn(2), INT: 10 + rng.Intn(3), WIS: 12 + rng.Intn(3), CHA: 10 + rng.Intn(3)}
+	case "wraith":
+		return entity.Attributes{STR: 8 + rng.Intn(2), DEX: 15 + rng.Intn(3), CON: 7 + rng.Intn(2), INT: 12 + rng.Intn(3), WIS: 14 + rng.Intn(3), CHA: 11 + rng.Intn(3)}
+	case "lich":
+		return entity.Attributes{STR: 10 + rng.Intn(3), DEX: 12 + rng.Intn(3), CON: 10 + rng.Intn(3), INT: 18 + rng.Intn(4), WIS: 16 + rng.Intn(4), CHA: 14 + rng.Intn(3)}
+	case "vampire":
+		return entity.Attributes{STR: 12 + rng.Intn(3), DEX: 14 + rng.Intn(3), CON: 11 + rng.Intn(3), INT: 10 + rng.Intn(3), WIS: 12 + rng.Intn(3), CHA: 13 + rng.Intn(3)}
+	// Fey & magical
+	case "fairy":
+		return entity.Attributes{STR: 4 + rng.Intn(2), DEX: 16 + rng.Intn(4), CON: 6 + rng.Intn(2), INT: 10 + rng.Intn(3), WIS: 12 + rng.Intn(3), CHA: 14 + rng.Intn(3)}
+	case "dryad":
+		return entity.Attributes{STR: 8 + rng.Intn(2), DEX: 12 + rng.Intn(3), CON: 10 + rng.Intn(3), INT: 12 + rng.Intn(3), WIS: 14 + rng.Intn(3), CHA: 13 + rng.Intn(3)}
+	case "satyr":
+		return entity.Attributes{STR: 10 + rng.Intn(3), DEX: 13 + rng.Intn(3), CON: 10 + rng.Intn(3), INT: 9 + rng.Intn(3), WIS: 10 + rng.Intn(3), CHA: 12 + rng.Intn(3)}
+	case "pixie":
+		return entity.Attributes{STR: 3 + rng.Intn(2), DEX: 17 + rng.Intn(4), CON: 5 + rng.Intn(2), INT: 11 + rng.Intn(3), WIS: 13 + rng.Intn(3), CHA: 15 + rng.Intn(3)}
+	case "treant":
+		return entity.Attributes{STR: 18 + rng.Intn(3), DEX: 6 + rng.Intn(2), CON: 18 + rng.Intn(3), INT: 10 + rng.Intn(3), WIS: 14 + rng.Intn(3), CHA: 8 + rng.Intn(3)}
+	// Dragons & reptiles
+	case "dragon":
+		return entity.Attributes{STR: 18 + rng.Intn(4), DEX: 12 + rng.Intn(3), CON: 16 + rng.Intn(4), INT: 14 + rng.Intn(4), WIS: 16 + rng.Intn(4), CHA: 16 + rng.Intn(4)}
+	case "lizardfolk":
+		return entity.Attributes{STR: 13 + rng.Intn(3), DEX: 11 + rng.Intn(3), CON: 12 + rng.Intn(3), INT: 8 + rng.Intn(3), WIS: 9 + rng.Intn(3), CHA: 7 + rng.Intn(3)}
+	case "basilisk":
+		return entity.Attributes{STR: 12 + rng.Intn(3), DEX: 10 + rng.Intn(3), CON: 12 + rng.Intn(3), INT: 8 + rng.Intn(3), WIS: 10 + rng.Intn(3), CHA: 6 + rng.Intn(3)}
+	// Small races
+	case "gnome":
+		return entity.Attributes{STR: 7 + rng.Intn(2), DEX: 11 + rng.Intn(3), CON: 9 + rng.Intn(2), INT: 14 + rng.Intn(4), WIS: 12 + rng.Intn(3), CHA: 10 + rng.Intn(3)}
+	case "halfling":
+		return entity.Attributes{STR: 8 + rng.Intn(2), DEX: 14 + rng.Intn(3), CON: 9 + rng.Intn(2), INT: 10 + rng.Intn(3), WIS: 11 + rng.Intn(3), CHA: 10 + rng.Intn(3)}
+	case "tiefling":
+		return entity.Attributes{STR: 10 + rng.Intn(3), DEX: 12 + rng.Intn(3), CON: 10 + rng.Intn(3), INT: 11 + rng.Intn(3), WIS: 10 + rng.Intn(3), CHA: 12 + rng.Intn(3)}
+	case "aasimar":
+		return entity.Attributes{STR: 10 + rng.Intn(3), DEX: 11 + rng.Intn(3), CON: 10 + rng.Intn(3), INT: 12 + rng.Intn(3), WIS: 14 + rng.Intn(3), CHA: 13 + rng.Intn(3)}
+	case "goliath":
+		return entity.Attributes{STR: 16 + rng.Intn(4), DEX: 10 + rng.Intn(3), CON: 15 + rng.Intn(3), INT: 8 + rng.Intn(3), WIS: 10 + rng.Intn(3), CHA: 8 + rng.Intn(3)}
+	// Beastfolk & hybrids
+	case "minotaur":
+		return entity.Attributes{STR: 16 + rng.Intn(3), DEX: 10 + rng.Intn(3), CON: 14 + rng.Intn(3), INT: 6 + rng.Intn(3), WIS: 8 + rng.Intn(3), CHA: 6 + rng.Intn(3)}
+	case "centaur":
+		return entity.Attributes{STR: 14 + rng.Intn(3), DEX: 13 + rng.Intn(3), CON: 12 + rng.Intn(3), INT: 8 + rng.Intn(3), WIS: 10 + rng.Intn(3), CHA: 8 + rng.Intn(3)}
+	case "merfolk":
+		return entity.Attributes{STR: 11 + rng.Intn(3), DEX: 13 + rng.Intn(3), CON: 11 + rng.Intn(3), INT: 10 + rng.Intn(3), WIS: 12 + rng.Intn(3), CHA: 11 + rng.Intn(3)}
+	case "harpy":
+		return entity.Attributes{STR: 8 + rng.Intn(2), DEX: 16 + rng.Intn(3), CON: 8 + rng.Intn(2), INT: 9 + rng.Intn(3), WIS: 11 + rng.Intn(3), CHA: 12 + rng.Intn(3)}
+	// Monstrous
+	case "bugbear":
+		return entity.Attributes{STR: 14 + rng.Intn(3), DEX: 12 + rng.Intn(3), CON: 11 + rng.Intn(3), INT: 7 + rng.Intn(3), WIS: 8 + rng.Intn(3), CHA: 7 + rng.Intn(3)}
+	case "ogre":
+		return entity.Attributes{STR: 18 + rng.Intn(3), DEX: 7 + rng.Intn(2), CON: 16 + rng.Intn(3), INT: 5 + rng.Intn(2), WIS: 6 + rng.Intn(2), CHA: 5 + rng.Intn(2)}
+	case "troll":
+		return entity.Attributes{STR: 16 + rng.Intn(3), DEX: 8 + rng.Intn(2), CON: 14 + rng.Intn(3), INT: 5 + rng.Intn(2), WIS: 6 + rng.Intn(2), CHA: 5 + rng.Intn(2)}
+	case "giant":
+		return entity.Attributes{STR: 18 + rng.Intn(4), DEX: 8 + rng.Intn(3), CON: 16 + rng.Intn(4), INT: 7 + rng.Intn(3), WIS: 9 + rng.Intn(3), CHA: 7 + rng.Intn(3)}
+	case "mimic":
+		return entity.Attributes{STR: 10 + rng.Intn(3), DEX: 8 + rng.Intn(2), CON: 12 + rng.Intn(3), INT: 6 + rng.Intn(2), WIS: 7 + rng.Intn(2), CHA: 4 + rng.Intn(2)}
+	case "golem":
+		return entity.Attributes{STR: 14 + rng.Intn(3), DEX: 6 + rng.Intn(2), CON: 16 + rng.Intn(4), INT: 4 + rng.Intn(2), WIS: 6 + rng.Intn(2), CHA: 3 + rng.Intn(2)}
+	// Divine
+	case "deity":
+		return entity.Attributes{STR: 16 + rng.Intn(4), DEX: 14 + rng.Intn(4), CON: 14 + rng.Intn(4), INT: 18 + rng.Intn(4), WIS: 18 + rng.Intn(4), CHA: 18 + rng.Intn(4)}
+	// Fallback
 	default:
 		return entity.RandomAttributes(func(n int) int { return rng.Intn(n) })
 	}
@@ -327,6 +758,47 @@ func generateName(species string, rng *rand.Rand) string {
 	halfGnollNames := []string{"Ripper", "Bonepick", "Snapper", "Gorr", "Ashclaw", "Maw", "Vex", "Grak", "Ripsnout", "Mama", "Vexa", "Grix", "Bonea", "Snapa", "Graw", "Krela"}
 	halfKoboldNames := []string{"Skrit", "Yip", "Klik", "Drak", "Snik", "Rix", "Zik", "Vrik", "Skrix", "Yipa", "Klika", "Draka", "Snika", "Rika", "Zika", "Vrika"}
 	halfFeyNames := []string{"Thorn", "Bram", "Alder", "Rowan", "Briar", "Fenn", "Oaken", "Willow", "Thyra", "Briar", "Alda", "Rowan", "Nyx", "Luma", "Sylph", "Faye"}
+	// Undead
+	skeletonNames := []string{"Bone", "Rattle", "Skel", "Mort", "Ash", "Grave", "Rust", "Hollow"}
+	zombieNames := []string{"Rot", "Decay", "Corpse", "Shambler", "Ghoul", "Wretch", "Fester", "Blight"}
+	ghostNames := []string{"Wisp", "Shade", "Specter", "Ethereal", "Phantom", "Wraith", "Banshee", "Apparition"}
+	wraithNames := []string{"Dread", "Murk", "Gloom", "Shadow", "Void", "Eclipse", "Night", "Dusk"}
+	lichNames := []string{"Necros", "Mortis", "Kael", "Xaren", "Velthar", "Zargoth", "Malachar", "Thrain"}
+	vampireNames := []string{"Vlad", "Dracula", "Noctis", "Sanguis", "Morven", "Lysandra", "Kaelith", "Valerius"}
+	// Fey & magical
+	fairyNames := []string{"Tinker", "Glimmer", "Dewdrop", "Flicker", "Petal", "Moth", "Starlight", "Zephyr"}
+	dryadNames := []string{"Aurora", "Sylva", "Thorn", "Briar", "Moss", "Fern", "Willow", "Ivy"}
+	satyrNames := []string{"Pan", "Silenus", "Dion", "Lycus", "Phere", "Crotus", "Marsyas", "Oreas"}
+	pixieNames := []string{"Tinker", "Flick", "Glimmer", "Dew", "Petal", "Moth", "Wisp", "Dust"}
+	treantNames := []string{"Oldgrowth", "Deeproot", "Barkheart", "Thornbeard", "Greenmantle", "Rootwalker", "Timber", "Oakheart"}
+	// Dragons & reptiles
+	dragonNames := []string{"Smaug", "Vermithrax", "Draco", "Pyroth", "Frostclaw", "Stormwing", "Ember", "Shadowscale"}
+	lizardfolkNames := []string{"Scales", "Thornscale", "Riptide", "Swampscale", "Coldscale", "Duskscale", "Brightscale", "Fangjaw"}
+	basiliskNames := []string{"Stonegaze", "Petra", "Gorgon", "Serpentis", "Duskfang", "Coil", "Slither", "Basil"}
+	// Small races
+	gnomeNames := []string{"Tinker", "Gizmo", "Blix", "Zep", "Flick", "Dust", "Pip", "Nix"}
+	halflingNames := []string{"Bravo", "Daisy", "Pippin", "Rosie", "Sam", "Nim", "Lottie", "Jory"}
+	tieflingNames := []string{"Zariel", "Mephisto", "Asmodeus", "Fierna", "Glasya", "Lilith", "Baal", "Moloch"}
+	aasimarNames := []string{"Auriel", "Celestine", "Seren", "Lumina", "Divine", "Radiant", "Seraph", "Healer"}
+	goliathNames := []string{"Korg", "Brak", "Thok", "Dorn", "Haldor", "Grun", "Baldur", "Fjor"}
+	// Beastfolk & hybrids
+	minotaurNames := []string{"Asterion", "Minotaur", "Brawn", "Horn", "Gore", "Thorn", "Maze", "Labyrinth"}
+	centaurNames := []string{"Chiron", "Bolt", "Gallop", "Swift", "Prowl", "Stripe", "Hoof", "Rush"}
+	merfolkNames := []string{"Coral", "Tide", "Wave", "Splash", "Fin", "Shell", "Pearl", "Deep"}
+	harpyNames := []string{"Screech", "Wing", "Gale", "Storm", "Razor", "Plume", "Talons", "Squawk"}
+	werewolfNames := []string{"Fang", "Howl", "Rex", "Luna", "Shadow", "Feral", "Claw", "Prowl"}
+	werebearNames := []string{"Grizz", "Claw", "Fang", "Roar", "Brawn", "Thorn", "Paw", "Maw"}
+	// Monstrous
+	bugbearNames := []string{"Gruk", "Skarn", "Thok", "Brak", "Grix", "Nix", "Vorn", "Ghrak"}
+	ogreNames := []string{"Shrek", "Grond", "Thud", "Bash", "Crush", "Maul", "Grun", "Thok"}
+	trollNames := []string{"Stone", "Rot", "Thud", "Grun", "Mud", "Bog", "Tusk", "Claw"}
+	giantNames := []string{"Colossus", "Titan", "Boulder", "Thorn", "Gronn", "Dwarf", "Ogre", "Troll"}
+	mimicNames := []string{"Chest", "Trap", "Mimic", "Shapeshifter", "Decoy", "False", "Trick", "Snare"}
+	slimeNames := []string{"Ooze", "Goo", "Slime", "Muck", "Drip", "Splat", "Bloop", "Squish"}
+	golemNames := []string{"Iron", "Stone", "Clay", "Metal", "Construct", "Forge", "Anvil", "Shard"}
+	// Divine
+	deityNames := []string{"Aurora", "Solaris", "Lunara", "Terra", "Ignis", "Aqua", "Aether", "Nyx"}
+
 	names := map[string][]string{
 		"orc": orcNames, "wolf": wolfNames, "bear": bearNames,
 		"boar": boarNames, "rat": ratNames, "spider": spiderNames, "goblin": goblinNames,
@@ -334,6 +806,26 @@ func generateName(species string, rng *rand.Rand) string {
 		"half_orc": halfOrcNames, "half_elf": halfElfNames, "half_dwarf": halfDwarfNames,
 		"half_goblin": halfGoblinNames, "half_hobgoblin": halfHobgoblinNames,
 		"half_gnoll": halfGnollNames, "half_kobold": halfKoboldNames, "half_fey": halfFeyNames,
+		// Undead
+		"skeleton": skeletonNames, "zombie": zombieNames, "ghost": ghostNames,
+		"wraith": wraithNames, "lich": lichNames, "vampire": vampireNames,
+		// Fey & magical
+		"fairy": fairyNames, "dryad": dryadNames, "satyr": satyrNames,
+		"pixie": pixieNames, "treant": treantNames,
+		// Dragons & reptiles
+		"dragon": dragonNames, "lizardfolk": lizardfolkNames, "basilisk": basiliskNames,
+		// Small races
+		"gnome": gnomeNames, "halfling": halflingNames, "tiefling": tieflingNames,
+		"aasimar": aasimarNames, "goliath": goliathNames,
+		// Beastfolk & hybrids
+		"minotaur": minotaurNames, "centaur": centaurNames, "merfolk": merfolkNames,
+		"harpy": harpyNames, "werewolf": werewolfNames, "werebear": werebearNames,
+		// Monstrous
+		"bugbear": bugbearNames, "ogre": ogreNames, "troll": trollNames,
+		"giant": giantNames, "mimic": mimicNames, "slime": slimeNames,
+		"golem": golemNames,
+		// Divine
+		"deity": deityNames,
 	}
 	pool, ok := names[species]
 	if !ok || len(pool) == 0 {
@@ -352,7 +844,8 @@ func scriptPriority(name string) int {
 	case "bard", "guard", "ranger", "priest", "farmer", "fisherman", "miner",
 		"blacksmith", "innkeeper", "herbalist", "courier", "thief", "cultist",
 		"traveling_salesman", "wizard", "bar_patron", "bandit_chief",
-		"bread_weaver", "necromancer", "bandit", "politician", "diplomat":
+		"bread_weaver", "necromancer", "bandit", "politician", "diplomat",
+		"berzerker":
 		return 1
 	default:
 		return 2
@@ -433,6 +926,12 @@ func professionScript(profession string) string {
 		return "necromancer"
 	case "politician":
 		return "politician"
+	case "berzerker":
+		return "berzerker"
+	case "druid":
+		return "druid"
+	case "scout":
+		return "scout"
 	default:
 		return ""
 	}
@@ -442,31 +941,13 @@ func defaultSleepCycle(species string) string {
 	switch species {
 	case "spider":
 		return "nocturnal"
+	case "ghost", "wraith", "lich", "vampire", "skeleton", "zombie":
+		return "undead"
+	case "fairy", "pixie", "dryad", "satyr", "treant":
+		return "fey"
 	default:
 		return "diurnal"
 	}
-}
-
-// averageAttrs returns a child's attributes averaged from both parents with small random variation.
-func averageAttrs(a, b entity.Attributes, rng *rand.Rand) entity.Attributes {
-	return entity.Attributes{
-		STR: clampInt((a.STR+b.STR)/2+rng.Intn(3)-1, 3, 20),
-		DEX: clampInt((a.DEX+b.DEX)/2+rng.Intn(3)-1, 3, 20),
-		CON: clampInt((a.CON+b.CON)/2+rng.Intn(3)-1, 3, 20),
-		INT: clampInt((a.INT+b.INT)/2+rng.Intn(3)-1, 3, 20),
-		WIS: clampInt((a.WIS+b.WIS)/2+rng.Intn(3)-1, 3, 20),
-		CHA: clampInt((a.CHA+b.CHA)/2+rng.Intn(3)-1, 3, 20),
-	}
-}
-
-func clampInt(v, min, max int) int {
-	if v < min {
-		return min
-	}
-	if v > max {
-		return max
-	}
-	return v
 }
 
 // randomXPForLevel returns a random XP value for a given level.
@@ -477,339 +958,4 @@ func randomXPForLevel(level int, rng func(int) int) int {
 		return 0
 	}
 	return rng(level * 100)
-}
-
-// CanMate checks whether two entities are compatible for reproduction.
-func CanMate(a, b *entity.Entity) bool {
-	if a == nil || b == nil {
-		return false
-	}
-	if a.Species != b.Species {
-		return false
-	}
-	if a.Gender == b.Gender {
-		return false
-	}
-	if !a.Alive || !b.Alive {
-		return false
-	}
-	if a.Reproduction.Pregnant || b.Reproduction.Pregnant {
-		return false
-	}
-	// Immortal or undead species do not reproduce.
-	if a.Species == "deity" || a.Species == "vampire" {
-		return false
-	}
-	// Prevent incest: entities with a parent-child relationship cannot mate.
-	if rel, ok := a.Relationships[b.ID]; ok {
-		if rel.Type == entity.RelationshipParent || rel.Type == entity.RelationshipChild {
-			return false
-		}
-	}
-	return true
-}
-
-// SpawnBaby creates a new offspring entity from two parents.
-// The caller is responsible for providing a unique ID for the baby.
-func SpawnBaby(parent1, parent2 *entity.Entity, id, babyName string, tick uint64, rng func(int) int) *entity.Entity {
-	if !CanMate(parent1, parent2) {
-		return nil
-	}
-
-	attrs := inheritAttributes(parent1.Attributes, parent2.Attributes, rng)
-	baby := entity.NewEntity(
-		id,
-		babyName,
-		parent1.Species,
-		attrs,
-		1,
-		relation.EmptyRelation,
-	)
-	baby.LocationID = parent1.LocationID
-	baby.Faction = parent1.Faction
-	baby.Profession = ""
-	baby.AI = entity.EntityAI{
-		Type:         "scripted",
-		ScriptIDs:    defaultScripts(baby.Species, baby.Profession),
-		FactionID:    parent1.Faction,
-		SleepCycle:   defaultSleepCycle(baby.Species),
-		HomeLocation: parent1.LocationID,
-	}
-	baby.XP = randomXPForLevel(1, rng)
-
-	// Inherit gender randomly from one of the parents
-	baby.Gender = entity.GetRndGender()
-
-	// Mark the female parent as pregnant and record the father
-	if parent1.Gender == entity.GenderFemale {
-		parent1.Reproduction.Pregnant = true
-		parent1.Reproduction.FatherID = parent2.ID
-	} else if parent2.Gender == entity.GenderFemale {
-		parent2.Reproduction.Pregnant = true
-		parent2.Reproduction.FatherID = parent1.ID
-	}
-
-	// Establish relationships: mate bond and parent-child links
-	parent1.AddRelationship(parent2.ID, entity.RelationshipMate, tick)
-	parent2.AddRelationship(parent1.ID, entity.RelationshipMate, tick)
-	parent1.AddRelationship(baby.ID, entity.RelationshipParent, tick)
-	parent2.AddRelationship(baby.ID, entity.RelationshipParent, tick)
-	baby.AddRelationship(parent1.ID, entity.RelationshipChild, tick)
-	baby.AddRelationship(parent2.ID, entity.RelationshipChild, tick)
-
-	// Give the baby a random amount of XP appropriate for its level.
-	baby.XP = randomXPForLevel(1, rng)
-
-	return baby
-}
-
-func inheritAttributes(a, b entity.Attributes, rng func(int) int) entity.Attributes {
-	return entity.Attributes{
-		STR: clampAttr((a.STR+b.STR)/2 + rng(3) - 1),
-		DEX: clampAttr((a.DEX+b.DEX)/2 + rng(3) - 1),
-		CON: clampAttr((a.CON+b.CON)/2 + rng(3) - 1),
-		INT: clampAttr((a.INT+b.INT)/2 + rng(3) - 1),
-		WIS: clampAttr((a.WIS+b.WIS)/2 + rng(3) - 1),
-		CHA: clampAttr((a.CHA+b.CHA)/2 + rng(3) - 1),
-	}
-}
-
-func clampAttr(v int) int {
-	if v < 3 {
-		return 3
-	}
-	if v > 20 {
-		return 20
-	}
-	return v
-}
-
-// GestationTicksForSpecies returns the gestation period for a species in ticks.
-// Reads from the species registry (Species.GestationTicks). Falls back to 200
-// ticks if the species has no entry.
-func GestationTicksForSpecies(sp string) int {
-	if s, ok := species.GetByID(sp); ok && s.GestationTicks > 0 {
-		return s.GestationTicks
-	}
-	return 200
-}
-
-// StartPregnancy marks an entity as pregnant with a given father and start tick.
-func StartPregnancy(mother, father *entity.Entity, tick uint64) {
-	if mother == nil || father == nil {
-		return
-	}
-	if !mother.CanGetPregnant() {
-		return
-	}
-	if mother.Reproduction.Pregnant {
-		return
-	}
-	mother.Reproduction.Pregnant = true
-	mother.Reproduction.PregnantSinceTick = tick
-	mother.Reproduction.FatherID = father.ID
-}
-
-// ProcessPregnancy checks all entities for completed pregnancies and spawns babies.
-func ProcessPregnancy(em *entity.EntityManager, tick uint64, rng *rand.Rand) {
-	for _, e := range em.All() {
-		if !e.Reproduction.Pregnant {
-			continue
-		}
-		if tick < e.Reproduction.PregnantSinceTick {
-			continue
-		}
-		gestation := GestationTicksForSpecies(e.Species)
-		if tick-e.Reproduction.PregnantSinceTick < uint64(gestation) {
-			continue
-		}
-		// Find father entity
-		var father *entity.Entity
-		for _, cand := range em.All() {
-			if cand.ID == e.Reproduction.FatherID {
-				father = cand
-				break
-			}
-		}
-		if father == nil {
-			// father not found, clear pregnancy
-			e.Reproduction.Pregnant = false
-			e.Reproduction.PregnantSinceTick = 0
-			e.Reproduction.FatherID = ""
-			continue
-		}
-		// Generate baby ID and name
-		babyName := generateName(e.Species, rng)
-		babyID := fmt.Sprintf("%s_baby_%s_%s_%d", e.Species, babyName, e.LocationID, tick)
-		// Clear pregnancy before spawning so CanMate won't reject the pair.
-		e.Reproduction.Pregnant = false
-		e.Reproduction.PregnantSinceTick = 0
-		e.Reproduction.FatherID = ""
-		baby := SpawnBaby(e, father, babyID, babyName, tick, func(n int) int { return rng.Intn(n) })
-		if baby != nil {
-			em.Add(baby)
-		}
-	}
-}
-
-// SeedFamilies creates multi-generational family groups at simulation start.
-// It places 2–5 families across civilian (indoor) locations in the world.
-func SeedFamilies(em *entity.EntityManager, w *world.World, rng *rand.Rand) {
-	const maxFamilies = 5
-
-	var candidates []*world.Location
-	for _, loc := range w.AllLocations() {
-		if loc.IsOutside {
-			continue // families live in towns, villages, and buildings
-		}
-		if w.IsDivineRealm(loc.ID) {
-			continue
-		}
-		candidates = append(candidates, loc)
-	}
-	if len(candidates) == 0 {
-		return
-	}
-
-	numFamilies := 2 + rng.Intn(maxFamilies-1)
-	for i := 0; i < numFamilies; i++ {
-		loc := candidates[rng.Intn(len(candidates))]
-		seedFamilyAtLocation(em, loc.ID, rng)
-	}
-}
-
-func seedFamilyAtLocation(em *entity.EntityManager, locID string, rng *rand.Rand) {
-	species := pickFamilySpecies(rng)
-	tick := uint64(0) // relationships start at tick 0 for seeded families
-
-	// Generation 1: Grandparents (old, level 6–9)
-	grandpa := createSeededEntity(species, "male", 6+rng.Intn(4), locID, rng)
-	grandma := createSeededEntity(species, "female", 6+rng.Intn(4), locID, rng)
-
-	grandpa.AddRelationship(grandma.ID, entity.RelationshipMate, tick)
-	grandma.AddRelationship(grandpa.ID, entity.RelationshipMate, tick)
-
-	// Generation 2: Parents (children of grandparents, level 3–6)
-	numParents := 1 + rng.Intn(2) // 1–2 parents
-	parents := make([]*entity.Entity, 0, numParents)
-	for i := 0; i < numParents; i++ {
-		gender := "male"
-		if i == 0 {
-			gender = "female"
-		}
-		parent := createSeededEntity(species, gender, 3+rng.Intn(4), locID, rng)
-		parents = append(parents, parent)
-
-		// Grandparent ↔ parent relationships
-		grandpa.AddRelationship(parent.ID, entity.RelationshipChild, tick)
-		grandma.AddRelationship(parent.ID, entity.RelationshipChild, tick)
-		parent.AddRelationship(grandpa.ID, entity.RelationshipParent, tick)
-		parent.AddRelationship(grandma.ID, entity.RelationshipParent, tick)
-	}
-
-	// Mate relationship between parents (if 2 parents)
-	if len(parents) >= 2 {
-		parents[0].AddRelationship(parents[1].ID, entity.RelationshipMate, tick)
-		parents[1].AddRelationship(parents[0].ID, entity.RelationshipMate, tick)
-	}
-
-	// Generation 3: Children (children of parents, level 1–3)
-	numChildren := 1 + rng.Intn(3) // 1–3 children
-	children := make([]*entity.Entity, 0, numChildren)
-	for i := 0; i < numChildren; i++ {
-		gender := "male"
-		if rng.Intn(2) == 0 {
-			gender = "female"
-		}
-		child := createSeededEntity(species, gender, 1+rng.Intn(3), locID, rng)
-		children = append(children, child)
-
-		// Parent ↔ child relationships
-		for _, parent := range parents {
-			parent.AddRelationship(child.ID, entity.RelationshipChild, tick)
-			child.AddRelationship(parent.ID, entity.RelationshipParent, tick)
-		}
-
-		// Sibling relationships
-		for _, sibling := range children {
-			if sibling.ID != child.ID {
-				child.AddRelationship(sibling.ID, entity.RelationshipSibling, tick)
-				sibling.AddRelationship(child.ID, entity.RelationshipSibling, tick)
-			}
-		}
-	}
-
-	// Generation 4: Grandchildren (children of one adult parent, level 1)
-	if len(parents) > 0 {
-		for _, parent := range parents {
-			if parent.Level >= 3 && rng.Intn(100) < 30 {
-				gcGender := "male"
-				if rng.Intn(2) == 0 {
-					gcGender = "female"
-				}
-				gc := createSeededEntity(species, gcGender, 1, locID, rng)
-
-				parent.AddRelationship(gc.ID, entity.RelationshipChild, tick)
-				gc.AddRelationship(parent.ID, entity.RelationshipParent, tick)
-
-				// Grandparent ↔ grandchild relationships
-				grandpa.AddRelationship(gc.ID, entity.RelationshipChild, tick)
-				grandma.AddRelationship(gc.ID, entity.RelationshipChild, tick)
-				gc.AddRelationship(grandpa.ID, entity.RelationshipParent, tick)
-				gc.AddRelationship(grandma.ID, entity.RelationshipParent, tick)
-
-				// Sibling relationships with existing children
-				for _, sibling := range children {
-					gc.AddRelationship(sibling.ID, entity.RelationshipSibling, tick)
-					sibling.AddRelationship(gc.ID, entity.RelationshipSibling, tick)
-				}
-
-				em.Add(gc)
-				break // one grandchild per family is enough
-			}
-		}
-	}
-
-	// Add all entities to the manager
-	em.Add(grandpa)
-	em.Add(grandma)
-	for _, p := range parents {
-		em.Add(p)
-	}
-	for _, c := range children {
-		em.Add(c)
-	}
-
-	log.Printf("[seed] seeded %s family at %s: grandpa=%s grandma=%s parents=%d children=%d",
-		species, locID, grandpa.Name, grandma.Name, len(parents), len(children))
-}
-
-func pickFamilySpecies(rng *rand.Rand) string {
-	species := slices.Collect(maps.Keys(species.Registry))
-	return species[rng.Intn(len(species))]
-}
-
-func createSeededEntity(species, gender string, level int, locID string, rng *rand.Rand) *entity.Entity {
-	attrs := baseSpeciesAttrs(species, rng)
-	name := generateName(species, rng)
-	id := fmt.Sprintf("%s_seed_%s_%s_%d", species, gender, name, rng.Intn(100000))
-
-	ent := entity.NewEntity(id, name, species, attrs, level, relation.EmptyRelation)
-	ent.Gender = gender
-	ent.LocationID = locID
-	ent.Faction = "civilian"
-	ent.Profession = pickCivilianProfession(rng)
-	ent.AI = entity.EntityAI{
-		Type:         "passive",
-		SleepCycle:   defaultSleepCycle(species),
-		HomeLocation: locID,
-	}
-	// Seeded entities start with a random amount of XP appropriate for their level.
-	ent.XP = randomXPForLevel(level, rng.Intn)
-	return ent
-}
-
-func pickCivilianProfession(rng *rand.Rand) string {
-	professions := []string{"", "farmer", "merchant", "herbalist", "miner", "fisherman", "craftsman", "scholar", "bard", "priest"}
-	return professions[rng.Intn(len(professions))]
 }

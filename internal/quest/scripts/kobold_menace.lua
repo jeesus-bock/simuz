@@ -38,3 +38,7 @@ quest.define({
   },
   rewards = { experience = 75, gold = 15 },
 })
+
+return {
+  util.event("quest_accepted", { quest_id = "kobold_menace", source = "frosthold_guard_captain" }),
+}

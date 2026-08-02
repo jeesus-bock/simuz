@@ -38,3 +38,7 @@ quest.define({
   },
   rewards = { experience = 300, gold = 75 },
 })
+
+return {
+  util.event("quest_accepted", { quest_id = "vampire_hunt", source = "frosthold_priest" }),
+}
