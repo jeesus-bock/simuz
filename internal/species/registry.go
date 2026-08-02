@@ -104,7 +104,7 @@ var Registry = map[string]Species{
 		PreferredBiomes:     []string{"highlands"},
 		PoliticalIdeology:   "capitalist",
 		DiplomaticRank:      "ambassador",
-		DefensiveBonus:      20,
+		DefensiveBonus:      25,
 		Civilized:           true,
 	},
 	"hobbit": {
