@@ -1,6 +1,6 @@
 -- Smuggler AI
 -- An illegal trader who moves contraband between settlements,
- avoiding authorities and selling to the highest bidder.
+-- avoiding authorities and selling to the highest bidder.
 
 local SELL_CHANCE = 55
 local BOUNTY_HUNTER_CHANCE = 20
@@ -86,16 +86,16 @@ function do_tick()
     local tick = world.tick
 
     if world.defend_self and world.defend_self() then
-        return {util.event("profession_action", {profession = "smuggler"})}
+        return { util.event("profession_action", { profession = "smuggler" }) }
     end
     if world.avoid_combat and world.avoid_combat() then
-        return {util.event("profession_action", {profession = "smuggler"})}
+        return { util.event("profession_action", { profession = "smuggler" }) }
     end
 
     if should_flee() then
         flee()
         util.set_mood("stressed")
-        return {util.event("profession_action", {profession = "smuggler"})}
+        return { util.event("profession_action", { profession = "smuggler" }) }
     end
 
     if tick % 5 == 0 then
